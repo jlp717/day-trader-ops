@@ -384,6 +384,13 @@ def c_precios(bot, args):
             q.get("age_seconds"), q.get("exchange") or "?"))
     except datos.DataError as exc:
         lines.append("Yahoo: no disponible (%s)" % str(exc)[:120])
+    alt = None
+    try:
+        alt = datos.quote_cnbc(sym)
+        lines.append("CNBC: %s USD · %s · hace %ss" % (
+            _fmt(alt.get("price")), alt.get("data_time") or "n/d", alt.get("age_seconds")))
+    except datos.DataError as exc:
+        lines.append("CNBC: no disponible (%s)" % str(exc)[:80])
     if q and (q.get("age_seconds") or 0) > 300:
         lines.append("AVISO: Yahoo va con retraso (>300 s). No operes con esta tabla; usa /ref con lo que veas en Börse Frankfurt/TradingView/MyInvestor.")
     refs = referencias.get(sym)
@@ -395,6 +402,8 @@ def c_precios(bot, args):
     prices = []
     if q:
         prices.append(float(q["price"]))
+    if alt:
+        prices.append(float(alt["price"]))
     prices += [float(r["price"]) for r in refs]
     if len(prices) >= 2 and min(prices) > 0:
         diff = (max(prices) - min(prices)) / min(prices) * 100.0
@@ -705,6 +714,7 @@ def c_ayuda(bot, args):
             "<b>Analisis:</b> /ticker T · /plan T · /tm T · /tamano T · /risk · /noticias T · /resultados T\n"
             "<b>Operar a mano:</b> /entre T precio cantidad [stop] [objetivo] · /sali T precio [acciones] · "
             "/vender T precio · /stop T precio · /posiciones · /pnl\n"
+            "<b>Guia:</b> /guia · qué hacer ahora, paso a paso, con la posición real\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -816,6 +826,86 @@ def c_hoy(bot, args):
 
 def c_ahora(bot, args):
     return ahora.texto()
+
+
+def c_guia(bot, args):
+    """Que hacer ahora, con los niveles reales y las ordenes exactas."""
+    now = zt.madrid()
+    clave, titulo, hace, espera, ignora = ahora.fase(now)
+    ev, when = ahora.siguiente_evento(now)
+    out = ["<b>Guia</b> · %s · %s" % (zt.short_stamp(now), titulo)]
+    ab = posiciones.abiertas()
+    if not ab:
+        out.append("Sin posiciones abiertas.")
+        out.append("Que haces: %s" % espera)
+        if ev:
+            out.append("Proximo: %s a las %s (en %s)" % (
+                ev, when.astimezone(zt.MADRID).strftime("%H:%M"), ahora.cuenta_atras(when, now)))
+        out.append("Si llega SEÑAL A, te mando el ticket exacto. Si no, no hay nada que hacer.")
+        return "\n".join(out)
+
+    for p in ab:
+        sym = p["symbol"]
+        qty = float(p.get("qty") or 0)
+        entry = float(p.get("entrada") or 0)
+        stop = p.get("stop")
+        target = p.get("target")
+        out.append("")
+        out.append("<b>%s</b> %s acc desde %s · stop %s · objetivo %s" % (
+            sym, _qty(qty), _fmt(entry), _fmt(stop), _fmt(target)))
+        px = None
+        try:
+            q = datos.quote(sym)
+            px = float(q["price"])
+            out.append("Ahora %s · dato de hace %ss · %s" % (
+                _fmt(px), q.get("age_seconds"), q.get("exchange") or ""))
+        except Exception:
+            out.append("Ahora: sin dato de Yahoo.")
+        cost = None
+        try:
+            cost = float(datos.coste_ida_vuelta_usd(qty * entry)["total_usd"])
+            out.append("Coste ida+vuelta %.2f USD · break-even %s" % (cost, _fmt(entry + cost / qty)))
+        except Exception:
+            pass
+        if px is not None:
+            pnl = (px - entry) * qty
+            r = ((px - entry) / (entry - float(stop))) if stop and entry > float(stop) else None
+            out.append("P&L bruto %+.2f USD · %sR" % (pnl, ("%+.2f" % r) if r is not None else "n/d"))
+            if stop:
+                out.append("Distancia al stop %s: %+.2f USD (%.2f%% desde ahora)" % (
+                    _fmt(stop), (float(stop) - px) * qty, abs(px - float(stop)) / px * 100))
+            if target:
+                out.append("Distancia al objetivo %s: %+.2f USD (%.2f%% desde ahora)" % (
+                    _fmt(target), (float(target) - px) * qty, abs(float(target) - px) / px * 100))
+            if cost is not None and stop:
+                out.append("Neto si salta el stop: %+.2f USD" % ((float(stop) - entry) * qty - cost))
+            if cost is not None and target:
+                out.append("Neto si toca el objetivo: %+.2f USD" % ((float(target) - entry) * qty - cost))
+        if clave in ("ventana", "ultimos30"):
+            out.append("Ahora: nada hasta que toque un nivel.")
+            if stop:
+                out.append("Si toca %s: vende %s (o deja el stop-loss), cancela el stop y /sali %s <fill>." % (
+                    _fmt(stop), _qty(qty), sym))
+            if target:
+                out.append("Si toca %s: vende %s con limitada %s, cancela el stop y /sali %s <fill>." % (
+                    _fmt(target), _qty(qty), _fmt(target), sym))
+            out.append("A las 21:55: cancela el stop, vende al bid y /sali %s <fill>." % sym)
+        elif clave == "cierre":
+            out.append("Flat by close: cierra ya. Cancela el stop y /sali %s <fill>." % sym)
+        elif clave == "post":
+            out.append("Mercado cerrado: posicion overnight. Rearma el stop mañana; el de hoy caduco.")
+            if stop:
+                out.append("Mañana: /stop %s %s para volver a vigilarlo." % (sym, _fmt(stop)))
+            if target:
+                out.append("Mañana: /vender %s %s para el objetivo." % (sym, _fmt(target)))
+            out.append("Riesgo overnight: un hueco de apertura puede saltarse el stop.")
+        else:
+            out.append("Fuera de la ventana: %s" % espera)
+    if ev:
+        out.append("")
+        out.append("Proximo: %s a las %s (en %s)" % (
+            ev, when.astimezone(zt.MADRID).strftime("%H:%M"), ahora.cuenta_atras(when, now)))
+    return "\n".join(out)
 
 
 def c_explica(bot, args):
@@ -1420,8 +1510,8 @@ def interpretar(texto_libre):
         return "/elegir %s" % _tk(m.group(2)) if m and _tk(m.group(2)) else "/elegir"
     if re.search(r"\b(ganadores|ganadoras|que sube|que esta subiendo|las que mas suben|top del dia)\b", t):
         return "/ganadores"
-    if re.search(r"\b(que hago ahora|que toca ahora|y ahora que|que debo hacer ahora|ahora que hago)\b", t):
-        return "/ahora"
+    if re.search(r"\b(que hago ahora|que toca ahora|y ahora que|que debo hacer ahora|ahora que hago|guia|siguiente paso)\b", t):
+        return "/guia"
     if re.search(r"\b(que esta pasando|como esta el sistema|esta vivo|estado del sistema|como va todo)\b", t):
         return "/estado"
     if re.search(r"\b(ensename|explicame|que es|como funciona)\b", t):
@@ -1530,7 +1620,7 @@ COMANDOS = {
     "ahora": c_ahora, "explica": c_explica, "porque": c_porque, "ensenar": c_ensenar,
     "ganadores": c_ganadores, "ganadoras": c_ganadores, "suben": c_ganadores,
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
-    "ref": c_ref, "precios": c_precios,
+    "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

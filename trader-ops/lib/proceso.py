@@ -194,6 +194,8 @@ def construir_mensaje_senal(ctx, ev, *, etiqueta="SEÑAL A"):
         b.num((ctx.get("costs") or {}).get("total_usd") or 0, 2, "coste", src=None),
         b.num((ctx.get("costs_alt") or {}).get("total_usd") or 0, 2, "coste_usd_acct")))
     b.add_allowed("0,12", "0,30")
+    if ctx.get("cross_check"):
+        b.raw("Contraste: %s\n" % ctx["cross_check"])
     b.blank()
     nums = ev["numbers"]
     b.line("Time Machine: objetivo primero %s, stop primero %s, nada %s (%s replays, seed %s)" % (
@@ -216,6 +218,7 @@ def construir_mensaje_senal(ctx, ev, *, etiqueta="SEÑAL A"):
     b.blank()
     b.line("Frecuencias de una simulacion y de un historico, no promesas.")
     b.line("Salida: stop, objetivo o flat by close, lo que llegue antes. No se mantiene.")
+    b.line("Operar: compra limitada; /entre con el fill; stop-loss y venta limitada. /guia para el paso a paso.")
     b.line("Re-entrada: este setup no se repite hoy. Maximo 2 SEÑAL A por valor y 3 al dia.")
     ana = ctx.get("analyst") or {}
     if ana.get("filed"):
@@ -492,6 +495,15 @@ def evaluar_symbol(symbol, *, cfgd=None, enviar=True, bot=None, forzar=False):
         diario.append("senal_caducada", symbol=symbol.upper(), drift=round(drift, 3),
                       output="drift %.3f" % drift)
         return out
+
+    # 12) segundo testigo: Yahoo vs CNBC. Si difieren mucho, no se envia.
+    cross_ok, cross_detail, _alt = datos.cross_check(symbol, q2["price"])
+    if not cross_ok:
+        out["verdict"] = "DESCARTADA"
+        out["reasons"] = ["datos discrepantes: " + cross_detail]
+        diario.append("datos_discrepantes", symbol=symbol.upper(), detail=cross_detail)
+        return out
+    ctx["cross_check"] = cross_detail
 
     out["payload"] = payload
     if enviar:

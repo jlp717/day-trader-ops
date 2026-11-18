@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import alertas, cfg, posiciones, referencias  # noqa: E402
+from lib import alertas, cfg, datos, posiciones, referencias  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
 
@@ -475,6 +475,90 @@ class VentanaOrb(unittest.TestCase):
     def test_cierre_anticipado_manda_el_cierre(self):
         self.assertFalse(self.wd._ventana_orb(self._dt(18, 30), self._dt(15, 30),
                                               self._dt(18, 0), self._dt(21, 30)))
+
+
+class FuenteCnbc(unittest.TestCase):
+    """Segundo testigo: parseo y umbral de discrepancia."""
+
+    DOC = {"FormattedQuoteResult": {"FormattedQuote": [{
+        "last": "154.96", "last_time": "2026-11-18T10:09:24.143-0500", "exchange": "NYSE"}]}}
+
+    def test_parsea_la_respuesta(self):
+        from unittest import mock
+        with mock.patch.object(datos, "http_json_url", return_value=self.DOC), \
+                mock.patch.object(datos, "_cache_get", return_value=None), \
+                mock.patch.object(datos, "_cache_put"):
+            q = datos.quote_cnbc("NVDA")
+        self.assertAlmostEqual(q["price"], 154.96)
+        self.assertEqual(q["source"], "CNBC")
+        self.assertEqual(q["currency"], "USD")
+        self.assertIsNotNone(q["data_time"])
+
+    def test_no_intenta_xetra(self):
+        with self.assertRaises(datos.DataError):
+            datos.quote_cnbc("NVD.DE")
+
+    def test_cross_check_ok(self):
+        from unittest import mock
+        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}):
+            ok, detalle, alt = datos.cross_check("NVDA", 100.2)
+        self.assertTrue(ok)
+        self.assertIn("0.20%", detalle)
+        self.assertEqual(alt["price"], 100.0)
+
+    def test_cross_check_bloquea_si_difieren(self):
+        from unittest import mock
+        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}):
+            ok, detalle, _ = datos.cross_check("NVDA", 101.0)
+        self.assertFalse(ok)
+        self.assertIn("0.99%", detalle)
+
+    def test_cross_check_no_bloquea_si_cnbc_cae(self):
+        from unittest import mock
+        with mock.patch.object(datos, "quote_cnbc", side_effect=datos.DataError("caido")):
+            ok, detalle, alt = datos.cross_check("NVDA", 100.0)
+        self.assertTrue(ok)
+        self.assertIsNone(alt)
+        self.assertIn("no disponible", detalle)
+
+
+class Guia(unittest.TestCase):
+    """El comando /guia debe decir la accion exacta, no solo el estado."""
+
+    POS = {"id": "p1", "symbol": "CRCL", "qty": 7.0, "entrada": 52.96,
+           "stop": 52.4, "target": 55.34}
+
+    def setUp(self):
+        from unittest import mock
+        self.bot = _cargar("tgbot_guia", ROOT / "trader-ops" / "run" / "telegram_bot.py")
+        self.mock = mock
+        self._fase = self.bot.ahora.fase
+        self._sig = self.bot.ahora.siguiente_evento
+        self.bot.ahora.fase = lambda now=None: ("ventana", "Ventana de entrada", "", "", "")
+        self.bot.ahora.siguiente_evento = lambda now=None: (None, None)
+
+    def tearDown(self):
+        self.bot.ahora.fase = self._fase
+        self.bot.ahora.siguiente_evento = self._sig
+
+    def test_sin_posicion(self):
+        with self.mock.patch.object(self.bot.posiciones, "abiertas", return_value=[]):
+            txt = self.bot.c_guia(None, [])
+        self.assertIn("Sin posiciones abiertas", txt)
+        self.assertIn("Si llega SEÑAL A", txt)
+
+    def test_con_posicion_da_las_ordenes(self):
+        with self.mock.patch.object(self.bot.posiciones, "abiertas", return_value=[self.POS]), \
+                self.mock.patch.object(self.bot.datos, "quote",
+                                       return_value={"price": 53.9, "age_seconds": 4, "exchange": "NYQ"}), \
+                self.mock.patch.object(self.bot.datos, "coste_ida_vuelta_usd",
+                                       return_value={"total_usd": 8.81}):
+            txt = self.bot.c_guia(None, [])
+        self.assertIn("CRCL", txt)
+        self.assertIn("Si toca 52.4", txt)
+        self.assertIn("limitada 55.34", txt)
+        self.assertIn("/sali CRCL", txt)
+        self.assertIn("Neto si salta el stop", txt)
 
 
 if __name__ == "__main__":

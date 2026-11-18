@@ -101,7 +101,7 @@ class Frases(unittest.TestCase):
     def test_frases_reales(self):
         casos = {
             "qué está pasando": "/estado",
-            "qué hago ahora": "/ahora",
+            "qué hago ahora": "/guia",
             "ya entré en NVDA a 142,5 con 8": "/entre NVDA 142.5 8",
             "he entrado en nvda a 142,5 con 8 acciones": "/entre NVDA 142.5 8",
             "he salido de NVDA a 156,4": "/sali NVDA 156.4",
@@ -120,7 +120,7 @@ class Frases(unittest.TestCase):
 
     def test_frases_mal_escritas(self):
         casos = {
-            "k hago ahora": "/ahora",
+            "k hago ahora": "/guia",
             "xq no hay señales": "/porque",
             "q esta pasando": "/estado",
             "ya entre en nvda a 142,5 con 8": "/entre NVDA 142.5 8",

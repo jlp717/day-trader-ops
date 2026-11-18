@@ -6,6 +6,7 @@ liquidez y spread con numeros propios, (c) convertir EUR/USD. Todo queda en el d
 import datetime as dt
 import gzip
 import json
+import re
 import statistics
 import time
 import urllib.error
@@ -92,6 +93,31 @@ def http_json(path, timeout=20, retries=1):
     raise DataError("sin respuesta (%s)" % last)
 
 
+def http_json_url(url, timeout=20, retries=1):
+    """GET a una URL completa (fuera de Yahoo). Devuelve JSON o lanza DataError."""
+    last = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+        try:
+            _polite()
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as exc:
+            last = "HTTP %d" % exc.code
+            try:
+                exc.close()
+            except Exception:
+                pass
+            if exc.code == 429:
+                time.sleep(BACKOFF)
+                continue
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            last = str(exc)
+        if attempt < retries:
+            time.sleep(1)
+    raise DataError("sin respuesta (%s)" % last)
+
+
 def yahoo_symbol(symbol):
     """Simbolo tal cual para Yahoo; solo normaliza clases USA con punto."""
     s = symbol.strip().upper()
@@ -149,6 +175,73 @@ def quote(symbol):
     return {"symbol": doc["symbol"], "price": float(last), "currency": doc["currency"],
             "exchange": doc["exchange"], "data_time": zt.iso_utc(moment) if moment else None,
             "age_seconds": None if age is None else int(age), "bars": len(doc["bars"])}
+
+
+CNBC = ("https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol"
+        "?symbols=%s&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1")
+CNBC_TTL = 5
+
+
+def quote_cnbc(symbol):
+    """Segundo testigo publico (CNBC), sin clave. Solo tickers simples de US.
+
+    Devuelve el mismo contrato basico que quote(): precio, hora y edad. Si el
+    endpoint cambia o no cubre el simbolo, lanza DataError y el llamante decide.
+    """
+    sym = symbol.strip().upper()
+    if not re.match(r"^[A-Z]{1,5}$", sym):
+        raise DataError("CNBC solo cubre tickers simples de US (%s)" % symbol)
+    hit = _cache_get("cnbc_%s" % sym, CNBC_TTL)
+    if hit:
+        return hit
+    doc = http_json_url(CNBC % sym)
+    q = ((doc.get("FormattedQuoteResult") or {}).get("FormattedQuote") or [])
+    if isinstance(q, dict):
+        q = [q]
+    if not q:
+        raise DataError("CNBC sin datos para %s" % sym)
+    x = q[0]
+    raw = x.get("last")
+    try:
+        price = float(str(raw).replace(",", "").replace("$", "").strip())
+    except (TypeError, ValueError):
+        raise DataError("CNBC sin precio valido para %s (%r)" % (sym, raw))
+    when = None
+    try:
+        when = dt.datetime.fromisoformat(str(x.get("last_time") or ""))
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=zt.NEW_YORK)
+    except Exception:
+        when = None
+    moment = when.astimezone(zt.UTC) if when else None
+    age = (zt.now_utc() - moment).total_seconds() if moment else None
+    out = {"symbol": sym, "price": price, "currency": "USD", "source": "CNBC",
+           "exchange": x.get("exchange") or "US",
+           "data_time": zt.iso_utc(moment) if moment else None,
+           "age_seconds": None if age is None else int(age)}
+    _cache_put("cnbc_%s" % sym, out)
+    return out
+
+
+def cross_check(symbol, ref_price, max_diff_pct=0.5):
+    """(ok, detalle, alt) comparando el precio de Yahoo con CNBC.
+
+    Si CNBC no responde, ok=True: no se bloquea una senal por un testigo caido.
+    Si responde y la diferencia supera max_diff_pct, ok=False.
+    """
+    try:
+        alt = quote_cnbc(symbol)
+    except Exception as exc:
+        return True, "CNBC no disponible (%s)" % str(exc)[:80], None
+    try:
+        ref = float(ref_price)
+    except (TypeError, ValueError):
+        return True, "sin precio de referencia", alt
+    if ref <= 0:
+        return True, "sin precio de referencia", alt
+    diff = abs(float(alt["price"]) - ref) / ref * 100.0
+    ok = diff <= float(max_diff_pct)
+    return ok, "Yahoo %.2f vs CNBC %.2f (%.2f%%)" % (ref, alt["price"], diff), alt
 
 
 def _spark(symbols, range_="1mo", interval="1d"):
