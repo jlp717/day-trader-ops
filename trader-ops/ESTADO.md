@@ -128,8 +128,14 @@ día 7 de dos señales.
   99 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
 - **Latencia medida (18/11 15:31 Madrid)**: `/precios NVDA` → 158,75 USD, `data_time`
   14:31:29Z, **edad 2 s**, exchange NMS. Yahoo va en tiempo real para US; la hipótesis de
-  15 minutos queda descartada para el feed del sistema. La pantalla de MyInvestor es otro reloj.
-  El filtro `frescura` (<300 s) sigue midiendo en cada señal: si el dato envejece, no hay aviso.
+  15 minutos queda descartada para el feed del sistema.
+- **MyInvestor (18/11 15:34)**: ficha de NVDA a **158,59** con Yahoo en **158,75** (0,1 % de
+  diferencia). Para este valor y esta pantalla no se observa el retraso de 15 min que dice su FAQ.
+  No se reescribe el manual con una sola muestra: el precio de referencia para `/entre` sigue siendo
+  el **fill del ticket**, y la orden limitada sigue siendo obligatoria.
+- **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
+  porque contaba la ventana de sesión completa (15:30-22:00) y el ORB no empieza hasta las 15:50.
+  Ahora solo comprueba entre la primera pasada y el corte de entradas. 103 tests propios OK.
 
 ## 6. Cambios de ultima hora (reversibles)
 

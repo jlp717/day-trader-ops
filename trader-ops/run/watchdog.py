@@ -40,6 +40,20 @@ def _puede_avisar(key, minutos=30):
     return True
 
 
+def _ventana_orb(now, start, end, cutoff):
+    """True solo entre la primera pasada del ORB y el corte de entradas.
+
+    Entre la apertura (15:30) y las 15:50 no hay escaneo ORB por diseno: el
+    premarket de las 13:00 es la ultima pasada. Avisar a las 15:34 de un hueco
+    de 152 min es un falso positivo, no una averia.
+    """
+    if not start or not end:
+        return False
+    ini = start + dt.timedelta(minutes=20)
+    fin = min(cutoff, end) if cutoff else end
+    return ini <= now <= fin
+
+
 def comprobar(bot=None):
     bot = bot or tg.Telegram()
     problemas = []
@@ -54,12 +68,16 @@ def comprobar(bot=None):
     elif age > limite:
         problemas.append(("latido_viejo", "El orquestador no late desde hace %d min (fase %s)." % (
             age / 60, hb.get("phase"))))
-    # hueco de datos: ultimo comando del scanner
+    # hueco de datos: ultimo comando del scanner, solo dentro de la ventana ORB
     last_scan = diario.last_command("scanner")
-    if en_sesion and last_scan:
-        sage = _age_seconds(last_scan.get("ts_utc"))
-        if sage and sage > 1800:
-            problemas.append(("hueco_datos", "Sin pasada del scanner desde hace %d min." % (sage / 60)))
+    cutoff = zt.et_to_madrid(cfg.config().get("no_entries_after", "15:30"), now.date())
+    if _ventana_orb(now, start, end, cutoff):
+        if not last_scan:
+            problemas.append(("hueco_datos", "El escaner ORB no ha hecho ninguna pasada."))
+        else:
+            sage = _age_seconds(last_scan.get("ts_utc"))
+            if sage and sage > 1800:
+                problemas.append(("hueco_datos", "Sin pasada del scanner desde hace %d min." % (sage / 60)))
     # errores recientes
     errs = [e for e in diario.read_all() if e.get("event") in ("error", "telegram_error")
             and (_age_seconds(e.get("ts_utc")) or 1e9) < 3600]

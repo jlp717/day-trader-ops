@@ -449,5 +449,33 @@ class ListaOrb(unittest.TestCase):
         self.assertTrue(hasattr(self.orch, "ganadores"))
 
 
+class VentanaOrb(unittest.TestCase):
+    """El vigilante no debe quejarse antes de la primera pasada del ORB."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.wd = _cargar("wd_orb_test", ROOT / "trader-ops" / "run" / "watchdog.py")
+
+    def _dt(self, h, m):
+        import datetime as dt
+        return dt.datetime(2026, 11, 18, h, m, tzinfo=zt.MADRID)
+
+    def test_antes_de_las_15_50_no_avisa(self):
+        self.assertFalse(self.wd._ventana_orb(self._dt(15, 34), self._dt(15, 30),
+                                              self._dt(22, 0), self._dt(21, 30)))
+
+    def test_durante_el_orb_si_avisa(self):
+        self.assertTrue(self.wd._ventana_orb(self._dt(16, 10), self._dt(15, 30),
+                                             self._dt(22, 0), self._dt(21, 30)))
+
+    def test_despues_del_corte_no_avisa(self):
+        self.assertFalse(self.wd._ventana_orb(self._dt(21, 40), self._dt(15, 30),
+                                              self._dt(22, 0), self._dt(21, 30)))
+
+    def test_cierre_anticipado_manda_el_cierre(self):
+        self.assertFalse(self.wd._ventana_orb(self._dt(18, 30), self._dt(15, 30),
+                                              self._dt(18, 0), self._dt(21, 30)))
+
+
 if __name__ == "__main__":
     unittest.main()
