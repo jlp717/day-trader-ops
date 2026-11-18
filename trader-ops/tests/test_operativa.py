@@ -500,7 +500,8 @@ class FuenteCnbc(unittest.TestCase):
 
     def test_cross_check_ok(self):
         from unittest import mock
-        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}):
+        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}), \
+                mock.patch.object(datos, "quote_finnhub", side_effect=datos.DataError("sin clave")):
             ok, detalle, alt = datos.cross_check("NVDA", 100.2)
         self.assertTrue(ok)
         self.assertIn("0.20%", detalle)
@@ -508,7 +509,8 @@ class FuenteCnbc(unittest.TestCase):
 
     def test_cross_check_bloquea_si_difieren(self):
         from unittest import mock
-        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}):
+        with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}), \
+                mock.patch.object(datos, "quote_finnhub", side_effect=datos.DataError("sin clave")):
             ok, detalle, _ = datos.cross_check("NVDA", 101.0)
         self.assertFalse(ok)
         self.assertIn("1.00%", detalle)
