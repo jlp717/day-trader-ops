@@ -156,6 +156,10 @@ día 7 de dos señales.
 - **Comando `/guia`** (también "qué hago ahora"): lee posición, precio, coste, break-even, neto en
   stop/objetivo y fase del día, y devuelve la orden exacta en cada escenario. Los avisos de
   stop/objetivo y el flat añaden la acción concreta y remiten a `/guia`.
+- **Tercer testigo opcional Finnhub** (18/11 21:53): `quote_finnhub` lee `secrets/finnhub.json`
+  (`{"api_key": "..."}`) o `FINNHUB_KEY`; plan free con cotización US en tiempo real (feed IEX,
+  60/min). `/precios` lo muestra si hay clave; `cross_check` compara Yahoo, CNBC y Finnhub y
+  bloquea si el rango supera 0,5 %. Sin clave no se usa y no bloquea. 112 tests propios OK.
 - **Manual 91 páginas**: nueva §0.6 "Los comandos, explicados como a un niño" con el desglose de
   `/entre`, `/sali`, `/stop`, `/vender`, `/guia` y el ejemplo CRCL con costes; aviso al inicio de
   los días simulados.
