@@ -141,11 +141,12 @@ día 7 de dos señales.
   La vela de 5 min de las 15:35 abrió en 158,15 y cerró en 156,56: 158,19 es el precio de ~15:35.
   **La ficha va ~11 min retrasada**; Yahoo iba en vivo (probado con 6 muestras y precios cambiantes).
   El ticket de ejecución es otro reloj y el **fill** sigue siendo la única verdad para `/entre`.
-- **Prueba controlada (18/11 16:12:35 y 16:13:56)**: a las 16:12:35 la ficha marcaba **153,77**
-  (precio de 15:55–15:57); a las 16:13:56 marcaba **155** (máximo de la barra 16:12, 155,03).
-  Las dos cosas encajan si la ficha **no se refresca sola**: es una foto que envejece hasta que
-  recargas. Al recargar, el dato tiene **~2–3 min**; si se deja abierta, puede verse 15 min atrás.
-  Conclusión: no es un feed continuo y no sirve como reloj. Yahoo y CNBC sí (0–2 s).
+- **Prueba controlada (18/11 16:20–16:22, misma pantalla, recarga + 1–2 s)**: ficha **155,00** /
+  **155,055** / **154,93**; Yahoo en esos minutos **154,91 / 154,75 / 153,87**; CNBC a las 16:22:49
+  **153,88**. Las dos fuentes públicas coinciden al céntimo; la ficha va **0–2 min por detrás**.
+  El 153,77 de las 16:12:35 (precio de 15:57) era una página que **no se había refrescado de verdad**
+  (caché de la SPA), no un retraso fijo de 15 min. La ficha no sirve como reloj: su cadencia de
+  actualización no es fiable.
   No se integra la app de MyInvestor: el MCP no expone precio y automatizar la sesión del bróker
   sería frágil, opaco y contrario a la regla 1.
 - **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
