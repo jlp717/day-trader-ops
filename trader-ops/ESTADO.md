@@ -130,9 +130,8 @@ día 7 de dos señales.
   14:31:29Z, **edad 2 s**, exchange NMS. Yahoo va en tiempo real para US; la hipótesis de
   15 minutos queda descartada para el feed del sistema.
 - **MyInvestor (18/11 15:34)**: ficha de NVDA a **158,59** con Yahoo en **158,75** (0,1 % de
-  diferencia). Para este valor y esta pantalla no se observa el retraso de 15 min que dice su FAQ.
-  No se reescribe el manual con una sola muestra: el precio de referencia para `/entre` sigue siendo
-  el **fill del ticket**, y la orden limitada sigue siendo obligatoria.
+  diferencia). Parecía ir en vivo, pero era **coincidencia**: el precio de premarket estaba cerca
+  del vivo. La medición de las 15:50 lo desmiente (siguiente punto).
 - **MyInvestor ficha vs Yahoo (18/11 15:46)**: ficha a **158,19** mientras Yahoo marcaba **154,44**.
   La vela de 5 min de las 15:35 abrió en 158,15 y cerró en 156,56: 158,19 es el precio de ~15:35.
   **La ficha va ~11 min retrasada**; Yahoo iba en vivo (probado con 6 muestras y precios cambiantes).
