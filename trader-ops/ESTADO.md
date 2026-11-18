@@ -141,6 +141,10 @@ día 7 de dos señales.
   La vela de 5 min de las 15:35 abrió en 158,15 y cerró en 156,56: 158,19 es el precio de ~15:35.
   **La ficha va ~11 min retrasada**; Yahoo iba en vivo (probado con 6 muestras y precios cambiantes).
   El ticket de ejecución es otro reloj y el **fill** sigue siendo la única verdad para `/entre`.
+- **Prueba controlada (18/11 16:12:35)**: ficha de MyInvestor a **153,77**; en Yahoo ese precio está
+  en las barras **15:55–15:57** (mínimo 153,54 / apertura 153,77). A las 16:12 Yahoo marcaba 154,81.
+  Retraso confirmado: **~15–16 min en el detalle**, ~3 min en la lista. La hipótesis de que el detalle
+  iba en vivo queda descartada con hora del usuario, no con una captura sin reloj.
   No se integra la app de MyInvestor: el MCP no expone precio y automatizar la sesión del bróker
   sería frágil, opaco y contrario a la regla 1.
 - **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
