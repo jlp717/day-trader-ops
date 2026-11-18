@@ -6,6 +6,7 @@ liquidez y spread con numeros propios, (c) convertir EUR/USD. Todo queda en el d
 import datetime as dt
 import gzip
 import json
+import os
 import re
 import statistics
 import time
@@ -223,25 +224,79 @@ def quote_cnbc(symbol):
     return out
 
 
-def cross_check(symbol, ref_price, max_diff_pct=0.5):
-    """(ok, detalle, alt) comparando el precio de Yahoo con CNBC.
+FINNHUB = "https://finnhub.io/api/v1/quote?symbol=%s&token=%s"
+FINNHUB_TTL = 5
 
-    Si CNBC no responde, ok=True: no se bloquea una senal por un testigo caido.
-    Si responde y la diferencia supera max_diff_pct, ok=False.
+
+def _finnhub_key():
+    key = os.environ.get("FINNHUB_KEY")
+    if key:
+        return key.strip()
+    p = cfg.ROOT / "secrets" / "finnhub.json"
+    if p.exists():
+        doc = cfg.read_json(p, {}) or {}
+        return (doc.get("api_key") or doc.get("token") or "").strip() or None
+    return None
+
+
+def quote_finnhub(symbol):
+    """Tercer testigo opcional. Requiere clave gratuita en secrets/finnhub.json.
+
+    El plan free de Finnhub da cotizacion US en tiempo real (feed IEX) y 60
+    llamadas/minuto. No se usa para velas: solo para el ultimo precio.
     """
+    sym = symbol.strip().upper()
+    if not re.match(r"^[A-Z]{1,5}$", sym):
+        raise DataError("Finnhub solo cubre tickers simples de US (%s)" % symbol)
+    key = _finnhub_key()
+    if not key:
+        raise DataError("Finnhub sin clave (secrets/finnhub.json)")
+    hit = _cache_get("finnhub_%s" % sym, FINNHUB_TTL)
+    if hit:
+        return hit
+    doc = http_json_url(FINNHUB % (sym, key))
     try:
-        alt = quote_cnbc(symbol)
-    except Exception as exc:
-        return True, "CNBC no disponible (%s)" % str(exc)[:80], None
+        price = float(doc.get("c"))
+    except (TypeError, ValueError):
+        raise DataError("Finnhub sin precio valido para %s" % sym)
+    if price <= 0:
+        raise DataError("Finnhub sin precio valido para %s" % sym)
+    t = doc.get("t")
+    moment = dt.datetime.fromtimestamp(int(t), tz=zt.UTC) if t else None
+    age = (zt.now_utc() - moment).total_seconds() if moment else None
+    out = {"symbol": sym, "price": price, "currency": "USD", "source": "Finnhub",
+           "exchange": "US", "data_time": zt.iso_utc(moment) if moment else None,
+           "age_seconds": None if age is None else int(age)}
+    _cache_put("finnhub_%s" % sym, out)
+    return out
+
+
+def cross_check(symbol, ref_price, max_diff_pct=0.5):
+    """(ok, detalle, alt) comparando Yahoo con los testigos disponibles.
+
+    Prueba CNBC y Finnhub; si ninguno responde, ok=True. Si la diferencia entre
+    el precio mayor y el menor supera max_diff_pct, ok=False.
+    """
+    alts = []
+    for fn in (quote_cnbc, quote_finnhub):
+        try:
+            alts.append(fn(symbol))
+        except Exception:
+            continue
+    if not alts:
+        return True, "sin segundo testigo disponible", None
     try:
         ref = float(ref_price)
     except (TypeError, ValueError):
-        return True, "sin precio de referencia", alt
+        return True, "sin precio de referencia", alts[0]
     if ref <= 0:
-        return True, "sin precio de referencia", alt
-    diff = abs(float(alt["price"]) - ref) / ref * 100.0
+        return True, "sin precio de referencia", alts[0]
+    prices = [ref] + [float(a["price"]) for a in alts]
+    diff = (max(prices) - min(prices)) / min(prices) * 100.0
     ok = diff <= float(max_diff_pct)
-    return ok, "Yahoo %.2f vs CNBC %.2f (%.2f%%)" % (ref, alt["price"], diff), alt
+    detalle = "Yahoo %.2f · %s (rango %.2f%%)" % (
+        ref, " · ".join("%s %.2f" % (a.get("source") or "?", a["price"]) for a in alts), diff)
+    return ok, detalle, alts[0]
 
 
 def _spark(symbols, range_="1mo", interval="1d"):

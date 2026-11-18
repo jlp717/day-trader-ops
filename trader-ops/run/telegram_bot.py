@@ -391,6 +391,14 @@ def c_precios(bot, args):
             _fmt(alt.get("price")), alt.get("data_time") or "n/d", alt.get("age_seconds")))
     except datos.DataError as exc:
         lines.append("CNBC: no disponible (%s)" % str(exc)[:80])
+    fh = None
+    try:
+        fh = datos.quote_finnhub(sym)
+        lines.append("Finnhub: %s USD · %s · hace %ss" % (
+            _fmt(fh.get("price")), fh.get("data_time") or "n/d", fh.get("age_seconds")))
+    except datos.DataError as exc:
+        if "sin clave" not in str(exc):
+            lines.append("Finnhub: no disponible (%s)" % str(exc)[:80])
     if q and (q.get("age_seconds") or 0) > 300:
         lines.append("AVISO: Yahoo va con retraso (>300 s). No operes con esta tabla; usa /ref con lo que veas en Börse Frankfurt/TradingView/MyInvestor.")
     refs = referencias.get(sym)
@@ -404,6 +412,8 @@ def c_precios(bot, args):
         prices.append(float(q["price"]))
     if alt:
         prices.append(float(alt["price"]))
+    if fh:
+        prices.append(float(fh["price"]))
     prices += [float(r["price"]) for r in refs]
     if len(prices) >= 2 and min(prices) > 0:
         diff = (max(prices) - min(prices)) / min(prices) * 100.0

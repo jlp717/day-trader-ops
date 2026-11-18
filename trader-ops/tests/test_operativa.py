@@ -511,15 +511,34 @@ class FuenteCnbc(unittest.TestCase):
         with mock.patch.object(datos, "quote_cnbc", return_value={"price": 100.0}):
             ok, detalle, _ = datos.cross_check("NVDA", 101.0)
         self.assertFalse(ok)
-        self.assertIn("0.99%", detalle)
+        self.assertIn("1.00%", detalle)
 
-    def test_cross_check_no_bloquea_si_cnbc_cae(self):
+    def test_cross_check_no_bloquea_si_los_testigos_caen(self):
         from unittest import mock
-        with mock.patch.object(datos, "quote_cnbc", side_effect=datos.DataError("caido")):
+        with mock.patch.object(datos, "quote_cnbc", side_effect=datos.DataError("caido")), \
+                mock.patch.object(datos, "quote_finnhub", side_effect=datos.DataError("sin clave")):
             ok, detalle, alt = datos.cross_check("NVDA", 100.0)
         self.assertTrue(ok)
         self.assertIsNone(alt)
-        self.assertIn("no disponible", detalle)
+        self.assertIn("sin segundo testigo", detalle)
+
+    def test_finnhub_parsea(self):
+        from unittest import mock
+        doc = {"c": 154.9, "t": 1763480000}
+        with mock.patch.object(datos, "_finnhub_key", return_value="clave"), \
+                mock.patch.object(datos, "http_json_url", return_value=doc), \
+                mock.patch.object(datos, "_cache_get", return_value=None), \
+                mock.patch.object(datos, "_cache_put"):
+            q = datos.quote_finnhub("NVDA")
+        self.assertAlmostEqual(q["price"], 154.9)
+        self.assertEqual(q["source"], "Finnhub")
+        self.assertIsNotNone(q["data_time"])
+
+    def test_finnhub_sin_clave(self):
+        from unittest import mock
+        with mock.patch.object(datos, "_finnhub_key", return_value=None):
+            with self.assertRaises(datos.DataError):
+                datos.quote_finnhub("NVDA")
 
 
 class Guia(unittest.TestCase):
