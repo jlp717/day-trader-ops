@@ -62,13 +62,16 @@ def generar(now=None, day=None):
     sin_datos = [e for e in evals if e.get("veredicto") in ("SIN DATOS", "FRENO", "SIN SEÑAL")]
 
     b.line("Valores analizados: %d · SEÑAL A: %d · VIGILAR: %d · DESCARTADAS: %d · sin señal/datos: %d" % (
-        len({e.get("symbol") for e in evals}), len(a_), len(v_), len(d_), len(sin_datos)))
+        len({e.get("symbol") for e in evals}), len({e.get("symbol") for e in a_}),
+        len({e.get("symbol") for e in v_}), len({e.get("symbol") for e in d_}),
+        len({e.get("symbol") for e in sin_datos})))
 
     # seleccion
     scans = [e for e in eventos if e.get("event") == "artifact" and e.get("name") == "scan_daily.json"]
     scan = diario.load_artifact("scan_daily.json", {}) or {}
-    b.line("Sesgo de seleccion: scanner sobre %s valores, %s escaneados, %d candidatos, %d llegaron a evaluacion." % (
-        scan.get("universe"), scan.get("scanned"), len(scan.get("hits") or []), len(evals)))
+    evaluados = len({e.get("symbol") for e in evals})
+    b.line("Sesgo de seleccion: scanner sobre %s valores, %s escaneados, %d candidatos, %d valores llegaron a evaluacion (%d pasadas)." % (
+        scan.get("universe"), scan.get("scanned"), len(scan.get("hits") or []), evaluados, len(evals)))
 
     # senales y resultado real
     if senales:
@@ -86,17 +89,22 @@ def generar(now=None, day=None):
     else:
         b.line("Sin SEÑAL A hoy. Es un resultado valido: los filtros no se relajan.")
 
-    # ganadoras descartadas
+    # ganadoras descartadas (una por valor, no una por pasada)
     ganadoras = []
+    por_simbolo = {}
     for e in evals:
         if e.get("veredicto") == "SEÑAL A" or not e.get("plan"):
             continue
-        res, px, r = _resultado(e["symbol"], e["plan"], _utc(e.get("ts_utc")), e["plan"].get("flat_by") or "15:55")
+        por_simbolo[e["symbol"]] = e
+    for sym, e in por_simbolo.items():
+        res, px, r = _resultado(sym, e["plan"], _utc(e.get("ts_utc")), e["plan"].get("flat_by") or "15:55")
         if res.startswith("objetivo"):
-            ganadoras.append((e["symbol"], e.get("veredicto"), e.get("motivos") or []))
+            ganadoras.append((sym, e.get("veredicto")))
     if ganadoras:
-        b.line("Descartadas/VIGILAR que habrian tocado objetivo: %s" % ", ".join(
-            "%s (%s)" % (g[0], g[1]) for g in ganadoras))
+        muestra = ganadoras[:10]
+        extra = "" if len(ganadoras) <= 10 else " (+%d mas)" % (len(ganadoras) - 10)
+        b.line("Descartadas/VIGILAR que habrian tocado objetivo: %s%s" % (
+            ", ".join("%s (%s)" % (g[0], g[1]) for g in muestra), extra))
     else:
         b.line("Ninguna descartada habria tocado el objetivo con los datos actuales.")
 
@@ -137,6 +145,16 @@ def generar(now=None, day=None):
     if pnl["operaciones"]:
         b.line("Posiciones cerradas a mano: %d · PnL %+.2f USD · R total %+.2f" % (
             pnl["operaciones"], pnl["pnl_usd"], pnl["r_total"]))
+
+    abiertas = posiciones.abiertas()
+    if abiertas:
+        trozos = []
+        for p in abiertas:
+            trozos.append("%s %g acc desde %.2f (stop %s / objetivo %s)" % (
+                p.get("symbol"), float(p.get("qty") or 0), float(p.get("entrada") or 0),
+                p.get("stop") if p.get("stop") is not None else "n/d",
+                p.get("target") if p.get("target") is not None else "n/d"))
+        b.line("Posiciones a mano abiertas: " + ", ".join(trozos))
 
     st = registro.stats()
     b.line("Registro vivo: %d señales, %d cerradas, %d objetivos, %d stops, R medio %+.2f." % (

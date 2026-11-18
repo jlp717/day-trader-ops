@@ -502,6 +502,12 @@ def evaluar_symbol(symbol, *, cfgd=None, enviar=True, bot=None, forzar=False):
         out["verdict"] = "DESCARTADA"
         out["reasons"] = ["datos discrepantes: " + cross_detail]
         diario.append("datos_discrepantes", symbol=symbol.upper(), detail=cross_detail)
+        if enviar:
+            try:
+                (bot or tg.Telegram()).send(
+                    "⚠️ Señal bloqueada por datos discrepantes: %s" % cross_detail)
+            except Exception:
+                pass
         return out
     ctx["cross_check"] = cross_detail
 

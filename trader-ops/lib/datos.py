@@ -231,11 +231,13 @@ FINNHUB_TTL = 5
 def _finnhub_key():
     key = os.environ.get("FINNHUB_KEY")
     if key:
-        return key.strip()
+        key = key.strip()
+        return key if key and "PEGA" not in key.upper() else None
     p = cfg.ROOT / "secrets" / "finnhub.json"
     if p.exists():
         doc = cfg.read_json(p, {}) or {}
-        return (doc.get("api_key") or doc.get("token") or "").strip() or None
+        key = (doc.get("api_key") or doc.get("token") or "").strip()
+        return key if key and "PEGA" not in key.upper() else None
     return None
 
 

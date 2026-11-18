@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-18",
+  "texto": "<b>Informe de sesion</b> · 22:13 Madrid / 16:13 NY\nValores analizados: 16 · SEÑAL A: 0 · VIGILAR: 0 · DESCARTADAS: 469 · sin señal/datos: 0\nSesgo de seleccion: scanner sobre 5929 valores, 1468 escaneados, 262 candidatos, 16 valores llegaron a evaluacion (469 pasadas).\nSin SEÑAL A hoy. Es un resultado valido: los filtros no se relajan.\nDescartadas/VIGILAR que habrian tocado objetivo: LQDA (DESCARTADA), ACM (DESCARTADA)\nTime Machine medio de los evaluados: objetivo primero 14.9%.\n\n<b>Coste de esperar (sesion de hoy)</b>\n  NVDA: hueco 0.38%, primeros 15 min -0.00%, 52.20% del movimiento del dia en 15 min\n  MNSO: hueco 0.00%, primeros 15 min -0.23%, 81.70% del movimiento del dia en 15 min\nComandos ejecutados: 4613 · latencia mediana 0.61 s · maxima 211.00 s\nFallos registrados: 1: getUpdates\nPosiciones a mano abiertas: CRCL 7 acc desde 52.96 (stop 52.4 / objetivo 55.34)\nRegistro vivo: 0 señales, 0 cerradas, 0 objetivos, 0 stops, R medio +0.00.\nFreno por evidencia: no activo (muestra insuficiente (0 cerradas)).\nConclusion honesta: hubo fallos tecnicos; antes de sacar conclusiones hay que arreglarlos.\nPRUEBA EN PAPEL · nada de esto es una recomendacion.\n",
+  "payload": {
+    "texto": "<b>Informe de sesion</b> · 22:13 Madrid / 16:13 NY\nValores analizados: 16 · SEÑAL A: 0 · VIGILAR: 0 · DESCARTADAS: 469 · sin señal/datos: 0\nSesgo de seleccion: scanner sobre 5929 valores, 1468 escaneados, 262 candidatos, 16 valores llegaron a evaluacion (469 pasadas).\nSin SEÑAL A hoy. Es un resultado valido: los filtros no se relajan.\nDescartadas/VIGILAR que habrian tocado objetivo: LQDA (DESCARTADA), ACM (DESCARTADA)\nTime Machine medio de los evaluados: objetivo primero 14.9%.\n\n<b>Coste de esperar (sesion de hoy)</b>\n  NVDA: hueco 0.38%, primeros 15 min -0.00%, 52.20% del movimiento del dia en 15 min\n  MNSO: hueco 0.00%, primeros 15 min -0.23%, 81.70% del movimiento del dia en 15 min\nComandos ejecutados: 4613 · latencia mediana 0.61 s · maxima 211.00 s\nFallos registrados: 1: getUpdates\nPosiciones a mano abiertas: CRCL 7 acc desde 52.96 (stop 52.4 / objetivo 55.34)\nRegistro vivo: 0 señales, 0 cerradas, 0 objetivos, 0 stops, R medio +0.00.\nFreno por evidencia: no activo (muestra insuficiente (0 cerradas)).\nConclusion honesta: hubo fallos tecnicos; antes de sacar conclusiones hay que arreglarlos.\nPRUEBA EN PAPEL · nada de esto es una recomendacion.\n",
+    "cifras": [],
+    "allowed": []
+  },
+  "senales": 0,
+  "vigilar": 0,
+  "descartadas": 469,
+  "evaluados": 469
+}
