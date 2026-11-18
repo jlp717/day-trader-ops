@@ -133,6 +133,12 @@ día 7 de dos señales.
   diferencia). Para este valor y esta pantalla no se observa el retraso de 15 min que dice su FAQ.
   No se reescribe el manual con una sola muestra: el precio de referencia para `/entre` sigue siendo
   el **fill del ticket**, y la orden limitada sigue siendo obligatoria.
+- **MyInvestor ficha vs Yahoo (18/11 15:46)**: ficha a **158,19** mientras Yahoo marcaba **154,44**.
+  La vela de 5 min de las 15:35 abrió en 158,15 y cerró en 156,56: 158,19 es el precio de ~15:35.
+  **La ficha va ~11 min retrasada**; Yahoo iba en vivo (probado con 6 muestras y precios cambiantes).
+  El ticket de ejecución es otro reloj y el **fill** sigue siendo la única verdad para `/entre`.
+  No se integra la app de MyInvestor: el MCP no expone precio y automatizar la sesión del bróker
+  sería frágil, opaco y contrario a la regla 1.
 - **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
   porque contaba la ventana de sesión completa (15:30-22:00) y el ORB no empieza hasta las 15:50.
   Ahora solo comprueba entre la primera pasada y el corte de entradas. 103 tests propios OK.
