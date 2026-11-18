@@ -325,11 +325,11 @@ class Runner:
                 return ""
             if rid.endswith("-stop"):
                 return ("\nSTOP del plan (%s). Si sigues dentro, cierra a mano.\n"
-                        "Que haces: vende %s a mercado o limitada, cancela el stop-loss y /sali %s <fill>."
+                        "Que haces: vende %s a mercado o limitada, cancela el stop-loss y /sali %s [fill]."
                         % (p.get("stop"), ("%g" % float(p.get("qty") or 0)), p.get("symbol")))
             if rid.endswith("-target"):
                 return ("\nOBJETIVO (%s). Si sigues dentro, recoge a mano.\n"
-                        "Que haces: vende %s con limitada %s, cancela el stop y /sali %s <fill>."
+                        "Que haces: vende %s con limitada %s, cancela el stop y /sali %s [fill]."
                         % (p.get("target"), ("%g" % float(p.get("qty") or 0)),
                            p.get("target"), p.get("symbol")))
             return ""

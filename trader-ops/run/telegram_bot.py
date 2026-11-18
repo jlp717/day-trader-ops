@@ -131,7 +131,7 @@ def c_estado(bot, args):
            "Orquestador: %s (latido %s, fase %s)\n"
            "Pausa: %s\n"
            "Registro: %d señales, %d cerradas, R medio %+.2f\n"
-           "Posiciones a mano: %d abiertas, P&L %+.2f USD\n"
+           "Posiciones a mano: %d abiertas, PnL %+.2f USD\n"
            "Freno por evidencia: %s (%s)\n"
            "Zona: Madrid %s / NY %s (desfase %dh)") % (
         "vivo" if hb else "sin latido", hb.get("ts_madrid", "n/d"), hb.get("phase", "n/d"),
@@ -651,11 +651,11 @@ def c_sali(bot, args):
     if not pos:
         return "No hay posicion abierta en %s." % sym
     if pos.get("parcial"):
-        return ("Cierre parcial de %s: %s acc a %s, P&L bruto %+.2f USD (%s R). Quedan %s acc; "
+        return ("Cierre parcial de %s: %s acc a %s, PnL bruto %+.2f USD (%s R). Quedan %s acc; "
                 "stop %s y objetivo %s siguen armados. No descuenta comisiones ni FX." % (
                     sym, _qty(pos["qty_cerrada"]), _fmt(price), pos["pnl_usd"], pos.get("R"),
                     _qty(pos.get("restante")), _fmt(pos.get("stop")), _fmt(pos.get("target"))))
-    return ("Cerrada %s: %s acc a %s, P&L bruto %+.2f USD (%s R). Alertas de stop y objetivo "
+    return ("Cerrada %s: %s acc a %s, PnL bruto %+.2f USD (%s R). Alertas de stop y objetivo "
             "desarmadas. No descuenta comisiones ni FX." % (
         sym, _qty(pos["qty_cerrada"]), _fmt(price), pos["pnl_usd"], pos.get("R")))
 
@@ -663,9 +663,9 @@ def c_sali(bot, args):
 def c_pnl(bot, args):
     p = posiciones.pnl()
     st = registro.stats()
-    return ("<b>P&L</b>\nPosiciones a mano: %d cerradas, %+.2f USD bruto, %d ganadoras / %d perdedoras\n"
+    return ("<b>PnL</b>\nPosiciones a mano: %d cerradas, %+.2f USD bruto, %d ganadoras / %d perdedoras\n"
             "Señales papel: %d cerradas, %d objetivos, %d stops, R medio %+.2f\n"
-            "El P&L a mano es bruto: no descuenta comisiones ni FX. El aviso de cada señal trae el coste.") % (
+            "El PnL a mano es bruto: no descuenta comisiones ni FX. El aviso de cada señal trae el coste.") % (
         p["operaciones"], p["pnl_usd"], p["ganadoras"], p["perdedoras"],
         st["cerradas"], st["objetivos"], st["stops"], st["r_medio"])
 
@@ -870,7 +870,7 @@ def c_guia(bot, args):
         if px is not None:
             pnl = (px - entry) * qty
             r = ((px - entry) / (entry - float(stop))) if stop and entry > float(stop) else None
-            out.append("P&L bruto %+.2f USD · %sR" % (pnl, ("%+.2f" % r) if r is not None else "n/d"))
+            out.append("PnL bruto %+.2f USD · %sR" % (pnl, ("%+.2f" % r) if r is not None else "n/d"))
             if stop:
                 out.append("Distancia al stop %s: %+.2f USD (%.2f%% desde ahora)" % (
                     _fmt(stop), (float(stop) - px) * qty, abs(px - float(stop)) / px * 100))
@@ -884,14 +884,14 @@ def c_guia(bot, args):
         if clave in ("ventana", "ultimos30"):
             out.append("Ahora: nada hasta que toque un nivel.")
             if stop:
-                out.append("Si toca %s: vende %s (o deja el stop-loss), cancela el stop y /sali %s <fill>." % (
+                out.append("Si toca %s: vende %s (o deja el stop-loss), cancela el stop y /sali %s [fill]." % (
                     _fmt(stop), _qty(qty), sym))
             if target:
-                out.append("Si toca %s: vende %s con limitada %s, cancela el stop y /sali %s <fill>." % (
+                out.append("Si toca %s: vende %s con limitada %s, cancela el stop y /sali %s [fill]." % (
                     _fmt(target), _qty(qty), _fmt(target), sym))
-            out.append("A las 21:55: cancela el stop, vende al bid y /sali %s <fill>." % sym)
+            out.append("A las 21:55: cancela el stop, vende al bid y /sali %s [fill]." % sym)
         elif clave == "cierre":
-            out.append("Flat by close: cierra ya. Cancela el stop y /sali %s <fill>." % sym)
+            out.append("Flat by close: cierra ya. Cancela el stop y /sali %s [fill]." % sym)
         elif clave == "post":
             out.append("Mercado cerrado: posicion overnight. Rearma el stop mañana; el de hoy caduco.")
             if stop:

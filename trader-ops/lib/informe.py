@@ -135,7 +135,7 @@ def generar(now=None, day=None):
     # posiciones
     pnl = posiciones.pnl()
     if pnl["operaciones"]:
-        b.line("Posiciones cerradas a mano: %d · P&L %+.2f USD · R total %+.2f" % (
+        b.line("Posiciones cerradas a mano: %d · PnL %+.2f USD · R total %+.2f" % (
             pnl["operaciones"], pnl["pnl_usd"], pnl["r_total"]))
 
     st = registro.stats()
@@ -202,7 +202,7 @@ def semanal(now=None):
     return ("<b>Resumen semanal</b> · %s\n"
             "Dias con informe: %d · valores evaluados: %d · SEÑAL A: %d\n"
             "Registro vivo: %d cerradas, %d objetivos, %d stops, R medio %+.2f\n"
-            "Posiciones a mano: %d cerradas, P&L %+.2f USD%s\n"
+            "Posiciones a mano: %d cerradas, PnL %+.2f USD%s\n"
             "PRUEBA EN PAPEL · informativo, no cambia filtros" % (
                 zt.human(now, zt.MADRID), len(rows), total, senales,
                 st["cerradas"], st["objetivos"], st["stops"], st["r_medio"],

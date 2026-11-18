@@ -162,6 +162,10 @@ día 7 de dos señales.
 - **Bot caído ~21:19–21:41**: la tarea `DayTraderOps-Bot` quedó en `Ready` con resultado 1 tras el
   reinicio (carrera con la instancia anterior). Reiniciada a las 21:41 (PID 38844). Si `/guia` no
   responde, comprobar `Get-ScheduledTask -TaskName DayTraderOps-Bot`.
+- **Causa real del silencio de `/guia` (21:42)**: el comando se ejecutó, pero Telegram rechazó el
+  mensaje con **HTTP 400** porque el texto llevaba `<fill>` (etiqueta HTML inválida) y `P&L`
+  (ampersand sin escapar). El proceso murió. Corregido a `[fill]` y `PnL` en bot, orquestador e
+  informe; test que prohíbe `<fill>` y `&` en `/guia`. Enviado el `/guia` real a las 21:46: OK.
 - **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
   porque contaba la ventana de sesión completa (15:30-22:00) y el ORB no empieza hasta las 15:50.
   Ahora solo comprueba entre la primera pasada y el corte de entradas. 110 tests propios OK.

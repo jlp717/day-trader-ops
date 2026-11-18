@@ -559,6 +559,9 @@ class Guia(unittest.TestCase):
         self.assertIn("limitada 55.34", txt)
         self.assertIn("/sali CRCL", txt)
         self.assertIn("Neto si salta el stop", txt)
+        # Telegram parse_mode=HTML: <fill> y & rompen el envio con HTTP 400.
+        self.assertNotIn("<fill>", txt)
+        self.assertNotIn("&", txt)
 
 
 if __name__ == "__main__":
