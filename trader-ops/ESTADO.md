@@ -119,7 +119,11 @@ día 7 de dos señales.
   "nunca" y hay test (`test_saludo_sin_latido_no_muestra_none`). Total: **92 tests propios**.
 - El aviso de premarket nombraba **toda la watchlist** aunque el titular fuera de un solo valor
   ("Resultados cerca NVDA, MNSO" con una noticia solo de NVDA). Ahora `proceso.simbolos_afectados`
-  devuelve los tickers reales del titular. Total: **96 tests propios**.
+  devuelve los tickers reales del titular.
+- **Bug real**: `t_premarket` llamaba a `ganadores.premarket()` sin importar el módulo → `NameError`,
+  capturado en silencio. La lista ORB se quedaba **sin los 20 ganadores de ayer** y el mensaje sin
+  esa línea. Corregido el import y extraída `_simbolos_orb()` (ganadores primero, sin duplicados,
+  techo 150). Lista de hoy regenerada: 20 ganadores + 130 hits. **99 tests propios OK**.
 - Runbook de instalación: `INSTALACION_MINI_PC.md`. Verificado sobre un clon real de GitHub:
   92 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
 

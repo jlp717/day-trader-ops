@@ -427,5 +427,27 @@ class NoticiasPremarket(unittest.TestCase):
         self.assertEqual(proceso.simbolos_afectados(doc, "earnings"), [])
 
 
+class ListaOrb(unittest.TestCase):
+    """La lista del ORB debe colocar ganadores primero y respetar el techo de 150."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.orch = _cargar("orq_orb_test", ROOT / "trader-ops" / "run" / "orquestador.py")
+
+    def test_ganadores_primero_y_sin_duplicados(self):
+        filas = [{"symbol": "AAA"}, {"symbol": "BBB"}]
+        hits = [{"symbol": "CCC"}, {"symbol": "AAA"}]
+        self.assertEqual(self.orch._simbolos_orb(filas, hits), ["AAA", "BBB", "CCC"])
+
+    def test_techo_de_150(self):
+        hits = [{"symbol": "S%03d" % i} for i in range(200)]
+        self.assertEqual(len(self.orch._simbolos_orb([], hits)), 150)
+
+    def test_el_modulo_importa_ganadores(self):
+        # Regresion: sin este import, el premarket fallaba con NameError y la lista
+        # se quedaba sin los ganadores de ayer.
+        self.assertTrue(hasattr(self.orch, "ganadores"))
+
+
 if __name__ == "__main__":
     unittest.main()

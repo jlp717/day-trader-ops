@@ -20,7 +20,7 @@ import traceback
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import apertura, alertas, briefing, calendario, cfg, criterios, datos, diario, proceso  # noqa: E402
+from lib import apertura, alertas, briefing, calendario, cfg, criterios, datos, diario, ganadores, proceso  # noqa: E402
 from lib import posiciones, registro, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
@@ -76,6 +76,24 @@ def repo_hash():
 
 
 # ---------------------------------------------------------------- tareas
+
+def _simbolos_orb(filas, hits, limite=150):
+    """Lista del ORB: ganadores primero, luego setups, sin duplicados y con techo.
+
+    `hits` ya viene ordenado por dolares negociados (scan.py); el orden importa
+    porque la cadena completa solo corre para los 8 primeros de cada pasada.
+    """
+    syms = []
+    for f in filas or []:
+        s = f.get("symbol")
+        if s and s not in syms:
+            syms.append(s)
+    for h in hits or []:
+        s = h.get("symbol")
+        if s and s not in syms:
+            syms.append(s)
+    return syms[:limite]
+
 
 class Runner:
     def __init__(self, bot, dry=False):
@@ -194,15 +212,8 @@ class Runner:
         except Exception as exc:
             diario.append("ganadores_error", error=str(exc), output=str(exc))
             g = {"filas": []}
-        simbolos = []
-        for f in (g.get("filas") or []):
-            if f.get("symbol") and f["symbol"] not in simbolos:
-                simbolos.append(f["symbol"])
-        for h in (scan.get("hits") or []):
-            if h.get("symbol") and h["symbol"] not in simbolos:
-                simbolos.append(h["symbol"])
+        simbolos = _simbolos_orb(g.get("filas"), scan.get("hits"))
         # techo de carga: 150 valores por escaneo ORB cada 5 min (20 ganadores + 130 setups)
-        simbolos = simbolos[:150]
         cfg.write_json(cfg.STATE / "orb_candidates.json",
                        {"hits": [{"symbol": s} for s in simbolos]})
         self._scan = scan
