@@ -1,0 +1,512 @@
+<h1 id="s22">22. Salidas exactas de los comandos</h1>
+<p>Este capítulo es la referencia literal: qué escribe el sistema y qué tienes que mirar. Las salidas de estado
+son reales del <b>18/11/2026 a las 09:12 Madrid</b>, con el mercado cerrado; los números cambiarán en sesión, pero
+la estructura es la misma. Las salidas de <code>/entre</code>, <code>/sali</code>, <code>/stop</code>,
+<code>/vender</code> y <code>/alerta</code> son una <b>simulación con estado temporal</b> del Día 8: no tocan tu
+estado real y los ids de alerta cambian en cada ejecución.</p>
+<div class="warn">
+<b>El bot recorta a ~4.000 caracteres</b> para no superar el límite de Telegram. Ninguna de estas salidas llega a
+ese límite; si un día se recorta, el detalle completo queda en <code>logs/diario.jsonl</code>.
+</div>
+
+<h2>22.1. Operar a mano: /entre, /sali, /stop, /vender, /alerta</h2>
+<p><b>Sintaxis exacta</b> (lo que va después del comando, separado por espacios):</p>
+<table>
+<tr><th>Comando</th><th>Argumentos</th><th>Ejemplo</th></tr>
+<tr><td><code>/entre</code></td><td><code>TICKER PRECIO_FILL ACCIONES STOP OBJETIVO</code></td><td><code>/entre SLS 20.12 87 19.55 21.26</code></td></tr>
+<tr><td><code>/sali</code></td><td><code>TICKER PRECIO_FILL [ACCIONES]</code> (sin acciones = todo)</td><td><code>/sali SLS 21.26</code> · <code>/sali SLN 20.20 20</code></td></tr>
+<tr><td><code>/stop</code></td><td><code>TICKER NUEVO_STOP</code></td><td><code>/stop SLS 19.80</code></td></tr>
+<tr><td><code>/vender</code></td><td><code>TICKER NUEVO_OBJETIVO</code></td><td><code>/vender SLS 21.50</code></td></tr>
+<tr><td><code>/alerta</code></td><td><code>TICKER NIVEL</code></td><td><code>/alerta SLS 21.00</code></td></tr>
+<tr><td><code>/posiciones</code>, <code>/alertas</code>, <code>/pnl</code></td><td>sin argumentos</td><td><code>/posiciones</code></td></tr>
+</table>
+<p><b>De dónde sale cada valor</b>:</p>
+<table>
+<tr><th>Dato</th><th>De dónde</th></tr>
+<tr><td><b>Ticker</b></td><td>La SEÑAL A (o tu decisión, si operas fuera de señal).</td></tr>
+<tr><td><b>Precio del fill</b></td><td>La confirmación de MyInvestor, no la pantalla retrasada. Es el precio al que se ejecutó de verdad.</td></tr>
+<tr><td><b>Acciones</b></td><td>El tamaño del plan (87 en el ejemplo). Si lo ajustas, recalcula el riesgo: (fill − stop) × acciones.</td></tr>
+<tr><td><b>Stop</b></td><td>El plan: mid del rango, redondeado abajo (19,55).</td></tr>
+<tr><td><b>Objetivo</b></td><td>El plan: 2R (21,26).</td></tr>
+</table>
+<div class="warn">
+Si el valor no tiene una SEÑAL A de hoy, <code>/entre</code> lo registra igual, pero la última línea dirá
+<b>FUERA DE SEÑAL A</b>. Es una operación manual: el sistema la apunta, no la valida.
+</div>
+
+<h3><code>/ENTRE SLS 20.12 87 19.55 21.26</code></h3>
+<p><b>Cuándo</b>: inmediatamente después de que MyInvestor te confirme el fill de compra. No antes: el sistema registra lo que ha pasado, no lo que esperas.</p>
+<pre>Registrada: SLS 87 acc a 20.12. Stop 19.55, objetivo 21.26.
+Avisos armados: stop 19.55, objetivo 21.26. Solo hoy (fecha de Nueva York).
+Estado: SEÑAL A vigente hoy desde las 16:05.</pre>
+<p><b>Qué revisas</b>: que la cantidad, el precio y los niveles sean exactamente los del fill; que diga <b>Avisos armados</b>; y que el estado sea SEÑAL A. Si aparece un <b>AVISO</b> de riesgo por encima de 50 USD, reduce cantidad o acepta el exceso a sabiendas.</p>
+
+<h3><code>/POSICIONES</code></h3>
+<p><b>Cuándo</b>: para ver qué tienes abierto y con qué niveles. Úsalo antes de mover algo o cuando dudes.</p>
+<pre>Posiciones abiertas
+  SLS 87 acc desde 20.12 · stop 19.55 · objetivo 21.26</pre>
+<p><b>Qué revisas</b>: que la cantidad y los niveles coincidan con tu broker. Si no, corrige con <code>/sali</code> y vuelve a registrar, o ajusta con <code>/stop</code>/<code>/vender</code>.</p>
+
+<h3><code>/ALERTAS</code></h3>
+<p><b>Cuándo</b>: para comprobar que los avisos de stop y objetivo están armados, y que no hay alertas viejas.</p>
+<pre>Alertas de hoy (2)
+  pos-8adb8c78-stop · SLS · stop 19.55
+  pos-8adb8c78-target · SLS · target 21.26</pre>
+<p><b>Qué revisas</b>: que aparezcan las dos reglas de la posición (stop y target) y solo las que quieres. El id <code>pos-...</code> es interno; cambia con cada posición.</p>
+
+<h3><code>/STOP SLS 19.80</code></h3>
+<p><b>Cuándo</b>: cuando quieras subir el stop de una posición abierta (por ejemplo, a break-even después de +1R).</p>
+<pre>Stop de SLS movido a 19.80 y aviso rearmado. Antes: 19.55.</pre>
+<p><b>Qué revisas</b>: que el “Antes” sea el nivel viejo y el nuevo sea el que querías. <b>Esto mueve el aviso del sistema, no la orden stop loss de MyInvestor</b>: si tienes una orden en el broker, cámbiala también.</p>
+
+<h3><code>/VENDER SLS 21.50</code></h3>
+<p><b>Cuándo</b>: cuando quieras mover el objetivo de una posición abierta, o dejar un aviso de venta si no tienes posición.</p>
+<pre>Objetivo de SLS movido a 21.50 y aviso rearmado. Antes: 21.26.</pre>
+<p><b>Qué revisas</b>: que el nuevo objetivo sea el que quieres y que el “Antes” coincida. Si no tienes posición, el mismo comando deja un aviso para hoy y lo dice distinto (ver 22.4).</p>
+
+<h3><code>/ALERTA SLS 21.00</code></h3>
+<p><b>Cuándo</b>: para un nivel puntual que no es stop ni objetivo: “avísame si pasa de 21,00”. Solo hoy.</p>
+<pre>Alerta puesta para hoy: SLS por encima de 21.00.</pre>
+<p><b>Qué revisas</b>: que el nivel y el sentido sean correctos. No es una orden: solo avisa. Si quieres que sea persistente, no existe: las alertas son de hoy.</p>
+
+<h3><code>/SALI SLS 21.26</code></h3>
+<p><b>Cuándo</b>: inmediatamente después del fill de venta total.</p>
+<pre>Cerrada SLS: 87 acc a 21.26, P&amp;L bruto +99.18 USD (2.0 R). Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Qué revisas</b>: que la cantidad sea toda la posición, que el P&L bruto cuadre con (salida − entrada) × acciones y que diga <b>Alertas desarmadas</b>. El neto es el bruto menos el coste del aviso (~17 USD en este ejemplo).</p>
+
+<h3><code>/SALI SLN 20.20 20   (cierre parcial)</code></h3>
+<p><b>Cuándo</b>: cuando vendas solo una parte. La cantidad es la que vendes, no la que queda.</p>
+<pre>Cierre parcial de SLN: 20 acc a 20.20, P&amp;L bruto +8.00 USD (1.0 R). Quedan 40 acc; stop 19.40 y objetivo 20.60 siguen armados. No descuenta comisiones ni FX.</pre>
+<p><b>Qué revisas</b>: que “Quedan” sea la cantidad correcta y que los avisos sigan armados. Si el parcial era para asegurar, puedes mover el stop del resto con <code>/stop</code>.</p>
+
+<h3><code>/POSICIONES   (después del parcial)</code></h3>
+<p><b>Cuándo</b>: para confirmar que la posición reducida sigue viva y con sus niveles.</p>
+<pre>Posiciones abiertas
+  SLN 40 acc desde 19.80 · stop 19.40 · objetivo 20.60</pre>
+<p><b>Qué revisas</b>: que la cantidad sea la que queda (40), no la original (60). Si no, el parcial se registró mal.</p>
+
+<h3><code>/PNL</code></h3>
+<p><b>Cuándo</b>: al final del día o cuando quieras el acumulado. Es bruto: no descuenta comisiones ni FX.</p>
+<pre>P&amp;L
+Posiciones a mano: 1 cerradas, +99.18 USD bruto, 1 ganadoras / 0 perdedoras
+Señales papel: 0 cerradas, 0 objetivos, 0 stops, R medio +0.00
+El P&amp;L a mano es bruto: no descuenta comisiones ni FX. El aviso de cada señal trae el coste.</pre>
+<p><b>Qué revisas</b>: que el número de cerradas y el P&L coincidan con tus operaciones. El P&L de “señales papel” es otro libro: el del sistema, no tus fills.</p>
+
+<h2>22.2. Estado y contexto: /estado, /ahora, /reloj, /hoy, /resumen, /registro, /diario, /vigilar, /descartadas, /ayuda</h2>
+<p>Salidas reales del 18/11 a las 09:12, mercado cerrado. En sesión cambian los números y algunas líneas; el
+formato es el mismo.</p>
+
+<h3><code>/estado</code></h3>
+<p><b>Cuándo</b>: para saber si el orquestador está vivo, si hay pausa, cómo va el registro y las posiciones.</p>
+<pre>Estado
+Orquestador: vivo (latido 2026-11-18T09:14:08+01:00, fase pre-apertura)
+Pausa: no
+Registro: 0 señales, 0 cerradas, R medio +0.00
+Posiciones a mano: 0 abiertas, P&amp;L +0.00 USD
+Freno por evidencia: no (muestra insuficiente (0 cerradas))
+Zona: Madrid 09:14 / NY 03:14 (desfase 6h)</pre>
+<p><b>Qué revisas</b>: que diga <b>vivo</b>, el latido reciente, <b>Pausa: no</b> y el freno en <b>no</b>. Si el latido es viejo, no operes.</p>
+
+<h3><code>/ahora</code></h3>
+<p><b>Cuándo</b>: para saber en qué fase estás, qué hace el sistema y cuál es el próximo evento.</p>
+<pre>Ahora: 09:14 Madrid / 03:14 NY · Antes del premarket
+El sistema: Nada todavia. A las 13:00 lanza el scanner completo, noticias, resultados y Pelosi.
+Tu: Nada. Puedes mirar el briefing cuando llegue.
+Puedes ignorar: Todo hasta que llegue el mensaje de premarket.
+Proximo: premarket (scanner) a las 13:00 (en 3h 45m)</pre>
+<p><b>Qué revisas</b>: la fase, lo que se espera de ti y la cuenta atrás. Si dice “antes del premarket”, no hay nada que comprar.</p>
+
+<h3><code>/reloj</code></h3>
+<p><b>Cuándo</b>: para confirmar el desfase Madrid/NY y la sesión de hoy.</p>
+<pre>Reloj
+Madrid mie 18-nov 09:14
+Nueva York mie 18-nov 03:14
+Desfase 6h
+Sesion NYSE hoy: 15:30-22:00 (sesion normal)
+Siguiente sesion: 2026-11-18 15:30-22:00 Madrid</pre>
+<p><b>Qué revisas</b>: que el desfase sea 6 h (o 5 h en semanas de cambio) y que la sesión sea la correcta.</p>
+
+<h3><code>/hoy</code></h3>
+<p><b>Cuándo</b>: para ver candidatos antes de abrir o rupturas después de las 15:50.</p>
+<pre>HOY · 09:14 Madrid / 03:14 NY
+Aun no hay rango de apertura (el mercado abre a las 15:30 Madrid).
+Candidatos del premarket (scan de las 2026-11-17 close): 262
+
+#  Valor   Precio   Setups
+1  NVDA     155.46  oversold
+2  SPCX     141.70  reclaim_ma20
+3  INTC      55.17  oversold
+4  LLY     1415.55  bull_flag
+5  CRM      194.52  oversold
+6  HD       339.01  bull_flag
+7  SLS       19.15  breakout_20d, reclaim_ma20
+8  MSTR      96.50  oversold
+9  NOW       92.90  oversold
+10 HOOD      69.19  oversold
+
+Para el analisis completo de uno: /elegir 1 (o el numero que sea).
+
+Lectura de la mañana
+Premarket: de 5929 valores, 1468 pasaron liquidez y 262 dieron setup.
+
+Candidato no es compra: cada uno pasa por noticias, plan, Time Machine y risk.</pre>
+<p><b>Qué revisas</b>: que la fecha del scan sea de hoy/ayer y que la tabla tenga los valores que esperas. Un candidato no es una compra.</p>
+
+<h3><code>/resumen</code></h3>
+<p><b>Cuándo</b>: para saber si hay SEÑAL A, posiciones y límites del día.</p>
+<pre>Resumen de hoy · 09:14 Madrid / 03:14 NY
+Todavia no se ha evaluado nada. El escaneo empieza a las 15:50 Madrid.
+No hay ninguna señal A. Hoy no se compra nada. Eso es un resultado, no un fallo.
+No tienes posiciones registradas.
+Limite de hoy: 150 USD de riesgo total, 3 operaciones.</pre>
+<p><b>Qué revisas</b>: que diga claramente si hay o no SEÑAL A; si no, no se compra nada.</p>
+
+<h3><code>/registro</code></h3>
+<p><b>Cuándo</b>: para ver el registro vivo de señales papel, no tus posiciones.</p>
+<pre>Registro vivo
+0 señales, 0 abiertas, 0 cerradas (0 objetivos, 0 stops), R medio +0.00
+Freno: no (muestra insuficiente (0 cerradas))
+SIN HISTORIAL VALIDADO (0 cerradas, minimo 12)</pre>
+<p><b>Qué revisas</b>: cerradas, objetivos, stops, R medio y freno. Con 0 cerradas, no hay historial validado.</p>
+
+<h3><code>/vigilar</code></h3>
+<p><b>Cuándo</b>: para ver la watchlist fija con precio y edad del dato.</p>
+<pre>Vigilados
+  NVDA 155.46 USD · dato de 2026-11-17T21:00:00Z (40456s)</pre>
+<p><b>Qué revisas</b>: que la edad sea razonable; si es de horas, es el último cierre.</p>
+
+<h3><code>/descartadas</code></h3>
+<p><b>Cuándo</b>: para ver las evaluaciones de hoy que no fueron SEÑAL A.</p>
+<pre>Sin evaluaciones descartadas hoy.</pre>
+<p><b>Qué revisas</b>: el motivo exacto; si no hay, es que no se ha evaluado nada.</p>
+
+<h3><code>/ayuda</code></h3>
+<p><b>Cuándo</b>: para el menú completo de comandos y frases.</p>
+<pre>Comandos
+Lo del dia: /hoy · /ganadores [N] · /seguir [N] · /evaluar [N] · /elegir N|T · /ahora · /resumen · /briefing
+Senales: /explica [T] · /porque [T] · /descartadas · /registro
+Analisis: /ticker T · /plan T · /tm T · /tamano T · /risk · /noticias T · /resultados T
+Operar a mano: /entre T precio cantidad [stop] [objetivo] · /sali T precio [acciones] · /vender T precio · /stop T precio · /posiciones · /pnl
+Sistema: /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · /alertas · /alerta T precio · /apertura T · /mercados T · /pelosi · /ticket · /diario
+Control: /pausa · /reanudar · /ensenar concepto · /ayuda
+Tambien entiendo frases: &quot;que esta pasando&quot;, &quot;que hago ahora&quot;, &quot;ya entre en NVDA a 142,5 con 8&quot;, &quot;he salido de NVDA a 156&quot;, &quot;explicame esta senal&quot;, &quot;por que no hay senales&quot;, &quot;preparame la apertura&quot;, &quot;ensename el ORB&quot;, &quot;vende NVDA a 160&quot;, &quot;stop de NVDA en 154&quot;, &quot;que ganadores hay&quot;, &quot;vigila los ganadores&quot;, &quot;evalua los ganadores&quot;.</pre>
+<p><b>Qué revisas</b>: que exista el comando que buscas; si no, no existe.</p>
+
+<h3>Control y watchlist</h3>
+
+<h3><code>/PAUSA</code></h3>
+<p><b>Cuándo</b>: para dejar de recibir SEÑAL A nuevas sin parar el orquestador.</p>
+<pre>Pausado: no se envian SEÑAL A nuevas. El orquestador sigue recogiendo datos.</pre>
+<p><b>Qué revisas</b>: que sea una pausa, no un parón: premarket, briefing, flat e informe siguen llegando. Para silencio total, para las tareas de Windows.</p>
+
+<h3><code>/REANUDAR</code></h3>
+<p><b>Cuándo</b>: para volver a permitir SEÑAL A.</p>
+<pre>Reanudado.</pre>
+<p><b>Qué revisas</b>: que el panel deje de mostrar PAUSADO.</p>
+
+<h3><code>/VIGILA SLS</code></h3>
+<p><b>Cuándo</b>: para añadir un valor a la watchlist fija (briefing, noticias y evaluación fija).</p>
+<pre>Vigilando SLS. Lista: NVDA, SLS · precio 19.15</pre>
+<p><b>Qué revisas</b>: que la lista sea la que quieres. No es la lista ORB del día; es la watchlist persistente.</p>
+
+<h3><code>/DEJAR SLS</code></h3>
+<p><b>Cuándo</b>: para quitar un valor de la watchlist fija.</p>
+<pre>Ya no vigilo SLS. Lista: NVDA</pre>
+<p><b>Qué revisas</b>: que quede solo lo que quieres vigilar siempre.</p>
+
+<h3><code>/DIARIO</code></h3>
+<p><b>Cuándo</b>: para ver los últimos 15 eventos del día (comandos, evaluaciones, errores).</p>
+<pre>Diario de hoy (1114 eventos)
+  09:14 cmd entry
+  09:14 cmd news
+  09:14 bot_cmd ticker
+  09:14 cmd risk
+  09:14 bot_cmd risk
+  09:14 cmd broker
+  09:14 bot_cmd ticket
+  09:14 cmd pelosi
+  09:14 bot_cmd pelosi
+  09:14 cmd scanner
+  09:14 bot_cmd scan
+  09:14 bot_cmd ensenar
+  09:14 bot_cmd ensenar
+  09:14 bot_cmd ensenar
+  09:14 bot_cmd ayuda</pre>
+<p><b>Qué revisas</b>: que no haya <code>error</code>, <code>validacion_fallida</code> ni <code>telegram_error</code>. En esta sesión hay 1.114 eventos porque hemos ejecutado muchas pruebas; en un día normal hay menos.</p>
+
+<h2>22.3. Análisis y señales: /ganadores, /elegir, /resultados, /noticias, /mercados, /apertura, /tm, /plan, /tamano, /ticker, /risk, /ticket, /pelosi, /scan, /ensenar</h2>
+<p>Salidas reales del 18/11 a las 09:12, mercado cerrado. Las que dependen de un disparo
+(<code>/plan</code>, <code>/tm</code>, <code>/tamano</code>) dicen “sin plan” hasta que exista rango; es correcto.</p>
+
+<h3><code>/ganadores 5</code></h3>
+<p><b>Cuándo</b>: para ver los que más subieron ayer (o hoy en sesión), con liquidez.</p>
+<pre>Ganadores de ayer · 09:14 · 5925 valores con datos
+#  Valor   %       precio   $/dia
+1  SLN    +128.11%     19.80   24.0M
+2  SLS    +91.88%     19.15 2288.2M
+3  SGRY   +83.78%     26.85   54.6M
+4  REPL   +81.31%     19.69   47.9M
+5  GDYN   +75.61%     13.68   24.2M
+
+Subir mucho no es una ventaja: es el punto de partida. Cada uno debe pasar noticias, plan, Time Machine y risk antes de ser SEÑAL A.
+
+Ninguno de estos esta evaluado todavia hoy. /evaluar 3 lo hace ahora.</pre>
+<p><b>Qué revisas</b>: que la cabecera diga “de ayer” o “de hoy”; que el % y el $/día sean coherentes. No es una recomendación.</p>
+
+<h3><code>/elegir NVDA</code></h3>
+<p><b>Cuándo</b>: para el análisis completo de un valor, con criterios y SEC.</p>
+<pre>NVDA · analisis completo (bajo demanda, no envia aviso)
+Setup: waiting. the NYSE opens at 9:30 and the 15-minute range is set at 9:45
+Precio ahora: 155.46 (dato de hace 40457s · dato viejo: es el ultimo cierre, no un precio en vivo)
+Noticias: sin adversas
+Riesgo de resultados (proxy titular/10-Q): sin senal hoy/manana
+SEC: ultimo trimestre Q2 2027 (10-Q), presentado 2026-08-26.
+Veredicto: SIN SEÑAL todavia. Sin ruptura no hay plan, tamaño ni probabilidades.
+Que falta: que una vela de 5 min cierre por encima del maximo del rango (9:30-9:45 ET) dentro de la ventana de entrada.</pre>
+<p><b>Qué revisas</b>: el veredicto: SIN SEÑAL hasta que haya rango; si hay plan, entrada/stop/objetivo/EV.</p>
+
+<h3><code>/resultados NVDA</code></h3>
+<p><b>Cuándo</b>: para el último trimestre presentado a la SEC.</p>
+<pre>Resultados NVDA · NVIDIA CORP
+Periodo Q2 2027 (10-Q), presentado 2026-08-26
+Ingresos 96221000000 (105.9% interanual)
+EPS diluido 2.46 · margen bruto 75.0%
+Es el ultimo trimestre, no una previsión.</pre>
+<p><b>Qué revisas</b>: periodo, formulario y fecha; no es una previsión.</p>
+
+<h3><code>/noticias NVDA</code></h3>
+<p><b>Cuándo</b>: para titulares de 24 h.</p>
+<pre>Sin noticias nuevas en 24 h para NVDA.</pre>
+<p><b>Qué revisas</b>: si hay noticias adversas; si no, “sin noticias nuevas”.</p>
+
+<h3><code>/mercados NVDA</code></h3>
+<p><b>Cuándo</b>: para comparar EE. UU. con Xetra.</p>
+<pre>No se pudo comparar NVDA con NVD.DE: sin barras intradia para NVD.DE.
+Yahoo no siempre da barras intradia de la plaza europea. Usa /elegir NVDA y /apertura NVDA para el analisis de EE. UU.; la comparacion de mercado no esta disponible.</pre>
+<p><b>Qué revisas</b>: si falla, el sistema lo dice: Yahoo no da barras intradía de NVD.DE. No inventa.</p>
+
+<h3><code>/apertura NVDA</code></h3>
+<p><b>Cuándo</b>: para el coste de esperar: hueco, primeros 15 min y % del movimiento.</p>
+<pre>COSTE DE ESPERAR NVDA (59 sesiones, 5 min, 2026-08-25 a 2026-11-17)
+  Hueco de apertura: mediana 0.27%, p5 -3.26%, p95 2.33% (n=58)
+  Primeros 15 min: media 0.08%, mediana 0.01%, p5 -1.12%, p95 1.45% (n=59)
+  El 50% de las sesiones hace menos del 52.20% de su movimiento del dia en esos 15 min
+  Comprar en la apertura y salir al cierre: 59 dias, media -0.25%, 21 positivos
+  Comprar solo si hay ruptura tras 15 min: 32 dias, media -0.23%, 13 positivos
+  La ruptura paga peor precio que la apertura en 32 de 32 casos (media -1.00%): es el precio de la confirmacion
+  El hueco se relleno en el 46.60% de las sesiones (n=58)
+  Stop en el mid: cuando se cruzo, cerro por debajo del stop una mediana de 0.06% (peor 0.18%, n=8)</pre>
+<p><b>Qué revisas</b>: las medianas y la muestra; recuerda que es histórico, no una promesa.</p>
+
+<h3><code>/tm NVDA</code></h3>
+<p><b>Cuándo</b>: para el Time Machine de un valor.</p>
+<pre>Time Machine no disponible: sin datos suficientes</pre>
+<p><b>Qué revisas</b>: si no hay disparo, “sin datos suficientes”; es normal antes de abrir.</p>
+
+<h3><code>/plan NVDA</code></h3>
+<p><b>Cuándo</b>: para el plan de salida si hay disparo.</p>
+<pre>NVDA: waiting (the NYSE opens at 9:30 and the 15-minute range is set at 9:45). Sin plan: no hay disparo.</pre>
+<p><b>Qué revisas</b>: si dice “waiting”, no hay plan; no se inventa.</p>
+
+<h3><code>/tamano NVDA</code></h3>
+<p><b>Cuándo</b>: para el tamaño propuesto y la pérdida máxima.</p>
+<pre>Sin tamano: budget no propone orden</pre>
+<p><b>Qué revisas</b>: si no hay plan, no hay tamaño.</p>
+
+<h3><code>/ticker NVDA</code></h3>
+<p><b>Cuándo</b>: para el resumen de la cadena, más corto que /elegir.</p>
+<pre>NVDA
+Setup: waiting (the NYSE opens at 9:30 and the 15-minute range is set at 9:45)
+Noticias: sin adversas
+Resultados: sin senal de resultados hoy/manana</pre>
+<p><b>Qué revisas</b>: setup, noticias y resultados; no aplica criterios.</p>
+
+<h3><code>/risk</code></h3>
+<p><b>Cuándo</b>: para PASS/BLOCK de las órdenes propuestas.</p>
+<pre>Risk sin salida: check.py: no orders file (run trader-budget first) at trader/orders.json</pre>
+<p><b>Qué revisas</b>: si no hay órdenes, lo dice; no es el risk de tus posiciones manuales.</p>
+
+<h3><code>/ticket</code></h3>
+<p><b>Cuándo</b>: para el ticket en papel de la última orden propuesta.</p>
+<pre>No hay ticket. Primero /plan y /tamano.</pre>
+<p><b>Qué revisas</b>: si no hay ticket, pide /plan y /tamano; nunca se envía.</p>
+
+<h3><code>/pelosi</code></h3>
+<p><b>Cuándo</b>: para PTR nuevos de Pelosi.</p>
+<pre>Sin PTR nuevos de Pelosi. (Contexto, nunca senal: son publicos y llegan hasta 45 dias tarde.)</pre>
+<p><b>Qué revisas</b>: contexto, nunca señal; llega tarde.</p>
+
+<h3><code>/scan NVDA</code></h3>
+<p><b>Cuándo</b>: para escanear solo ese valor ahora.</p>
+<pre>Scan daily · 2026-11-17 close ET
+1 valores, 1 escaneados, 0 fallos, 1 candidatos
+  NVDA 155.46 (oversold)</pre>
+<p><b>Qué revisas</b>: precio y setup; no escribe la watchlist.</p>
+
+<h3><code>/ensenar orb</code></h3>
+<p><b>Cuándo</b>: para explicar un concepto.</p>
+<pre>ORB
+ORB = ruptura del rango de apertura. Se mide el maximo y minimo de los primeros 15 minutos (9:30-9:45 ET) y se entra cuando una vela de 5 minutos CIERRA por encima del maximo.</pre>
+<p><b>Qué revisas</b>: la definición; no es una señal.</p>
+
+<h3><code>/ensenar r</code></h3>
+<p><b>Cuándo</b>: para explicar R.</p>
+<pre>R
+R = lo que pierdes si salta el stop. Si entras a 100 con stop 98, 1R = 2 USD por accion. Todo se mide en multiplos de R para comparar operaciones de tamaños distintos.</pre>
+<p><b>Qué revisas</b>: que no te devuelva ORB por error; debe decir R.</p>
+
+<h3><code>/ensenar senal a</code></h3>
+<p><b>Cuándo</b>: para explicar SEÑAL A.</p>
+<pre>SEÑAL A
+SEÑAL A = el unico aviso que se envia. Exige setup, noticias limpias, plan, Time Machine a favor, historico con muestra, EV positivo tras costes, risk PASS y datos frescos.
+Hoy: 0 A, 0 vigilar, 0 descartadas.</pre>
+<p><b>Qué revisas</b>: la definición y el recuento de hoy.</p>
+
+<h3><code>/SEGUIR 5</code></h3>
+<p><b>Cuándo</b>: para añadir los 5 primeros ganadores de la lista actual a la lista ORB de hoy. Después de las 13:00 y, sobre todo, después de las 15:30.</p>
+<pre>Ganadores anadidos al escaneo ORB: SLN, SLS, SGRY, REPL, GDYN.
+Lista total: 5 valores. Se escanean cada 5 min y pasan por noticias, plan, Time Machine, tamano, risk y criterios.
+No es una recomendacion ni una compra: si alguno rompe el rango y pasa todo, llegara como SEÑAL A.</pre>
+<p><b>Qué revisas</b>: que los tickers sean los que quieres y que la lista no se haya quedado corta. Antes de las 13:00, el premarket sobrescribe la lista; no lo uses todavía.</p>
+
+<h3><code>/EVALUAR 1</code></h3>
+<p><b>Cuándo</b>: para ejecutar la cadena completa de los N primeros ganadores y ordenarlos por veredicto y EV. A partir de las 15:50, cuando ya existe rango.</p>
+<pre>Evaluacion bajo demanda · 09:19 · 1 ganadores (de ayer)
+No envia aviso ni toca el plan vivo. Solo mide.
+
+#  Valor  Veredicto     EV R    n   obj MC
+1  SLN    SIN SEÑAL       n/d    0   n/d
+
+Motivo principal:
+  SLN: the NYSE opens at 9:30 and the 15-minute range is set at 9:45
+
+Esto es el veredicto de los criterios, no una recomendacion. Si un valor sale SEÑAL A aqui pero no llego aviso, no se opera: el aviso automatico manda.
+Analisis completo de uno: /elegir NVDA</pre>
+<p><b>Qué revisas</b>: que la cabecera diga “de ayer” o “de hoy”; que los veredictos tengan sentido; y que “SIN SEÑAL” antes de abrir es normal. No es una compra.</p>
+
+<h3>Precios multi-fuente</h3>
+
+<h3><code>/ELEGIR MNSO</code></h3>
+<p><b>Cuándo</b>: para analizar un ticker concreto bajo demanda, aunque no esté en la lista ORB. Antes de las 15:50 devuelve SIN SEÑAL; después, si rompe el rango, puede dar plan y veredicto.</p>
+<pre>MNSO · analisis completo (bajo demanda, no envia aviso)
+Setup: waiting. the NYSE opens at 9:30 and the 15-minute range is set at 9:45
+Precio ahora: 12.18 (dato de hace 44679s · dato viejo: es el ultimo cierre, no un precio en vivo)
+Noticias: sin adversas
+Riesgo de resultados (proxy titular/10-Q): sin senal hoy/manana
+Veredicto: SIN SEÑAL todavia. Sin ruptura no hay plan, tamaño ni probabilidades.
+Que falta: que una vela de 5 min cierre por encima del maximo del rango (9:30-9:45 ET) dentro de la ventana de entrada.</pre>
+<p><b>Qué revisas</b>: que el ticker sea el correcto y que el precio sea el último cierre si el mercado está cerrado. SIN SEÑAL antes de abrir es normal: no hay rango. No es una compra.</p>
+
+<h3><code>/INCLUIR MNSO</code></h3>
+<p><b>Cuándo</b>: para añadir un ticker concreto a la lista ORB de hoy, aunque no sea ganador ni esté en el scanner. No es una compra.</p>
+<pre>Añadido al escaneo ORB de hoy: MNSO.
+Lista total: 151 valores. Se escanea cada 5 min y pasa por noticias, plan, Time Machine, tamaño, risk y criterios.
+No es una compra: si rompe el rango y pasa todo, llegará como SEÑAL A.
+Si lo haces antes de las 13:00, el premarket reconstruye la lista y se pierde.</pre>
+<p><b>Qué revisas</b>: que el ticker sea el correcto y que la lista no se haya quedado corta. Antes de las 13:00 se pierde; úsalo después del premarket.</p>
+
+<h3><code>/REF SLS 20.13 TV</code></h3>
+<p><b>Cuándo</b>: para guardar el precio que ves en TradingView (o Börse Frankfurt/Investing/MyInvestor) y compararlo con Yahoo.</p>
+<pre>Referencia guardada: SLS 20.13 USD · TradingView · 09:55:02 Madrid.
+Consulta /precios SLS para compararla con Yahoo y el plan.</pre>
+<p><b>Qué revisas</b>: que la fuente, el precio y la hora sean los que has visto. Yahoo ya entra solo; no lo apuntes a mano.</p>
+
+<h3><code>/PRECIOS SLS</code></h3>
+<p><b>Cuándo</b>: para juntar Yahoo, tus referencias y el plan vigente; si hay diferencia >0,5 %, avisa.</p>
+<pre>Precios SLS
+Yahoo: 20.12 USD · 2026-12-01T15:05:20Z · hace 15s · NMS
+TradingView: 20.13 USD · 09:55:02 Madrid · hace 0s
+Diferencia entre fuentes: 0.15% (OK)
+Plan vigente: no hay plan para SLS. El plan sale de la SEÑAL A.
+Para /entre: usa el fill de MyInvestor, no esta tabla. Stop/objetivo salen del plan.</pre>
+<p><b>Qué revisas</b>: que las fuentes y horas sean las correctas; si dice AVISO >0,5 %, no operes a mercado. Si no hay plan, no hay entrada.</p>
+
+<h3><code>/REF NVD.DE 139.40 BORSE</code></h3>
+<p><b>Cuándo</b>: para guardar el precio de Xetra que ves en la app oficial Börse Frankfurt.</p>
+<pre>Referencia guardada: NVD.DE 139.40 EUR · Börse Frankfurt/Xetra · 09:55:02 Madrid.
+Consulta /precios NVD.DE para compararla con Yahoo y el plan.</pre>
+<p><b>Qué revisas</b>: que sea Xetra y EUR, no Frankfurt/USD. Si el ticket de MyInvestor es otro venue, la diferencia puede ser real.</p>
+
+<h3><code>/PRECIOS NVD.DE</code></h3>
+<p><b>Cuándo</b>: para comparar Yahoo con la referencia oficial de Xetra antes de vender o comprar.</p>
+<pre>Precios NVD.DE
+Yahoo: 139.35 EUR · 2026-12-01T15:05:20Z · hace 18s · GER
+Börse Frankfurt/Xetra: 139.40 EUR · 09:55:02 Madrid · hace 0s
+Diferencia entre fuentes: 0.04% (OK)
+Plan vigente: no hay plan para NVD.DE. El plan sale de la SEÑAL A.
+Para /entre: usa el fill de MyInvestor, no esta tabla. Stop/objetivo salen del plan.</pre>
+<p><b>Qué revisas</b>: que la referencia sea de Börse Frankfurt/Xetra y la hora reciente. Si el precio de MyInvestor es 144,94, no uses mercado: limitada al precio que aceptas.</p>
+
+<h2>22.4. Errores y casos límite (salidas exactas)</h2>
+
+<h3><code>/SALI SLS 21.26   (sin posición)</code></h3>
+<p><b>Cuándo</b>: cuando no hay posición abierta de ese valor.</p>
+<pre>No hay posicion abierta en SLS.</pre>
+<p><b>Qué revisas</b>: no hay nada que cerrar; no insistas. Revisa <code>/posiciones</code>.</p>
+
+<h3><code>/ENTRE SLS 20.12 87 20.50 21.26   (stop por encima)</code></h3>
+<p><b>Cuándo</b>: cuando el stop está por encima de la entrada.</p>
+<pre>El stop (20.5) tiene que estar por debajo de la entrada (20.12).</pre>
+<p><b>Qué revisas</b>: corrige el stop; el sistema no acepta un stop que no sea de pérdida.</p>
+
+<h3><code>/ENTRE SLS 20.12 87 19.55 21.26   (duplicado)</code></h3>
+<p><b>Cuándo</b>: cuando ya hay una posición abierta del mismo valor.</p>
+<pre>Ya hay una posicion abierta en SLS. Cierrala o reduce con /sali antes de abrir otra. No se promedian posiciones a ciegas.</pre>
+<p><b>Qué revisas</b>: no se promedia; cierra o reduce primero. Si quieres otra entrada, es otra operación y otro registro.</p>
+
+<h3><code>/STOP SLS 19.80   (sin posición)</code></h3>
+<p><b>Cuándo</b>: cuando no hay posición abierta: deja un aviso de stop para hoy.</p>
+<pre>Stop vigilado para hoy: SLS si cae a 19.80. Te aviso cuando pase.
+Recuerda: en MyInvestor el stop se pone como orden aparte (NYSE/Nasdaq/Xetra, max 60 dias).</pre>
+<p><b>Qué revisas</b>: que sea un aviso, no una posición. No hay P&L ni tamaño asociado. Si luego compras, registra con <code>/entre</code>.</p>
+
+<h3><code>/VENDER SLS 21.50   (sin posición)</code></h3>
+<p><b>Cuándo</b>: cuando no hay posición abierta: deja un aviso de venta para hoy.</p>
+<pre>Aviso de venta puesto para hoy: SLS cuando llegue a 21.50. Te aviso y decides.</pre>
+<p><b>Qué revisas</b>: que sea un aviso, no una orden. No se ejecuta nada en el broker.</p>
+
+<h3><code>/ALERTAS   (solo avisos sueltos)</code></h3>
+<p><b>Cuándo</b>: después de usar /stop o /vender sin posición.</p>
+<pre>Alertas de hoy (2)
+  tg-stop-sls-19-8-2026-11-18 · SLS · stop 19.80
+  tg-venta-sls-21-5-2026-11-18 · SLS · target 21.50</pre>
+<p><b>Qué revisas</b>: que los ids empiecen por <code>tg-</code> (aviso suelto) y no por <code>pos-</code> (posición).</p>
+
+<h2>22.5. Qué revisar en cada salida (chuleta)</h2>
+<table>
+<tr><th>Si ves…</th><th>Significa…</th><th>Qué haces</th></tr>
+<tr><td><b>Avisos armados</b></td><td>El sistema vigila stop y objetivo</td><td>Comprueba <code>/alertas</code>; no hace falta más</td></tr>
+<tr><td><b>AVISO: riesgo real … supera 50</b></td><td>Tu fill/stop dan más riesgo del tope</td><td>Reduce cantidad o acepta el exceso; queda registrado</td></tr>
+<tr><td><b>Quedan N acc</b></td><td>Cierre parcial correcto</td><td>Los avisos siguen para el resto</td></tr>
+<tr><td><b>No hay posicion abierta</b></td><td>No hay nada que cerrar</td><td>No insistas; revisa <code>/posiciones</code></td></tr>
+<tr><td><b>El stop tiene que estar por debajo</b></td><td>Nivel inválido</td><td>Corrige el stop</td></tr>
+<tr><td><b>Ya hay una posicion abierta</b></td><td>No se promedia</td><td>Cierra o reduce primero</td></tr>
+<tr><td><b>Stop vigilado para hoy</b></td><td>Es un aviso, no una posición</td><td>No hay P&L; si compras, registra con <code>/entre</code></td></tr>
+<tr><td><b>P&L bruto</b></td><td>No descuenta comisiones/FX</td><td>Resta el coste del aviso</td></tr>
+<tr><td><b>SIN SEÑAL</b></td><td>No hay rango/ruptura</td><td>No compres; espera</td></tr>
+<tr><td><b>SEÑAL CADUCADA</b></td><td>El precio se fue &gt;0,5R</td><td>No persigas</td></tr>
+</table>
+
+<h1 id="s23">23. Test final: ¿sabes qué hacer en cada momento?</h1>
+<p>Si puedes responder estas 12 situaciones sin mirar, el manual está entendido. Si fallas una, vuelve a la
+sección indicada.</p>
+<table>
+<tr><th>#</th><th>Situación</th><th>Qué haces</th><th>Sección</th></tr>
+<tr><td>1</td><td>Son las 12:50 y no ha llegado el premarket.</td><td>Nada. <code>/ahora</code> y esperar. No se compra un candidato.</td><td>§5.1</td></tr>
+<tr><td>2</td><td>13:00: llega el premarket con 150 candidatos.</td><td>Leer, <code>/hoy</code>, <code>/ganadores</code>, <code>/seguir</code> si quieres. Los candidatos no son compras.</td><td>§5.2</td></tr>
+<tr><td>3</td><td>15:50–21:30: no llega ningún aviso.</td><td>Nada. Sin SEÑAL A no hay operación.</td><td>§5.5</td></tr>
+<tr><td>4</td><td>SEÑAL A: entrada 20,12, stop 19,55, precio actual 20,30.</td><td>Está dentro de 0,5R: limitada 20,32, fill, <code>/entre</code>, alertas.</td><td>§9.10</td></tr>
+<tr><td>5</td><td>SEÑAL A: precio actual 20,80.</td><td>No comprar: se fue más de 0,5R.</td><td>§9.10</td></tr>
+<tr><td>6</td><td>SEÑAL A: precio actual 19,50 (stop 19,55).</td><td>No comprar: señal invalidada.</td><td>§9.10</td></tr>
+<tr><td>7</td><td>Tienes posición y el precio toca el objetivo.</td><td>Limitada de venta al target, <code>/sali</code>, cancelar stop loss del broker si lo pusiste.</td><td>§9.14</td></tr>
+<tr><td>8</td><td>Tienes posición y el precio toca el stop.</td><td>Vender (stop loss o manual), <code>/sali</code>, no reentrar por el mismo setup.</td><td>§10</td></tr>
+<tr><td>9</td><td>Compraste 5, vendiste 3, quedan 2 y son las 21:40.</td><td>Vender las 2 a las 21:55. Si las mantienes, es swing fuera del sistema; watchlist y plan nuevo, no predicción.</td><td>§9.16</td></tr>
+<tr><td>10</td><td>MyInvestor 144,94 y TradingView 139,40 (NVD.DE).</td><td>No mercado. Limitada al precio que aceptas; si no llena en 1–2 min, cancela. Comprueba venue/divisa.</td><td>§9.17</td></tr>
+<tr><td>11</td><td>Día entero sin SEÑAL A.</td><td>No operar. Es un resultado válido; <code>/porque</code> y <code>/descartadas</code>.</td><td>§5.9</td></tr>
+<tr><td>12</td><td>Datos de hace 420 s.</td><td>No operar. <code>/estado</code>, <code>smoke.py</code>, esperar dato fresco.</td><td>§5.10</td></tr>
+</table>
+<div class="ok">
+<b>Si has respondido las 12</b>: sabes cuándo comprar, cuándo no, cómo registrar, cómo salir, qué hacer con las
+2 que sobreviven y cómo evitar el precio retrasado. Si no, la sección indicada tiene la respuesta exacta.
+</div>

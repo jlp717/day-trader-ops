@@ -1,0 +1,999 @@
+<h1 id="s16">16. Nueve días de ejemplo (simulación completa)</h1>
+
+<div class="sim">
+<b>Todo este capítulo es una simulación didáctica.</b> Las cifras, tickers y fechas son inventados y coherentes
+para explicar el flujo. No son señales reales, no son recomendaciones y no han ocurrido. Sirven para que veas
+<b>qué preguntar, qué respondería el sistema y qué harías tú</b> en cada situación.
+</div>
+<p>En el <b>Día 8</b> tienes la tabla de etiquetas de origen
+(<span class="src src-tg">TG</span> Telegram ·
+<span class="src src-sys">SYS</span> sistema ·
+<span class="src src-ext">EXT</span> fuente externa ·
+<span class="src src-mx">MX</span> MyInvestor ·
+<span class="src src-tu">TÚ</span> decisión ·
+<span class="src src-reg">REG</span> registro).
+Esa misma lógica se aplica a todos los días: cada número viene de un sitio y se pone por una razón.</p>
+<div class="warn">
+<b>Tipo de orden en los ejemplos</b>: compra y objetivo con <b>limitada</b>; stop con <b>stop loss</b> del broker o
+venta manual; flat 21:55 con <b>mercado/limitada agresiva</b>; parcial con <b>limitada</b>. Cada línea
+“MyInvestor: …” de los días te dice exactamente qué orden poner.
+</div>
+
+<h2>16.1. Día 0 — miércoles 18/11/2026: primer día, sin operar</h2>
+
+<h3>07:19 — “¿por dónde empiezo?”</h3>
+<pre>Tú: /ahora
+Bot: Ahora: 07:19 Madrid / 01:19 NY · Antes del premarket
+     El sistema: Nada todavía. A las 13:00 lanza el scanner completo, noticias, resultados y Pelosi.
+     Tú: Nada. Puedes mirar el briefing cuando llegue.
+     Puedes ignorar: Todo hasta el mensaje de premarket.
+     Próximo: premarket (scanner) a las 13:00 (en 5h 41m)</pre>
+<p><b>Lectura</b>: no hay nada que comprar todavía. El sistema no ha escaneado el día. No tiene sentido pedir
+<code>/elegir</code> a las 7:19: el rango 9:30–9:45 ET no existe.</p>
+
+<h3>09:00 — mirar los ganadores de ayer</h3>
+<pre>Tú: /ganadores 5
+Bot: Ganadores de ayer · 09:00 · 5925 valores con datos
+     #  Valor   %       precio   $/día
+     1  SLN    +128.11%  19.80   24.0M
+     2  SLS     +91.88%  19.15 2288.2M
+     3  SGRY    +83.78%  26.85   54.6M
+     4  REPL    +81.31%  19.69   47.9M
+     5  GDYN    +75.61%  13.68   24.2M
+     Subir mucho no es una ventaja: es el punto de partida...</pre>
+<p><b>Lectura</b>: son candidatos, no compras. SLN tiene solo 24 M USD/día: justo pasa el filtro. SLS tiene 2.288 M:
+es líquido. Mañana se verá si forman rango y rompen con EV positivo.</p>
+
+<h3>13:00 — llega el premarket</h3>
+<pre>Bot: Premarket · 13:00
+     Scanner: 5925 valores, 1468 escaneados, 262 candidatos.
+     Lista ORB de hoy: 150 valores (ganadores primero, luego setups).
+       NVDA 155.46 (oversold)
+       SPCX 141.70 (reclaim_ma20)
+       INTC 55.17 (oversold)
+       LLY 1415.55 (bull_flag)
+       CRM 194.52 (oversold)
+     Ganadores de ayer (líquidos, no recomendación): SLN +128%, SLS +92%, SGRY +84%...</pre>
+<p><b>Qué ha hecho el sistema</b>: scanner completo, noticias, resultados, Pelosi, ganadores y lista ORB de 150.
+<b>Qué haces tú</b>: leerlo. Si quieres, <code>/hoy</code> para la tabla y <code>/seguir 5</code> para asegurar que
+los ganadores están en la lista (ya suelen estar los 20 primeros).</p>
+
+<h3>13:06 — añadir ganadores a la lista ORB</h3>
+<pre>Tú: /seguir 5
+Bot: Ganadores añadidos al escaneo ORB: ninguno nuevo (ya estaban).
+     Lista total: 150 valores. Se escanean cada 5 min...
+     No es una recomendación ni una compra...</pre>
+
+<h3>15:00 — briefing</h3>
+<pre>Bot: Briefing previo · 15:00
+     Sesión NYSE 15:30 a 22:00 Madrid (sesión normal).
+     Scanner: 5925 valores, 1468 escaneados, 262 candidatos.
+     Candidatos (los 5 primeros por dólares): ...
+     Vigilados fijos: NVDA
+     Coste de esperar NVDA: hueco 0.3%, primeros 15 min 0.8%, 22% del movimiento del día en 15 min
+     Plan condicional: si rompe el máximo del rango 9:30-9:45 y el primer cierre de 5 min queda por encima
+     → entrada en ese cierre, stop en el mid, objetivo 2R, fuera a las 15:55 ET...
+     PRUEBA EN PAPEL · sin órdenes · datos Yahoo (pueden lag).</pre>
+
+<h3>15:30–21:30 — no pasa nada</h3>
+<pre>Tú: /hoy
+Bot: HOY · 18:00
+     Rango 9:30-9:45 ET · 150 gráficos usables · 0 rupturas
+     Ninguna ruptura todavía. No se hace nada hasta que haya una.</pre>
+<pre>Tú: /porque
+Bot: Hoy no se ha evaluado nada todavía. El escaneo ORB empieza a las 15:50 Madrid.
+     Antes de eso no hay señales que descartar.</pre>
+<p><b>Ojo</b>: si a las 18:00 no hay ninguna ruptura, <code>/porque</code> puede decir “no hay evaluaciones”
+porque el scanner ORB no ha encontrado ningún cierre por encima del rango. Es correcto: no se inventan señales.</p>
+
+<h3>21:55 — flat by close</h3>
+<pre>Bot: ⏰ Flat by close · 21:55
+     Si sigues dentro, cierra a mano: no se mantiene nada durante la noche.</pre>
+<p>No hay posiciones. No haces nada.</p>
+
+<h3>22:00 — informe</h3>
+<pre>Bot: Informe de sesión · 22:00
+     Valores analizados: 0 · SEÑAL A: 0 · VIGILAR: 0 · DESCARTADAS: 0 · sin señal/datos: 0
+     Sesgo de selección: scanner sobre 5925 valores, 1468 escaneados, 262 candidatos, 0 llegaron a evaluación.
+     Sin SEÑAL A hoy. Es un resultado válido: los filtros no se relajan.
+     ...
+     Conclusión honesta: no hubo señal; el sistema prefirió no avisar. Eso no es éxito ni fracaso:
+     es la ausencia de una configuración que supere los filtros.
+     PRUEBA EN PAPEL · nada de esto es una recomendación.</pre>
+<p><b>Lo que has aprendido</b>: un día sin señales no es un día perdido. Has visto el ciclo completo y no has
+arriesgado nada.</p>
+
+<h2>16.2. Día 1 — jueves 19/11/2026: primera SEÑAL A, objetivo</h2>
+
+<h3>13:00 — premarket con un ganador claro</h3>
+<pre>Bot: Premarket · 13:00
+     Scanner: 5925 valores, 1452 escaneados, 248 candidatos.
+     Lista ORB de hoy: 150 valores (ganadores primero, luego setups).
+       ABCD 41.80 (breakout_20d, reclaim_ma20)
+       ...
+     Ganadores de ayer (líquidos, no recomendación): ABCD +22.5%, EFGH +18.1%, ...</pre>
+
+<h3>13:05 — pedir la lista y seguir al ganador</h3>
+<pre>Tú: /ganadores 5
+Bot: Ganadores de ayer · 13:05 · 5925 valores con datos
+     1  ABCD   +22.50%  41.80  180.0M
+     2  EFGH   +18.10%  58.00   95.0M
+     ...
+Tú: /seguir 3
+Bot: Ganadores añadidos al escaneo ORB: ninguno nuevo (ya estaban).
+     Lista total: 150 valores...</pre>
+
+<h3>14:00 — análisis completo antes del rango</h3>
+<pre>Tú: /elegir ABCD
+Bot: ABCD · análisis completo (bajo demanda, no envía aviso)
+     Setup: waiting. the NYSE opens at 9:30 and the 15-minute range is set at 9:45
+     Precio ahora: 41.80 (dato viejo: es el último cierre, no un precio en vivo)
+     Noticias: sin adversas
+     Riesgo de resultados (proxy titular/10-Q): sin señal
+     Veredicto: SIN SEÑAL todavía. Sin ruptura no hay plan, tamaño ni probabilidades.
+     Qué falta: que una vela de 5 min cierre por encima del máximo del rango (9:30-9:45 ET)...</pre>
+<p><b>Lectura</b>: no hay plan. No se compra. El análisis completo sirve para conocer noticias y SEC, no para
+inventar una entrada antes de que exista el rango.</p>
+
+<h3>15:00 — briefing</h3>
+<pre>Bot: Briefing previo · 15:00
+     Candidatos: ABCD 41.80 (breakout_20d, reclaim_ma20) · $180M/día · rango proxy 0.42%
+     Plan condicional: si rompe el máximo del rango 9:30-9:45 y el primer cierre de 5 min queda por encima
+     → entrada en ese cierre, stop en el mid, objetivo 2R, fuera a las 15:55 ET...</pre>
+
+<h3>16:05 — SEÑAL A</h3>
+<pre>Bot: ABCD · SEÑAL A · PAPEL
+     Setup: orb · entrada 10:05 ET
+     Ahora: 16:05 Madrid
+     Dato: 2026-11-19T15:04:00Z · edad 62 s
+     Cierre de vela 10:05 ET · señal 62 s después del cierre (pipeline 38 s).
+     Entrada 42.10 USD
+     Stop    41.20 USD (mid del rango, redondeado abajo)
+     Objetivo 43.90 (2.0R) · flat by 15:55 ET
+     Tamaño  55 acc. · riesgo 49.50 USD al stop (0.90 por acción)
+     Coste estimado ida+vuelta: 19.55 USD (MyInvestor 0,12% + 0,30% FX)
+       · con cuenta USD: 5.70 USD
+     Time Machine: objetivo primero 41.0%, stop primero 30.0%, nada 29.0%
+       (10000 replays, seed 7)
+     Historico real: 33 disparos, 13 objetivo, 14 stop, tasa 39.4%
+       (Wilson 34.0%-56.0%), break-even 33.3%
+     EV conservador tras costes: +0.121 R (coste 0.396 R)
+     ...
+     PRUEBA EN PAPEL · no se ha enviado ninguna orden</pre>
+<p><b>Qué compruebas</b>: dato de 62 s (fresco), stop &lt; entrada &lt; objetivo, riesgo 49,50 ≤ 50, EV +0,121R,
+Time Machine objetivo &gt; stop, y <b>Wilson low 34,0 % &gt; break-even 33,3 %</b>. Ese último detalle es el que
+convierte el histórico en “muestra suficiente” y no en una casualidad.</p>
+<div class="warn">
+<b>Coherencia</b>: si el Wilson low estuviera por debajo del break-even (por ejemplo 24,7 % con break-even 33,3 %),
+el veredicto correcto sería VIGILAR o DESCARTADA, no SEÑAL A. El sistema no lo maquilla. En este ejemplo el
+histórico es <b>Wilson 34,0–56,0 %</b> y el EV +0,121R.
+</div>
+
+<h3>16:06 — entras y registras</h3>
+<pre>Tú: (en MyInvestor) compra limitada 52 ABCD a 42.15 → ejecutada
+Tú: /entre ABCD 42.15 52 41.20 43.90
+Bot: Registrada: ABCD 52 acc a 42.15. Stop 41.20, objetivo 43.90.
+     Plan de referencia: entrada 42.10 · deslizamiento +0.05 USD/acc.
+     Riesgo real al stop 49.40 USD (el plan decia 46.80 por el deslizamiento).
+     Avisos armados: stop 41.20, objetivo 43.90. Solo hoy.
+     Estado: SEÑAL A vigente hoy desde las 16:05.</pre>
+<p><b>Por qué 52 y no 55</b>: 50 / 0,95 = 52,6 → 52 acciones; el riesgo real es 49,40. Si hubieras usado 55, el
+riesgo sería 52,25 &gt; 50 y el bot te avisaría. El tamaño se calcula con <b>tu entrada real</b>, no con la del plan.</p>
+
+<h3>18:20 — objetivo</h3>
+<pre>Bot: 🔔 ABCD is at or above $43.90: target your $43.90 (posición xxxx).
+     OBJETIVO (43.9). Si sigues dentro, recoge a mano.
+Tú: (en MyInvestor) vender 52 ABCD · LIMITADA · límite 43,90 → ejecutada
+Tú: /sali ABCD 43.90
+Bot: Cerrada ABCD: 52 acc a 43.90, P&L bruto +91.00 USD (1.84 R).
+     Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Números</b>: 52 × (43,90 − 42,15) = 91,00 USD brutos. Coste estimado 19,55 → neto ~71,45 USD. R bruto:
+91 / 49,40 = 1,84R; R neto ~1,45R. El objetivo era 2R sobre el plan (42,10 → 43,90), pero tu entrada fue 0,05
+peor, así que tu R real es algo menor. Eso es normal.</p>
+
+<h3>21:55 — flat</h3>
+<pre>Bot: ⏰ Flat by close · 21:55
+     Si sigues dentro, cierra a mano...
+Tú: /posiciones
+Bot: Sin posiciones abiertas registradas.</pre>
+
+<h3>22:00 — informe</h3>
+<pre>Bot: Informe de sesión · 22:00
+     Valores analizados: 1 · SEÑAL A: 1 · VIGILAR: 0 · DESCARTADAS: 0 · sin señal/datos: 0
+     Señales:
+       ABCD 16:05 · entrada 42.10 · stop 41.20 · objetivo 43.90 · resultado: objetivo tocado (+2.0 R)
+     ...
+     Conclusión honesta: hubo señal y su resultado está arriba medido en R; con esta muestra no se concluye nada.</pre>
+<p><b>Lo que has aprendido</b>: la señal llegó después del cierre de la vela, no antes; el tamaño se ajustó a tu
+fill; la alerta de objetivo llegó sola; el P&L bruto no es el neto. El informe mide la señal teórica (plan
+42,10/41,20 → +2R); tu ejecución manual fue 1,84R porque entraste 0,05 por encima. Esa diferencia es el
+deslizamiento, y por eso el sistema te lo registra.</p>
+
+<h2>16.3. Día 2 — viernes 20/11/2026: stop, sin revenge</h2>
+
+<h3>13:00 — otro ganador</h3>
+<pre>Bot: Premarket · 13:00
+     Scanner: 5925 valores, 1460 escaneados, 251 candidatos.
+     Ganadores de ayer: EFGH +35.0%, ...
+Tú: /seguir 3
+Bot: Ganadores añadidos al escaneo ORB: EFGH, ...</pre>
+
+<h3>15:55 — SEÑAL A</h3>
+<pre>Bot: EFGH · SEÑAL A · PAPEL
+     Entrada 58.20 USD · Stop 57.40 USD · Objetivo 59.80 (2.0R) · flat 15:55 ET
+     Tamaño 58 acc. · riesgo 49.30 USD (0.85 por acción)
+     Coste estimado ida+vuelta: 19.70 USD · EV conservador +0.040 R
+     Time Machine: objetivo 38.0%, stop 34.0%, nada 28.0%
+     Historico: 28 disparos, 10 objetivo, 12 stop, Wilson 35.0%-55.0%, break-even 33.3%</pre>
+<p><b>Ojo</b>: para que sea A, el Wilson low (35,0 %) debe superar el break-even (33,3 %). Y un A también puede
+perder: el sistema no promete que todas ganen, solo que la regla tiene EV positivo con la muestra disponible. Por
+eso el stop y el tamaño son parte del plan. En este ejemplo, EFGH es A y aun así salta el stop.</p>
+
+<h3>16:00 — entras</h3>
+<pre>Tú: (en MyInvestor) comprar 58 EFGH · LIMITADA · límite 58,25 → ejecutada
+Tú: /entre EFGH 58.25 58 57.40 59.80
+Bot: Registrada: EFGH 58 acc a 58.25. Stop 57.40, objetivo 59.80.
+     Riesgo real al stop 49.30 USD.
+     Avisos armados: stop 57.40, objetivo 59.80. Solo hoy.
+     Estado: SEÑAL A vigente hoy desde las 15:55.</pre>
+
+<h3>16:40 — stop</h3>
+<pre>Bot: 🔔 EFGH is at or below $57.40: stop your $57.40.
+     STOP del plan (57.4). Si sigues dentro, cierra a mano.
+Tú: (en MyInvestor) vender 58 EFGH · STOP LOSS a 57,40 → ejecutada (o venta manual)
+Tú: /sali EFGH 57.40
+Bot: Cerrada EFGH: 58 acc a 57.40, P&L bruto -49.30 USD (-1.0 R).
+     Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Números</b>: 58 × (57,40 − 58,25) = −49,30 USD brutos; coste ~19,70 → neto ~−69,00. El stop hizo su trabajo:
+perdiste 1R, no 3R. No se promedia, no se mueve el stop, no se reentra por el mismo setup.</p>
+
+<h3>17:00 — “¿y ahora qué?”</h3>
+<pre>Tú: /porque EFGH
+Bot: EFGH · DESCARTADA
+     - límites de ruido: EFGH ya tuvo 1 señal hoy...
+     - enfriamiento: última señal hace 45 min...
+     (El setup ya se usó; no hay nueva SEÑAL A por la misma ruptura.)
+Tú: /resumen
+Bot: Evaluados 3 valores: 0 señal A, 0 vigilar, 3 descartadas.
+     No hay ninguna señal A. Hoy no se compra nada. Eso es un resultado, no un fallo.
+     No tienes posiciones registradas.
+     Límite de hoy: 150 USD de riesgo total, 3 operaciones.</pre>
+<p><b>Lo que has aprendido</b>: el stop es el stop; el sistema no te da una “segunda oportunidad” para recuperar;
+el coste convierte −1R bruto en ~−1,4R neto.</p>
+
+<h2>16.4. Día 3 — lunes 23/11/2026: ruptura descartada</h2>
+
+<h3>15:00 — briefing</h3>
+<pre>Bot: Briefing previo · 15:00
+     Candidatos: IJKL 15.10 (breakout_20d) · $45M/día · rango proxy 0.60%
+     ...</pre>
+
+<h3>16:20 — rompe, pero no pasa</h3>
+<pre>Tú: /evaluar 3
+Bot: Evaluación bajo demanda · 16:20 · 3 ganadores (de hoy)
+     No envía aviso ni toca el plan vivo. Solo mide.
+     #  Valor  Veredicto     EV R    n   obj MC
+     1  IJKL   DESCARTADA   -0.080   8   33%
+     2  MNOP   SIN SEÑAL       n/d    0   n/d
+     3  QRST   SIN SEÑAL       n/d    0   n/d
+     Motivo principal:
+       IJKL: historico con muestra: n=8 disparos, 2 objetivo / 4 stop...
+     obj MC = % de simulaciones con el objetivo antes que el stop, con el plan de hoy.</pre>
+<p><b>Lectura</b>: IJKL rompió, pero el histórico tiene solo 8 disparos y el EV es negativo. No es SEÑAL A.
+<code>/descartadas</code> lo confirma. No se compra “porque rompió”.</p>
+
+<h3>22:00 — informe</h3>
+<pre>Bot: Informe de sesión · 22:00
+     Valores analizados: 12 · SEÑAL A: 0 · VIGILAR: 2 · DESCARTADAS: 10 · sin señal/datos: 0
+     Ninguna descartada habría tocado el objetivo con los datos actuales.
+     Conclusión honesta: se evaluó pero nada pasó los filtros...</pre>
+<p><b>Lo que has aprendido</b>: una ruptura no es una compra. El filtro de EV y muestra evita operar ruido.</p>
+
+<h2>16.5. Día 4 — martes 24/11/2026: salida parcial y stop a break-even</h2>
+
+<h3>15:50 — SEÑAL A</h3>
+<pre>Bot: MNOP · SEÑAL A · PAPEL
+     Entrada 100.00 · Stop 98.00 · Objetivo 104.00 (2.0R)
+     Tamaño 25 acc. · riesgo 50.00 USD
+     Coste estimado 21.00 USD · EV +0.150 R
+     ...</pre>
+<pre>Tú: (en MyInvestor) comprar 25 MNOP · LIMITADA · límite 100,00 → ejecutada
+Tú: /entre MNOP 100.00 25 98.00 104.00
+Bot: Registrada: MNOP 25 acc a 100.00. Stop 98.00, objetivo 104.00.
+     Avisos armados: stop 98.00, objetivo 104.00. Solo hoy.
+     Estado: SEÑAL A vigente hoy desde las 15:50.</pre>
+
+<h3>16:30 — +1R, vendes la mitad</h3>
+<pre>Tú: (en MyInvestor) vender 12 MNOP · LIMITADA · límite 102,00 → ejecutada
+Tú: /sali MNOP 102.00 12
+Bot: Cierre parcial de MNOP: 12 acc a 102.00, P&L bruto +24.00 USD (1.0 R).
+     Quedan 13 acc; stop 98.00 y objetivo 104.00 siguen armados.
+     No descuenta comisiones ni FX.</pre>
+
+<h3>16:31 — stop a break-even</h3>
+<pre>Tú: /stop MNOP 100.00
+Bot: Stop de MNOP movido a 100.00 y aviso rearmado. Antes: 98.00.</pre>
+
+<h3>18:00 — objetivo</h3>
+<pre>Bot: 🔔 MNOP is at or above $104.00: target your $104.00.
+     OBJETIVO (104.0). Si sigues dentro, recoge a mano.
+Tú: (en MyInvestor) vender 13 MNOP · LIMITADA · límite 104,00 → ejecutada
+Tú: /sali MNOP 104.00
+Bot: Cerrada MNOP: 13 acc a 104.00, P&L bruto +52.00 USD (2.0 R).
+     Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Total</b>: +24,00 + 52,00 = +76,00 USD brutos; coste ~21,00 → neto ~+55,00. R bruto: 24/50 + 52/50 = 1,52R;
+neto ~1,1R. Has reducido el riesgo a cero en la segunda mitad y has dejado correr el resto.</p>
+<p><b>Lo que has aprendido</b>: la salida parcial no es obligatoria, pero es una herramienta; el sistema no la hace
+solo, la decides tú. Si mueves el stop a break-even, el aviso se rearma con el nuevo nivel.</p>
+
+<h2>16.6. Día 5 — miércoles 25/11/2026: sistema caído y datos obsoletos</h2>
+
+<h3>07:30 — el bot no contesta</h3>
+<pre>Tú: /estado
+(sin respuesta)
+</pre>
+<p><b>Qué haces</b>: mirar la tarea y el latido.</p>
+<pre>PS> powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Estado
+OK DayTraderOps estado=Ready ...
+OK DayTraderOps-Bot estado=Ready ...
+</pre>
+<p>Si están en Ready (no Running), arráncalas. Si el latido es viejo, abre una terminal y mira el error del
+orquestador. No operes hasta que <code>/estado</code> diga VIVO y el dato sea fresco.</p>
+
+<h3>16:10 — dato viejo</h3>
+<pre>Tú: /estado
+Bot: Orquestador: vivo (latido 16:09, fase sesión)
+     ...
+Tú: /hoy
+Bot: ... datos de hace 420 s
+</pre>
+<p><b>Lectura</b>: 420 s &gt; 300 s. El sistema no debe avisar señales con ese dato. No operes. Espera a que
+<code>smoke.py</code> recupere Yahoo. Si el 429 se repite, no lances <code>/scan</code> en bucle.</p>
+
+<h3>22:00 — informe con fallo técnico</h3>
+<pre>Bot: Informe de sesión · 22:00
+     Fallos registrados: 3: scanner, quote...
+     Conclusión honesta: hubo fallos técnicos; antes de sacar conclusiones hay que arreglarlos.</pre>
+<p><b>Lo que has aprendido</b>: sin dato fresco no hay señal. El sistema prefiere no avisar a inventar.</p>
+
+<h2>16.7. Día 6 — jueves 26/11/2026: Thanksgiving, mercado cerrado</h2>
+<pre>Tú: /ahora
+Bot: Ahora: 10:00 Madrid / 04:00 NY · Día sin mercado (Thanksgiving)
+     El sistema: Nada. El orquestador duerme hasta la próxima sesión.
+     Tú: Nada.
+     Puedes ignorar: Todo. No hay nada que hacer hoy.
+Tú: /reloj
+Bot: Sesión NYSE hoy: Día sin mercado (Thanksgiving)
+     Siguiente sesión: 2026-11-27 15:30-22:00 Madrid</pre>
+<p><b>Lo que has aprendido</b>: el calendario manda. No se opera un festivo; no hay rango, no hay señal.</p>
+
+<h2>16.8. Día 7 — lunes 30/11/2026: dos señales en el mismo día</h2>
+
+<h3>16:05 — primera señal: QRST</h3>
+<pre>Bot: QRST · SEÑAL A · PAPEL
+     Entrada 50.00 · Stop 49.00 · Objetivo 52.00 (2.0R)
+     Tamaño 50 acc. · riesgo 50.00 USD · EV +0.100 R
+     Cierre de vela 10:05 ET · señal 58 s después del cierre (pipeline 34 s).</pre>
+<pre>Tú: (en MyInvestor) comprar 47 QRST · LIMITADA · límite 50,05 → ejecutada
+Tú: /entre QRST 50.05 47 49.00 52.00
+Bot: Registrada: QRST 47 acc a 50.05. Stop 49.00, objetivo 52.00.
+     Riesgo real al stop 49.35 USD (el plan decia 47.00 por el deslizamiento).
+     Avisos armados: stop 49.00, objetivo 52.00. Solo hoy.
+     Estado: SEÑAL A vigente hoy desde las 16:05.</pre>
+<p><b>Lectura</b>: dato fresco, entrada dentro de +0,5R, riesgo 49,35, EV positivo. Se compra.</p>
+
+<h3>17:20 — segunda señal: UVWX, con QRST todavía abierta</h3>
+<pre>Bot: UVWX · SEÑAL A · PAPEL
+     Entrada 30.00 · Stop 29.50 · Objetivo 31.00 (2.0R)
+     Tamaño 96 acc. · riesgo 48.00 USD · EV +0.060 R
+     Cierre de vela 11:20 ET · señal 61 s después del cierre (pipeline 37 s).</pre>
+<p><b>Qué miras</b>: riesgo acumulado = 49,35 (QRST) + 49,92 (UVWX) = 99,27 ≤ 150; operaciones = 2 ≤ 3;
+ninguna es el mismo valor; el enfriamiento de 30 min se cumple. Si los dos son del mismo sector, la correlación
+puede duplicar el riesgo real; el sistema no mide correlación, así que puedes decidir no tomar la segunda.</p>
+<pre>Tú: (en MyInvestor) comprar 96 UVWX · LIMITADA · límite 30,02 → ejecutada
+Tú: /entre UVWX 30.02 96 29.50 31.00
+Bot: Registrada: UVWX 96 acc a 30.02. Stop 29.50, objetivo 31.00.
+     Riesgo real al stop 49.92 USD (el plan decia 48.00 por el deslizamiento).
+     Avisos armados: stop 29.50, objetivo 31.00. Solo hoy.
+     Estado: SEÑAL A vigente hoy desde las 17:20.</pre>
+
+<h3>18:00 — QRST toca objetivo</h3>
+<pre>Bot: 🔔 QRST is at or above $52.00: target your $52.00.
+     OBJETIVO (52.0). Si sigues dentro, recoge a mano.
+Tú: (en MyInvestor) vender 47 QRST · LIMITADA · límite 52,00 → ejecutada
+Tú: /sali QRST 52.00
+Bot: Cerrada QRST: 47 acc a 52.00, P&L bruto +91.65 USD (1.857 R).
+     Alertas de stop y objetivo desarmadas.</pre>
+
+<h3>19:00 — UVWX toca stop</h3>
+<pre>Bot: 🔔 UVWX is at or below $29.50: stop your $29.50.
+     STOP del plan (29.5). Si sigues dentro, cierra a mano.
+Tú: (en MyInvestor) vender 96 UVWX · STOP LOSS a 29,50 → ejecutada (o venta manual)
+Tú: /sali UVWX 29.50
+Bot: Cerrada UVWX: 96 acc a 29.50, P&L bruto -49.92 USD (-1.0 R).
+     Alertas de stop y objetivo desarmadas.</pre>
+
+<h3>Resultado del día</h3>
+<p>Bruto: +91,65 − 49,92 = <b>+41,73 USD</b>. Costes estimados: ~39 USD. Neto: ~+2,7 USD. No es un día
+espectacular, pero es positivo y dentro de las reglas. <b>No se reentra</b> en UVWX tras el stop; no hay una
+tercera señal; a las 21:55 no queda nada abierto.</p>
+<p><b>Lo que has aprendido</b>: puede haber dos señales válidas el mismo día; se evalúan por separado; el riesgo
+se acumula; una ganadora no “libera” riesgo para saltarse el límite; y una perdedora no se recupera con revenge
+trading. La “máxima rentabilidad diaria” no es un objetivo garantizado: es el resultado de varias operaciones
+con EV positivo, y a veces el día sale casi plano.</p>
+
+<h2>16.9. Día 8 — martes 01/12/2026: 10:00 ET, la decisión de comprar con datos de ayer</h2>
+
+<div class="sim">
+<b>Datos reales de ayer</b> (salida de <code>/ganadores</code> del 18/11): SLS +91,88 %, precio 19,15 USD,
+2.288 M USD/día. <b>El rango, la entrada, el stop y el objetivo de hoy son simulados</b>: no son una señal real.
+Sirven para que veas la decisión completa a las 10:00 ET.
+</div>
+
+<h3>Cómo leer este día: de dónde sale cada cosa</h3>
+<p>
+<span class="src src-tg">TG</span> mensaje de Telegram ·
+<span class="src src-sys">SYS</span> plan/scanner del sistema ·
+<span class="src src-ext">EXT</span> fuente externa (TradingView/Yahoo/Börse Frankfurt) ·
+<span class="src src-mx">MX</span> MyInvestor (pantalla, ticket o fill) ·
+<span class="src src-tu">TÚ</span> tu decisión ·
+<span class="src src-reg">REG</span> registrado en el sistema.
+</p>
+<table>
+<tr><th>Parámetro</th><th>Qué es</th><th>De dónde sale</th><th>Por qué se pone</th></tr>
+<tr><td><b>Rango 19,00–20,10</b></td><td>Máximo y mínimo de 9:30–9:45 ET</td><td><span class="src src-sys">SYS</span> scanner</td><td>Define el trigger y el mid; sin rango no hay ORB.</td></tr>
+<tr><td><b>Mid 19,55</b></td><td>(máximo + mínimo) / 2</td><td><span class="src src-sys">SYS</span></td><td>Stop del plan, redondeado abajo.</td></tr>
+<tr><td><b>Trigger 20,12</b></td><td>Cierre de vela de 5 min por encima de 20,10</td><td><span class="src src-sys">SYS</span> / <span class="src src-tg">TG</span></td><td>Confirma la ruptura; no se entra antes.</td></tr>
+<tr><td><b>Entrada 20,12</b></td><td>Precio del cierre de la vela</td><td><span class="src src-tg">TG</span></td><td>Es el precio de referencia del plan; tu fill puede variar.</td></tr>
+<tr><td><b>Stop 19,55</b></td><td>Nivel de salida si falla</td><td><span class="src src-tg">TG</span></td><td>Limita la pérdida; no se mueve a la baja.</td></tr>
+<tr><td><b>Stop loss broker</b></td><td>Orden de venta si cae a 19,55</td><td><span class="src src-tu">TÚ</span> / <span class="src src-mx">MX</span></td><td>Backstop; no garantiza precio; cancélalo si vendes a mano.</td></tr>
+<tr><td><b>Objetivo 21,26</b></td><td>Entrada + 2R</td><td><span class="src src-tg">TG</span></td><td>Política 2R; el objetivo se calcula, no se adivina.</td></tr>
+<tr><td><b>87 acciones</b></td><td>Tamaño del plan</td><td><span class="src src-tg">TG</span></td><td>50 USD de riesgo / 0,57 por acción.</td></tr>
+<tr><td><b>Riesgo 49,59</b></td><td>(entrada − stop) × acciones</td><td><span class="src src-tg">TG</span></td><td>Debe caber en 50 USD por operación.</td></tr>
+<tr><td><b>Coste ~17 USD</b></td><td>Comisión + FX ida y vuelta</td><td><span class="src src-tg">TG</span> (estimación)</td><td>Se resta del EV; no es gratis operar.</td></tr>
+<tr><td><b>EV +0,110R</b></td><td>Valor esperado tras costes</td><td><span class="src src-tg">TG</span> (criterios)</td><td>Si es ≤0, no se opera.</td></tr>
+<tr><td><b>TM 42 % / 31 %</b></td><td>Frecuencia objetivo/stop en 10.000 replays</td><td><span class="src src-tg">TG</span></td><td>Es una frecuencia, no una promesa.</td></tr>
+<tr><td><b>Wilson 34–55 %</b></td><td>Intervalo de confianza del histórico</td><td><span class="src src-tg">TG</span></td><td>Con n=30, la tasa real es incierta; el límite inferior debe superar el break-even.</td></tr>
+<tr><td><b>Flat 15:55 ET</b></td><td>Cierre obligatorio</td><td><span class="src src-tg">TG</span></td><td>No se mantiene overnight.</td></tr>
+<tr><td><b>Precio 20,13 / 20,12</b></td><td>Precio actual en fuentes externas</td><td><span class="src src-ext">EXT</span></td><td>Comprueba que sigues dentro de entrada + 0,5R.</td></tr>
+<tr><td><b>MyInvestor 19,98</b></td><td>Pantalla del broker</td><td><span class="src src-mx">MX</span></td><td>Va 15 min retrasada; no decide.</td></tr>
+<tr><td><b>Limitada 20,15</b></td><td>Tu precio máximo de compra</td><td><span class="src src-tu">TÚ</span></td><td>Evita pagar de más si el precio se mueve.</td></tr>
+<tr><td><b>Fill 20,12</b></td><td>Precio real de ejecución</td><td><span class="src src-mx">MX</span></td><td>Es el que registras, no el de la pantalla.</td></tr>
+<tr><td><b><code>/entre</code></b></td><td>Registro de la posición</td><td><span class="src src-reg">REG</span></td><td>Sin esto, el sistema no sabe tu posición ni tus avisos.</td></tr>
+<tr><td><b>Venta 21,26</b></td><td>Limitada de venta al objetivo</td><td><span class="src src-tu">TÚ</span> / <span class="src src-mx">MX</span></td><td>Recoge el plan; no persigue el máximo.</td></tr>
+<tr><td><b>Venta 21:55</b></td><td>Mercado/limitada agresiva</td><td><span class="src src-tu">TÚ</span> / <span class="src src-mx">MX</span></td><td>No se mantiene overnight; si no llegó el objetivo, se cierra.</td></tr>
+<tr><td><b><code>/sali</code></b></td><td>Registro de la salida</td><td><span class="src src-reg">REG</span></td><td>Cierra el P&L y desarma alertas.</td></tr>
+</table>
+
+<h3>09:00 ET (15:00 Madrid) — el candidato viene de ayer</h3>
+<pre>Tú: /ganadores 5
+Bot: Ganadores de ayer · 15:00 · 5925 valores con datos
+     1  SLN    +128.11%  19.80   24.0M
+     2  SLS     +91.88%  19.15 2288.2M
+     3  SGRY    +83.78%  26.85   54.6M
+     ...
+     Subir mucho no es una ventaja: es el punto de partida...</pre>
+<p><b>Lectura</b>: SLS es líquido (2.288 M USD/día) y subió mucho ayer. Es un <b>candidato</b>, no una compra.
+Hoy puede repetir o revertir; el sistema no lo sabe.</p>
+
+<h3>09:30–09:45 ET — rango de apertura (simulado)</h3>
+<table>
+<tr><th>Dato</th><th>Valor</th></tr>
+<tr><td>Apertura</td><td>19,30 USD</td></tr>
+<tr><td>Máximo del rango</td><td>20,10 USD</td></tr>
+<tr><td>Mínimo del rango</td><td>19,00 USD</td></tr>
+<tr><td>Mid (stop)</td><td>19,55 USD</td></tr>
+</table>
+<p>El rango es muy ancho porque el valor viene de un +92 %. Eso no es bueno ni malo: condiciona el stop y el
+tamaño. Un rango de 1,10 USD con entrada 20,12 deja un stop a 0,57 USD (2,8 %), razonable para este ejemplo.</p>
+
+<h3>10:00–10:05 ET — la vela decisiva</h3>
+<p>La vela de 5 minutos 10:00–10:05 cierra a <b>20,12</b>, por encima del máximo 20,10. Es el primer cierre válido
+por encima del rango. A las 10:05:41 ET llega la señal:</p>
+<pre>Bot: SLS · SEÑAL A · PAPEL
+     Setup: orb · entrada 10:05 ET
+     Ahora: 16:05 Madrid
+     Dato: 2026-12-01T15:05:20Z · edad 21 s
+     Cierre de vela 10:05 ET · señal 41 s después del cierre (pipeline 35 s).
+     Entrada 20.12 USD
+     Stop    19.55 USD (mid del rango, redondeado abajo)
+     Objetivo 21.26 (2.0R) · flat by 15:55 ET
+     Tamaño  87 acc. · riesgo 49.59 USD al stop (0.57 por acción)
+     Coste estimado ida+vuelta: 17.00 USD · EV conservador +0.110 R
+     Time Machine: objetivo 42.0%, stop 31.0%, nada 27.0% (10000 replays)
+     Historico: 30 disparos, 12 objetivo, 13 stop, Wilson 34.0%-55.0%, break-even 33.3%</pre>
+
+<h3>10:05:42 ET — compruebas el precio en gratis</h3>
+<table>
+<tr><th>Fuente</th><th>Precio que ves</th><th>Hora</th><th>Qué significa</th></tr>
+<tr><td>TradingView Basic (Cboe)</td><td>20,13</td><td>10:05:42</td><td><span class="src src-ext">EXT</span> Feed alternativo en tiempo real; gráfico de 5 min</td></tr>
+<tr><td>Yahoo Finance</td><td>20,12</td><td>10:05:40</td><td><span class="src src-ext">EXT</span> Nasdaq en tiempo real; coincide</td></tr>
+<tr><td>MyInvestor (pantalla)</td><td>19,98</td><td>09:50</td><td><span class="src src-mx">MX</span> <b>15 min de retraso</b>; no es el precio actual</td></tr>
+</table>
+<p><b>Conclusión</b>: el precio real está en 20,12–20,13; la pantalla de MyInvestor va 15 minutos por detrás.
+No uses esa pantalla para decidir. La señal es válida: 20,13 está dentro de entrada + 0,5R (20,405).</p>
+
+<p><b>Apuntas la referencia y la comparas</b> (así el sistema junta Yahoo con lo que tú ves):</p>
+<pre>Tú: /ref SLS 20.13 tv
+Bot: Referencia guardada: SLS 20.13 USD · TradingView · 10:05:44 Madrid.
+     Consulta /precios SLS para compararla con Yahoo y el plan.
+
+Tú: /precios SLS
+Bot: Precios SLS
+     Yahoo: 20.12 USD · 2026-12-01T15:05:20Z · hace 15s · NMS
+     TradingView: 20.13 USD · 10:05:44 Madrid · hace 0s
+     Diferencia entre fuentes: 0.15% (OK)
+     Plan vigente: entrada 20.12 · stop 19.55 · objetivo 21.26 (2.0R) · flat 15:55 ET
+     Para /entre: usa el fill de MyInvestor, no esta tabla. Stop/objetivo salen del plan.</pre>
+
+<h3>10:06 ET — orden limitada, no mercado</h3>
+<pre>Tú: (en MyInvestor) comprar 87 SLS · orden LIMITADA · límite 20,15
+     → ejecutada 87 a 20,12
+Tú: /entre SLS 20.12 87 19.55 21.26
+Bot: Registrada: SLS 87 acc a 20.12. Stop 19.55, objetivo 21.26.
+     Avisos armados: stop 19.55, objetivo 21.26. Solo hoy (fecha de Nueva York).
+     Referencias: TradingView 20.13 USD
+     Estado: SEÑAL A vigente hoy desde las 16:05.</pre>
+<p><b>Por qué limitada</b>: si el precio se hubiera ido a 20,50, la limitada a 20,15 no se llena y no compras.
+Con “mejor mercado” habrías pagado 20,50 y el stop quedaría más lejos. La limitada es tu protección contra el
+retraso y contra el slippage.</p>
+<p><b>Stop loss del broker (opcional)</b>: puedes poner una orden stop loss a 19,55 como backstop. Es una orden
+aparte; si luego vendes a mano en el objetivo, <b>cancélala</b>. No garantiza el precio: en un gap puede ejecutar
+por debajo de 19,55. El aviso de Telegram y el stop del broker son dos cosas distintas.</p>
+
+<h3>11:30 ET — el precio sube, no haces nada</h3>
+<pre>Precio 20,55. Stop 19,55, objetivo 21,26. No toca nada.
+Tú: /posiciones
+Bot: SLS 87 acc desde 20.12 · stop 19.55 · objetivo 21.26</pre>
+
+<h3>13:45 ET — objetivo</h3>
+<pre>Bot: 🔔 SLS is at or above $21.26: target your $21.26.
+     OBJETIVO (21.26). Si sigues dentro, recoge a mano.
+Tú: (en MyInvestor) vender 87 SLS · LIMITADA · límite 21,26 → ejecutada
+Tú: (cancelas el stop loss del broker, si lo pusiste)
+Tú: /sali SLS 21.26
+Bot: Cerrada SLS: 87 acc a 21.26, P&L bruto +99.18 USD (2.0 R).
+     Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Números</b>: 87 × (21,26 − 20,12) = 99,18 USD brutos. Coste ~17 USD → neto ~82,18. R bruto 2,00; R neto
+~1,66. No has vendido en el máximo del día; has vendido en tu objetivo. Eso es el sistema, no adivinar el techo.</p>
+
+<h3>Qué habrías hecho si…</h3>
+<table>
+<tr><th>Situación a las 10:06</th><th>Decisión</th><th>Por qué</th></tr>
+<tr><td>Precio 20,80 (&gt; 20,405)</td><td>No comprar</td><td>Se fue más de 0,5R; el stop quedaría demasiado lejos y el EV empeora.</td></tr>
+<tr><td>Precio 19,50 (≤ stop)</td><td>No comprar</td><td>La señal está invalidada; el stop ya se tocó.</td></tr>
+<tr><td>Precio 20,30 (dentro de 0,5R)</td><td>Limitada 20,32</td><td>Sigue siendo la zona válida; no persigues.</td></tr>
+<tr><td>No llega señal</td><td>No comprar</td><td>Sin SEÑAL A no hay operación.</td></tr>
+</table>
+
+<h3>Qué le comunicas al sistema</h3>
+<div class="callout">
+Cada comando de este día está con su <b>salida literal</b> en el capítulo 22. Úsalo como referencia cuando estés
+delante del móvil.
+</div>
+<ul>
+<li><code>/entre SLS 20.12 87 19.55 21.26</code> después del fill de compra.</li>
+<li><code>/sali SLS 21.26</code> después del fill de venta.</li>
+<li>Si mueves el stop del sistema: <code>/stop SLS 19.55</code> (no mueve el broker).</li>
+<li>Si mueves el objetivo del sistema: <code>/vender SLS 21.26</code>.</li>
+<li>No hace falta decir “estoy mirando” ni “va a subir”; el sistema solo necesita fills y niveles.</li>
+</ul>
+
+<div class="ok">
+<b>Lo que ha validado el sistema</b>: el setup, el plan, el EV y la muestra. <b>Lo que has validado tú</b>: que
+el precio real estaba dentro de la zona, que el dato era fresco, que el riesgo cabía y que podías gestionar hasta
+las 21:55. El sistema no sabe si SLS va a subir; mide la frecuencia con la que esta regla llega al objetivo antes
+del stop. La ejecución y el precio son tu responsabilidad.
+</div>
+
+<h2>16.10. Día 9 — 2 acciones que sobreviven al cierre (fuera del sistema)</h2>
+
+<div class="sim">
+<b>Escenario independiente</b>: en una operación compraste 5 ABCD a 50,00 con stop 49,50 y objetivo 51,00.
+Vendiste 3 a 50,75 (+2,25 USD brutos, 1,5R) y te quedaste 2. A las 21:55 el sistema te dice que cierres todo. Tú
+decides mantener las 2. <b>Ya no es una operación del sistema</b>: es una posición swing/manual. No es el Día 1
+del ejemplo anterior; es un caso aparte para explicar las 2 que sobreviven.
+</div>
+
+<pre>Tú: (en MyInvestor) comprar 5 ABCD · LIMITADA · límite 50,00 → ejecutada
+Tú: /entre ABCD 50.00 5 49.50 51.00
+Bot: Registrada: ABCD 5 acc a 50.00. Stop 49.50, objetivo 51.00.
+     Avisos armados: stop 49.50, objetivo 51.00. Solo hoy (fecha de Nueva York).
+     Estado: SEÑAL A vigente hoy desde las 16:05.
+
+Tú: (en MyInvestor) vender 3 ABCD · LIMITADA · límite 50,75 → ejecutada
+Tú: /sali ABCD 50.75 3
+Bot: Cierre parcial de ABCD: 3 acc a 50.75, P&L bruto +2.25 USD (1.5 R). Quedan 2 acc; stop 49.50 y
+     objetivo 51.00 siguen armados. No descuenta comisiones ni FX.</pre>
+
+<h3>21:55 del Día A — el aviso de flat</h3>
+<pre>Bot: ⏰ Flat by close · 21:55
+     Si sigues dentro, cierra a mano: no se mantiene nada durante la noche.</pre>
+<p>Si cierras las 2, el día termina limpio. Si las mantienes, el sistema las seguirá mostrando, pero marcadas
+como overnight.</p>
+
+<h3>Día B, 09:00 — /posiciones</h3>
+<pre>Tú: /posiciones
+Bot: Posiciones abiertas
+       ABCD 2 acc desde 50.00 · stop 49.50 · objetivo 51.00 · ⚠️ overnight (fuera del plan intradía)</pre>
+<p><b>Lectura</b>: la posición existe, pero el plan era intradía. El stop 49,50 y el objetivo 51,00 eran del ORB
+del Día 1; no son un plan swing para el Día 2. El sistema no sabe si ABCD va a subir o bajar hoy.</p>
+
+<h3>Día B, 09:02 — ¿está en los candidatos de hoy?</h3>
+<pre>Tú: /ganadores 5
+Bot: Ganadores de ayer · 09:02 · 5925 valores con datos
+     1  SLN    +128.11%  19.80   24.0M
+     2  SLS     +91.88%  19.15 2288.2M
+     ...
+     (ABCD no aparece)
+
+Tú: /hoy
+Bot: Candidatos del premarket (scan de las 2026-11-17 close): 262
+     ...
+     (ABCD no aparece)</pre>
+<p><b>Lectura</b>: ABCD no es candidata de hoy. No está en la lista ORB, así que el escáner no la va a evaluar
+automáticamente. Eso no significa que vaya a bajar: significa que el sistema no tiene una señal nueva para ella.</p>
+
+<h3>Día B, 09:05 — la añades a la watchlist</h3>
+<pre>Tú: /vigila ABCD
+Bot: Vigilando ABCD. Lista: NVDA, ABCD · precio 50.10</pre>
+<p><b>Qué hace</b>: la watchlist es persistente; ABCD se tendrá en cuenta en el briefing y las noticias, y podrá
+evaluarse en las pasadas en las que haya rupturas, aunque no esté en la lista ORB. Pero estar en la watchlist
+<b>no es una compra</b>: solo hace que el sistema la mire. No es un escaneo independiente de la watchlist.</p>
+
+<h3>Día B, 09:06 — /elegir ABCD</h3>
+<pre>Tú: /elegir ABCD
+Bot: ABCD · análisis completo (bajo demanda, no envía aviso)
+     Setup: waiting. the NYSE opens at 9:30 and the 15-minute range is set at 9:45
+     Precio ahora: 50.10 (dato viejo: es el último cierre, no un precio en vivo)
+     Noticias: sin adversas
+     Veredicto: SIN SEÑAL todavía. Sin ruptura no hay plan, tamaño ni probabilidades.
+     Qué falta: que una vela de 5 min cierre por encima del máximo del rango...</pre>
+<p><b>Lectura</b>: el sistema no tiene plan para ABCD hoy porque no hay rango/ruptura. No puede decirte si subirá
+o bajará. Solo puede decirte que no hay señal.</p>
+
+<h3>Día B, 09:10 — tus tres opciones</h3>
+<table>
+<tr><th>Opción</th><th>Qué haces</th><th>Comandos</th></tr>
+<tr><td><b>Vender</b></td><td>Cerrar las 2 a la apertura o cuando decidas; asumes el precio real</td><td><code>/sali ABCD 50.10</code></td></tr>
+<tr><td><b>Mantener como swing</b></td><td>Definir un plan nuevo: por qué, stop, objetivo, riesgo de gap. Los niveles del ORB ya no sirven</td><td><code>/stop ABCD 49.00</code> · <code>/vender ABCD 53.00</code> · <code>/posiciones</code></td></tr>
+<tr><td><b>Esperar una nueva SEÑAL A</b></td><td>Si ABCD forma un nuevo rango y rompe, el sistema puede avisar; es una operación nueva, no una razón para promediar</td><td><code>/vigila ABCD</code> · <code>/elegir ABCD</code> · esperar aviso</td></tr>
+</table>
+
+<h3>Día B, 09:12 — si eliges swing</h3>
+<pre>Tú: /stop ABCD 49.00
+Bot: Stop de ABCD movido a 49.00 y aviso rearmado. Antes: 49.50.
+
+Tú: /vender ABCD 53.00
+Bot: Objetivo de ABCD movido a 53.00 y aviso rearmado. Antes: 51.00.</pre>
+<p><b>Qué revisas</b>: que los nuevos niveles tengan sentido para un plan swing (no para el ORB), que el riesgo
+de gap sea aceptable y que el tamaño de 2 acciones sea el que quieres. El sistema avisará si toca 49,00 o 53,00,
+pero no sabe si los tocará.</p>
+
+<h3>Día B, 09:13 — si eliges vender</h3>
+<pre>Tú: (en MyInvestor) vender 2 ABCD · LIMITADA · límite 50,10 → ejecutada
+Tú: /sali ABCD 50.10
+Bot: Cerrada ABCD: 2 acc a 50.10, P&L bruto +0.20 USD (0.2 R). Alertas de stop y objetivo desarmadas. No descuenta comisiones ni FX.</pre>
+<p><b>Qué revisas</b>: que la cantidad sea 2 (no 5), que el P&L sea el de las 2 y que las alertas queden desarmadas.
+La posición swing desaparece.</p>
+
+<h3>Día B, 15:50 — si ABCD aparece como candidata y hay SEÑAL A</h3>
+<p>Eso sería una <b>operación nueva</b>, no una continuación de las 2 viejas. El sistema puede avisar de una
+entrada con su propio stop/objetivo. No uses la señal nueva para “promediar” las 2 que ya tienes: sería una
+posición del mismo valor con dos planes distintos. El límite es 2 SEÑAL A por valor/día y 3 al día; el sistema no
+suma posiciones por ti.</p>
+
+<div class="ok">
+<b>Lo que has aprendido</b>: el sistema no predice si las 2 van a subir o bajar. Si las mantienes, es una decisión
+swing con un plan nuevo; si no, se cierran a las 21:55. La watchlist sirve para que el sistema las mire, no para
+convertirlas en compra. Y una SEÑAL A nueva es una operación nueva, no una razón para promediar.
+</div>
+
+<h2>16.11. Resumen de los nueve días</h2>
+<table>
+<tr><th>Día</th><th>Señal</th><th>Acción</th><th>Resultado</th><th>Lección</th></tr>
+<tr><td>0</td><td>Ninguna</td><td>No operar</td><td>0</td><td>Un día sin señal es válido</td></tr>
+<tr><td>1</td><td>ABCD A</td><td>Entrar 52, objetivo</td><td>+91 bruto / ~+71 neto</td><td>Plan, tamaño, alerta, salida</td></tr>
+<tr><td>2</td><td>EFGH A</td><td>Entrar 58, stop</td><td>−49,30 bruto / ~−69 neto</td><td>El stop es el stop; no revenge</td></tr>
+<tr><td>3</td><td>IJKL descartada</td><td>No operar</td><td>0</td><td>Una ruptura no es una compra</td></tr>
+<tr><td>4</td><td>MNOP A</td><td>Parcial + break-even</td><td>+76 bruto / ~+55 neto</td><td>Gestionar el riesgo</td></tr>
+<tr><td>5</td><td>Ninguna (fallo)</td><td>No operar</td><td>0</td><td>Sin dato fresco no hay señal</td></tr>
+<tr><td>6</td><td>Festivo</td><td>No operar</td><td>0</td><td>El calendario manda</td></tr>
+<tr><td>7</td><td>QRST A + UVWX A</td><td>Dos compras, una ganadora y una perdedora</td><td>+41,73 bruto / ~+2,7 neto</td><td>El riesgo se acumula; no hay revenge</td></tr>
+<tr><td>8</td><td>SLS A (simulado)</td><td>Comprar limitada 20,15, vender 21,26</td><td>+99,18 bruto / ~+82 neto</td><td>Datos gratis, retraso de MyInvestor y orden limitada</td></tr>
+<tr><td>9</td><td>ABCD (2 overnight)</td><td>Mantener 2 fuera del plan; decidir vender o swing</td><td>Depende de tu decisión</td><td>El sistema no predice; la watchlist no es compra</td></tr>
+</table>
+
+<div class="callout">
+<b>Cómo usar esta tabla como usuario</b>: no busques “el día perfecto”. Busca que cada decisión cumpla las
+reglas. Un día con dos señales y resultado casi plano sigue siendo un día correcto si respetaste stop, tamaño y
+límites. Un día con +200 USD saltándote el stop es un día malo aunque el P&L sea verde.
+</div>
+
+<h1 id="s17">17. Problemas y soluciones</h1>
+
+<table>
+<tr><th>Síntoma</th><th>Causa probable</th><th>Solución</th></tr>
+<tr><td>El bot no responde</td><td>Tarea <code>DayTraderOps-Bot</code> parada, PC apagado, sin red o token inválido</td><td>Comprobar tarea, encender PC, revisar red; reiniciar tarea; mirar <code>diario.jsonl</code></td></tr>
+<tr><td>No llegan avisos</td><td>Orquestador parado, pausa activa, mercado cerrado o festivo</td><td><code>/estado</code>, panel, <code>/reloj</code>; reanudar tarea</td></tr>
+<tr><td>Datos obsoletos</td><td>Yahoo lento, 429, sin red</td><td><code>smoke.py</code>; esperar; no operar con dato &gt;300 s</td></tr>
+<tr><td>Error 429</td><td>Demasiadas peticiones</td><td>El sistema tiene backoff; no lanzar <code>/scan</code> en bucle</td></tr>
+<tr><td>No hay candidatos</td><td>Mercado débil o filtros estrictos</td><td>Es válido; <code>/porque</code>; no relajar</td></tr>
+<tr><td>No hay SEÑAL A</td><td>Ninguna ruptura pasó todos los filtros</td><td><code>/porque</code>, <code>/descartadas</code>; esperar</td></tr>
+<tr><td>SEÑAL CADUCADA</td><td>El precio se movió &gt;0,5R antes de enviar</td><td>No perseguir; esperar otra ruptura u otro día</td></tr>
+<tr><td>El bot dice “ya hay una posición abierta”</td><td>Ya registraste ese valor</td><td><code>/posiciones</code>; cerrar o reducir con <code>/sali</code></td></tr>
+<tr><td>El stop/objetivo no avisa</td><td>Regla caducada (solo hoy), posición cerrada o Xetra sin motor</td><td><code>/alertas</code>; volver a armar; revisar <code>/posiciones</code></td></tr>
+<tr><td>Xetra no analiza</td><td>El motor es NY y no acepta <code>.DE</code></td><td>Analizar NVDA (USD); para posición usar <code>/entre NVD.DE</code></td></tr>
+<tr><td>MyInvestor rechaza la orden</td><td>Fuera de horario, mercado cerrado, límite de precio, stop no disponible</td><td>Revisar horario 15:30–22:00, tipo de orden y mercado; no hay órdenes del sistema</td></tr>
+<tr><td>El precio de MyInvestor no coincide</td><td>15 min de retraso en la app</td><td>Usar una fuente en tiempo real para decidir; asumir deslizamiento</td></tr>
+<tr><td>El P&L no cuadra</td><td><code>/pnl</code> es bruto, sin comisiones/FX</td><td>Restar el coste estimado del aviso</td></tr>
+<tr><td>El informe dice “fallos técnicos”</td><td>Error registrado en el día</td><td>Mirar <code>diario.jsonl</code>; arreglar antes de concluir</td></tr>
+<tr><td>“Freno por evidencia”</td><td>12 cerradas con R medio ≤ 0</td><td>Revisar <code>/registro</code>; decidir con datos, no en silencio</td></tr>
+</table>
+
+<h1 id="s18">18. Checklists imprimibles</h1>
+
+<h2>18.1. Cada mañana (5 minutos)</h2>
+<ul class="tight">
+<li>☐ PC encendido y con red.</li>
+<li>☐ Las 3 tareas en Running.</li>
+<li>☐ <code>saludo.py</code>: 5 líneas, sistema VIVO, próximo evento.</li>
+<li>☐ <code>smoke.py</code>: 14/14 sin fallo inesperado.</li>
+<li>☐ Panel abierto (terminal o web).</li>
+<li>☐ Telegram: <code>/estado</code> responde.</li>
+</ul>
+
+<h2>18.2. Premarket (13:00)</h2>
+<ul class="tight">
+<li>☐ Leer el mensaje de premarket: scanner, lista ORB, noticias, resultados, ganadores.</li>
+<li>☐ <code>/hoy</code> para la tabla.</li>
+<li>☐ <code>/ganadores 10</code> si quieres ver la cola.</li>
+<li>☐ <code>/seguir 5</code> si quieres asegurar ganadores en la lista.</li>
+<li>☐ <code>/briefing</code> a las 15:00.</li>
+<li>☐ Decidir si hoy puedes gestionar una posición (reuniones, viajes).</li>
+</ul>
+
+<h2>18.3. Antes de aceptar una SEÑAL A</h2>
+<ul class="tight">
+<li>☐ Es de hoy y el dato tiene ≤300 s.</li>
+<li>☐ Stop &lt; entrada &lt; objetivo; R:R = 2.</li>
+<li>☐ Riesgo real = (entrada − stop) × acciones ≤ 50 USD.</li>
+<li>☐ Riesgo acumulado del día ≤ 150 USD.</li>
+<li>☐ Coste estimado y EV positivo.</li>
+<li>☐ Sin noticias adversas ni resultados inminentes.</li>
+<li>☐ No hay 3 señales ya hoy; no es el segundo setup del mismo valor.</li>
+<li>☐ Puedes cerrar a las 21:55.</li>
+</ul>
+
+<h2>18.4. Después de entrar</h2>
+<ul class="tight">
+<li>☐ <code>/entre</code> registrado con el fill real.</li>
+<li>☐ Alertas de stop y objetivo armadas (<code>/alertas</code>).</li>
+<li>☐ Stop y objetivo anotados; no se mueven a la baja.</li>
+<li>☐ Si +1R, decides parcial/break-even (opcional).</li>
+<li>☐ Si stop, <code>/sali</code> y no reentrar por el mismo setup.</li>
+<li>☐ Si objetivo, <code>/sali</code> y recoger.</li>
+</ul>
+
+<h2>18.5. Cierre</h2>
+<ul class="tight">
+<li>☐ 21:55: cerrar todo lo abierto.</li>
+<li>☐ Registrar <code>/sali</code>.</li>
+<li>☐ Leer el informe de las 22:00.</li>
+<li>☐ <code>/registro</code> y <code>/pnl</code> si quieres el acumulado.</li>
+<li>☐ No dejar nada overnight.</li>
+</ul>
+
+<h2>18.6. Revisión semanal</h2>
+<ul class="tight">
+<li>☐ <code>/registro</code>: señales, R medio, objetivos/stops.</li>
+<li>☐ <code>/pnl</code>: P&L bruto y costes.</li>
+<li>☐ Informes de la semana en <code>trader-ops/historico</code>.</li>
+<li>☐ ¿Se cumplieron los límites? ¿Hubo errores de disciplina?</li>
+<li>☐ No cambiar umbrales por una semana mala; medir con <code>simular_filtro.py</code>.</li>
+</ul>
+
+<h1 id="s19">19. Glosario</h1>
+<table>
+<tr><th>Término</th><th>Definición</th></tr>
+<tr><td><b>ORB</b></td><td>Opening Range Breakout: ruptura del rango de los primeros 15 minutos.</td></tr>
+<tr><td><b>Rango de apertura</b></td><td>Máximo y mínimo de 9:30–9:45 ET.</td></tr>
+<tr><td><b>Trigger</b></td><td>Cierre de una vela de 5 min por encima del máximo del rango.</td></tr>
+<tr><td><b>R</b></td><td>Riesgo por acción: entrada − stop. Todo se mide en R.</td></tr>
+<tr><td><b>Stop</b></td><td>Nivel de salida si la idea falla; en el mid del rango, redondeado abajo.</td></tr>
+<tr><td><b>Objetivo</b></td><td>Nivel de recogida; 2R por política.</td></tr>
+<tr><td><b>Flat by close</b></td><td>Cerrar todo antes del cierre; 15:55 ET.</td></tr>
+<tr><td><b>Time Machine</b></td><td>10.000 replays + histórico real; frecuencias, no promesas.</td></tr>
+<tr><td><b>Wilson</b></td><td>Intervalo de confianza al 95 % de una tasa.</td></tr>
+<tr><td><b>EV</b></td><td>Valor esperado en R después de costes.</td></tr>
+<tr><td><b>Break-even</b></td><td>Tasa de acierto necesaria para EV=0.</td></tr>
+<tr><td><b>Spread</b></td><td>Diferencia bid-ask; proxy con rango de velas.</td></tr>
+<tr><td><b>Liquidez</b></td><td>Precio ≥5 USD y ≥20 M USD/día.</td></tr>
+<tr><td><b>Gap</b></td><td>Salto entre cierre y apertura.</td></tr>
+<tr><td><b>SEÑAL A</b></td><td>Todo pasa; único aviso que se envía.</td></tr>
+<tr><td><b>VIGILAR</b></td><td>Falla algo no crítico o falta muestra; no es compra.</td></tr>
+<tr><td><b>DESCARTADA</b></td><td>Falla algo crítico; motivo registrado.</td></tr>
+<tr><td><b>SIN SEÑAL</b></td><td>No hay ruptura todavía.</td></tr>
+<tr><td><b>SIN DATOS</b></td><td>Yahoo no da precio/calidad; no se inventa.</td></tr>
+<tr><td><b>FRENO</b></td><td>Registro vivo con 12 cerradas y R medio ≤0; deja de avisar.</td></tr>
+<tr><td><b>SEÑAL CADUCADA</b></td><td>El precio se alejó &gt;0,5R antes de enviar.</td></tr>
+<tr><td><b>Deslizamiento</b></td><td>Diferencia entre tu fill y el precio del plan.</td></tr>
+<tr><td><b>Paper</b></td><td>Simulación; no hay dinero ni órdenes reales.</td></tr>
+<tr><td><b>Xetra</b></td><td>Mercado alemán en EUR; NVD.DE.</td></tr>
+<tr><td><b>BOATS</b></td><td>Blue Ocean ATS; sesión overnight 20:00–04:00 ET.</td></tr>
+<tr><td><b>After-hours</b></td><td>16:00–20:00 ET; postmercado.</td></tr>
+<tr><td><b>Premarket</b></td><td>04:00–09:30 ET; antes de la apertura.</td></tr>
+</table>
+
+<h1 id="s20">20. Apéndices: costes, límites, archivos</h1>
+
+<h2>20.1. Límites configurados</h2>
+<table>
+<tr><th>Parámetro</th><th>Valor</th><th>Dónde</th></tr>
+<tr><td>Presupuesto</td><td>5.000 USD</td><td><code>trader/config.json</code></td></tr>
+<tr><td>Pérdida máxima por operación</td><td>50 USD</td><td><code>max_loss_per_trade_usd</code></td></tr>
+<tr><td>Pérdida máxima diaria</td><td>150 USD</td><td><code>max_daily_loss_usd</code></td></tr>
+<tr><td>Operaciones por día</td><td>3</td><td><code>max_trades_per_day</code></td></tr>
+<tr><td>SEÑAL A por valor/día</td><td>2</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>SEÑAL A por día</td><td>3</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>Enfriamiento</td><td>30 min</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>Objetivo</td><td>2R</td><td><code>target_r_estandar</code></td></tr>
+<tr><td>Flat by close</td><td>15:55 ET</td><td><code>config.json</code></td></tr>
+<tr><td>Última entrada</td><td>15:30 ET</td><td><code>no_entries_after</code></td></tr>
+<tr><td>Frescura máxima</td><td>300 s</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>Liquidez mínima</td><td>5 USD / 20 M USD/día</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>Spread proxy máximo</td><td>0,80 %</td><td><code>criterios.UMBRALES</code></td></tr>
+<tr><td>Deriva máxima</td><td>0,5R</td><td><code>max_entry_drift_r</code></td></tr>
+<tr><td>Cuenta</td><td>EUR (por defecto)</td><td><code>cuenta_eur</code></td></tr>
+</table>
+
+<h2>20.2. Coste y break-even</h2>
+<p><b>MyInvestor</b>: 0,12 % por operación (mín. 3 €, máx. 25 €) + 0,30 % de cambio de divisa por lado si la cuenta
+es EUR y el valor es USD. El coste de ida y vuelta se estima con el notional y el tipo de cambio. Ejemplo para
+2.900 USD: comisión ~3,5 USD por lado + FX ~8,7 USD por lado → ~24 USD total. Con cuenta USD, ~7 USD.</p>
+<p><b>Break-even a 2R</b>: antes de costes, 33,3 %. Con coste 0,5R, ~50,7 %. Con coste 0,15R, ~38,3 %. Cuanto más
+ancho el stop, más pequeña la posición y más pesa el coste en R.</p>
+
+<h2>20.3. Archivos que importan</h2>
+<table>
+<tr><th>Archivo</th><th>Qué contiene</th></tr>
+<tr><td><code>AGENTS.md</code></td><td>Contrato permanente y rol COPILOTO.</td></tr>
+<tr><td><code>trader-ops/ESTADO.md</code></td><td>Estado, decisiones, pendientes y registro de la sesión.</td></tr>
+<tr><td><code>trader-ops/GUIA_USO.md</code></td><td>Guía rápida; este manual es la versión completa.</td></tr>
+<tr><td><code>trader-ops/CRITERIOS.md</code></td><td>Umbrales y contrato de calidad.</td></tr>
+<tr><td><code>trader-ops/MERCADOS.md</code></td><td>Comparativa EE. UU./Europa, Xetra, Alpaca.</td></tr>
+<tr><td><code>trader-ops/VERIFICACION.md</code></td><td>Evidencia PASA/FALLA.</td></tr>
+<tr><td><code>logs/diario.jsonl</code></td><td>Todo lo que ha pasado, con hora UTC y Madrid.</td></tr>
+<tr><td><code>trader-ops/state/registro.json</code></td><td>Registro vivo de señales.</td></tr>
+<tr><td><code>trader-ops/state/posiciones.json</code></td><td>Posiciones manuales y parciales.</td></tr>
+<tr><td><code>trader/alerts.json</code></td><td>Reglas de alerta de EE. UU.</td></tr>
+<tr><td><code>trader-ops/state/alertas_xetra.json</code></td><td>Reglas de alerta de Xetra.</td></tr>
+<tr><td><code>trader-ops/state/scan_daily.json</code></td><td>Último scanner diario.</td></tr>
+<tr><td><code>trader-ops/state/ganadores.json</code></td><td>Ganadores del premarket.</td></tr>
+<tr><td><code>trader-ops/state/orb_candidates.json</code></td><td>Lista ORB del día.</td></tr>
+<tr><td><code>trader-ops/historico/</code></td><td>Informes diarios y semanales.</td></tr>
+</table>
+
+<h2>20.4. Índice alfabético de comandos</h2>
+<table>
+<tr><th>Comando</th><th>Para qué</th></tr>
+<tr><td><code>/ahora</code></td><td>Fase, qué hace el sistema, qué haces tú, próximo evento</td></tr>
+<tr><td><code>/alerta T precio</code></td><td>Aviso puntual por encima de un precio</td></tr>
+<tr><td><code>/alertas</code></td><td>Reglas de alerta vigentes</td></tr>
+<tr><td><code>/apertura T</code></td><td>Coste de esperar</td></tr>
+<tr><td><code>/ayuda</code></td><td>Menú de comandos</td></tr>
+<tr><td><code>/briefing</code></td><td>Briefing previo</td></tr>
+<tr><td><code>/dejar T</code></td><td>Quitar de la watchlist</td></tr>
+<tr><td><code>/descartadas</code></td><td>Evaluaciones no A de hoy</td></tr>
+<tr><td><code>/diario</code></td><td>Últimos eventos</td></tr>
+<tr><td><code>/elegir T|N</code></td><td>Análisis completo</td></tr>
+<tr><td><code>/ensenar X</code></td><td>Explicar un concepto</td></tr>
+<tr><td><code>/entre T precio qty [stop] [obj]</code></td><td>Registrar entrada</td></tr>
+<tr><td><code>/estado</code></td><td>Salud del sistema</td></tr>
+<tr><td><code>/evaluar [N]</code></td><td>Evaluar N ganadores</td></tr>
+<tr><td><code>/explica [T]</code></td><td>Traducir la última evaluación</td></tr>
+<tr><td><code>/ganadores [N]</code></td><td>Los que más suben</td></tr>
+<tr><td><code>/hoy</code></td><td>Tabla del día</td></tr>
+<tr><td><code>/mercados T</code></td><td>Comparativa EE. UU./Europa</td></tr>
+<tr><td><code>/noticias T</code></td><td>Titulares 24 h</td></tr>
+<tr><td><code>/pausa</code> / <code>/reanudar</code></td><td>Silenciar/reanudar SEÑAL A</td></tr>
+<tr><td><code>/pelosi</code></td><td>PTR de Pelosi (contexto)</td></tr>
+<tr><td><code>/plan T</code></td><td>Plan de salida</td></tr>
+<tr><td><code>/pnl</code></td><td>P&L manual y registro</td></tr>
+<tr><td><code>/porque [T]</code></td><td>Motivos de descarte</td></tr>
+<tr><td><code>/posiciones</code></td><td>Posiciones abiertas</td></tr>
+<tr><td><code>/registro</code></td><td>Registro vivo de señales</td></tr>
+<tr><td><code>/reloj</code></td><td>Hora Madrid/NY y sesión</td></tr>
+<tr><td><code>/resumen</code></td><td>Qué hacer hoy en llano</td></tr>
+<tr><td><code>/resultados T</code></td><td>Último trimestre SEC</td></tr>
+<tr><td><code>/risk</code></td><td>PASS/BLOCK de órdenes propuestas</td></tr>
+<tr><td><code>/sali T precio [acc]</code></td><td>Registrar salida total/parcial</td></tr>
+<tr><td><code>/scan [T...]</code></td><td>Scanner diario ahora</td></tr>
+<tr><td><code>/seguir [N]</code></td><td>Añadir ganadores a la lista ORB</td></tr>
+<tr><td><code>/stop T precio</code></td><td>Mover/armar stop</td></tr>
+<tr><td><code>/tamano T</code></td><td>Tamaño y pérdida máxima</td></tr>
+<tr><td><code>/ticker T</code></td><td>Resumen de la cadena</td></tr>
+<tr><td><code>/ticket</code></td><td>Ticket en papel</td></tr>
+<tr><td><code>/tm T</code></td><td>Time Machine</td></tr>
+<tr><td><code>/vender T precio</code></td><td>Mover/armar objetivo</td></tr>
+<tr><td><code>/vigila T</code> / <code>/vigilar</code></td><td>Watchlist</td></tr>
+</table>
+
+<h2>20.5. Checklist del repo del skill vendorizado</h2>
+<p>El skill está en <code>vendor/day-trader-skill</code>, fijado al commit
+<code>3d0f4ef6986f4984b7c6bd46f7ff4f87744c3abd</code>. Para comprobar que no falta nada:</p>
+<pre>python trader-ops/run/verificar_skill.py --tests</pre>
+<p>El script revisa esta lista exacta y después ejecuta los tests del skill:</p>
+<table>
+<tr><th>Carpeta</th><th>Archivos requeridos</th></tr>
+<tr><td><code>trader-scanner/</code></td><td><code>SKILL.md</code>, <code>scan.py</code></td></tr>
+<tr><td><code>trader-news/</code></td><td><code>SKILL.md</code>, <code>news.py</code></td></tr>
+<tr><td><code>trader-entry/</code></td><td><code>SKILL.md</code>, <code>entry.py</code></td></tr>
+<tr><td><code>trader-exit/</code></td><td><code>SKILL.md</code>, <code>exit.py</code></td></tr>
+<tr><td><code>trader-timemachine/</code></td><td><code>SKILL.md</code>, <code>timemachine.py</code></td></tr>
+<tr><td><code>trader-risk/</code></td><td><code>SKILL.md</code>, <code>check.py</code></td></tr>
+<tr><td><code>trader-budget/</code></td><td><code>SKILL.md</code>, <code>size.py</code>, <code>config.example.json</code>, <code>targets.example.json</code></td></tr>
+<tr><td><code>trader-broker/</code></td><td><code>SKILL.md</code>, <code>ticket.py</code>, <code>claude_desktop_config.example.json</code></td></tr>
+<tr><td><code>trader-alerts/</code></td><td><code>SKILL.md</code>, <code>alerts.py</code>, <code>alerts.example.json</code></td></tr>
+<tr><td><code>trader-analyst/</code></td><td><code>SKILL.md</code>, <code>facts.py</code>, <code>metrics.example.json</code></td></tr>
+<tr><td><code>trader-pelosi/</code></td><td><code>SKILL.md</code>, <code>ptr.py</code></td></tr>
+<tr><td><code>tests/</code></td><td><code>_load.py</code>, suite <code>test_*.py</code> y <code>fixtures/</code> offline</td></tr>
+</table>
+<p><b>Resultado esperado</b>: 31 archivos requeridos, 0 faltantes, commit correcto y <b>315 tests OK</b>. Las
+carpetas <code>__pycache__</code> son generadas por Python y no forman parte del repo; no cuentan. Si falta un
+archivo, no se inventa ni se copia a ciegas: se revisa <code>git -C vendor/day-trader-skill status</code> y se
+restaura desde el commit fijado. El skill no se modifica; todo lo propio vive en <code>trader-ops/</code>.</p>
+
+<h1 id="s21">21. Registro de cambios y evidencia</h1>
+
+<h2>21.1. Versión 1.0 — 18/11/2026</h2>
+<ul>
+<li>Instalación y verificación del banco de pruebas; skill fijado en <code>3d0f4ef6986f4984b7c6bd46f7ff4f87744c3abd</code>.</li>
+<li>315 tests del skill OK; 86 tests propios OK (1 skipped).</li>
+<li>Telegram operativo; bot <code>@day_trading_skill_bot</code>; solo el chat_id de Javier.</li>
+<li>Paneles de terminal y web; simulador de filtros; exportación CSV; informes diario/semanal.</li>
+<li>Ganadores: <code>/ganadores</code>, <code>/seguir</code>, <code>/evaluar</code>; lista ORB dinámica.</li>
+<li>Alertas de EE. UU. y Xetra; comprobación cada 60 s; proximidad al 0,5 %.</li>
+<li>Correcciones: <code>/elegir</code> (función ausente), alertas nunca enviadas (<code>rings</code> vs <code>rung</code>),
+ruta de estado de alertas, <code>/entre</code> sin armar avisos, cierres parciales, cadencia 20→60 s, fallback de candidatos,
+límites del día, <code>/alertas</code> sin <code>--json</code>, <code>/resultados</code> con lista del skill.</li>
+<li>Este manual y el PDF generado.</li>
+</ul>
+
+<h2>21.2. Evidencia ejecutada</h2>
+<pre>python -m unittest discover -s trader-ops/tests
+→ Ran 86 tests ... OK (skipped=1)
+
+python trader-ops/run/saludo.py
+→ 07:39 Madrid / 01:39 NY · mercado cerrado · Antes del premarket
+  Sistema VIVO · Vigila: NVDA · Próximo: premarket 13:00
+
+python trader-ops/run/telegram_bot.py --simulate "/elegir NVDA"
+→ Setup waiting; SIN SEÑAL; SEC Q2 2027; dato viejo (último cierre)
+
+python trader-ops/run/telegram_bot.py --simulate "/evaluar 1"
+→ SLN SIN SEÑAL (mercado cerrado, sin rango)
+
+python trader-ops/run/verificar_skill.py --tests
+→ 31 archivos requeridos, 0 faltan, commit 3d0f4ef...
+→ Ran 315 tests ... OK
+
+python trader-ops/run/panel.py --once
+→ panel completo con salud, vigilados, señales, posiciones, alertas, P&L y "qué hacer ahora"
+
+http://127.0.0.1:8765 → 200 OK (panel web, solo lectura)</pre>
+
+<h2>21.3. Cómo regenerar este PDF</h2>
+<pre>cd C:\Users\Javier\Desktop\Repositorios\day-trader-ops\trader-ops\manual
+python build_pdf.py
+→ ..\MANUAL_COMPLETO.pdf</pre>
+<p class="small">El HTML fuente está en <code>trader-ops/MANUAL_COMPLETO.html</code>. Si cambias el texto, vuelve a
+generar el PDF con el script. El PDF no se actualiza solo.</p>
+
+<div class="ok">
+<b>Fin del manual.</b> Si algo no está aquí, pregunta por Telegram con <code>/ayuda</code> o abre una sesión de
+OpenCode y pide que se actualice este documento. La memoria del sistema son los archivos, no el chat.
+</div>
+
+</body>
+</html>

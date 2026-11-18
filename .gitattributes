@@ -1,0 +1,17 @@
+# Normaliza finales de linea para que el repo se vea igual desde cualquier PC.
+# El codigo y la documentacion se guardan en LF; los scripts de Windows en CRLF.
+* text=auto
+.gitattributes text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.pdf binary
+*.png binary
+*.gz binary
+*.zip binary

@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual completo · Day Trader PAPEL</title>
+<style>
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10.4pt; color:#1b1b1b; line-height:1.45; }
+h1 { font-size: 19pt; color:#0b3d6b; border-bottom:2px solid #0b3d6b; padding-bottom:4px; margin:0 0 12px 0; page-break-before: always; }
+h1.first { page-break-before: avoid; }
+h2 { font-size: 13.5pt; color:#0b3d6b; margin:18px 0 6px; }
+h3 { font-size: 11.5pt; color:#1f2937; margin:14px 0 4px; }
+p { margin:6px 0; text-align:justify; }
+ul, ol { margin:4px 0 8px 18px; }
+li { margin-bottom:3px; }
+table { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:8.9pt; page-break-inside:auto; }
+tr { page-break-inside:avoid; }
+th { background:#e6edf5; text-align:left; font-weight:600; }
+th, td { border:1px solid #b7c4d2; padding:4px 5px; vertical-align:top; }
+code { font-family: Consolas, "Courier New", monospace; font-size:9pt; background:#f1f4f7; padding:1px 3px; border-radius:2px; }
+pre { font-family: Consolas, "Courier New", monospace; font-size:8.8pt; background:#f4f6f8; border-left:3px solid #0b3d6b; padding:8px 10px; white-space:pre-wrap; overflow-wrap:break-word; word-break:break-word; margin:8px 0; page-break-inside:avoid; }
+.callout { background:#eef6ff; border-left:4px solid #2b6cb0; padding:8px 10px; margin:10px 0; }
+.warn { background:#fff4e5; border-left:4px solid #c05621; padding:8px 10px; margin:10px 0; }
+.ok { background:#eefaf0; border-left:4px solid #2f855a; padding:8px 10px; margin:10px 0; }
+.sim { background:#f7f3ff; border:1px dashed #6b46c1; padding:8px 10px; margin:10px 0; }
+.cover { text-align:center; padding-top:45mm; page-break-after:always; }
+.cover h1 { border:none; page-break-before:avoid; font-size:31pt; margin-bottom:6px; color:#0b3d6b; }
+.cover .sub { font-size:14pt; color:#333; margin-top:4px; }
+.cover .meta { margin-top:35mm; font-size:10pt; color:#555; line-height:1.6; }
+.toc { columns:2; column-gap:16mm; font-size:9.6pt; }
+.toc a { color:#1a365d; text-decoration:none; }
+.toc div { margin-bottom:4px; }
+.small { font-size:9pt; color:#555; }
+.pagebreak { page-break-before:always; }
+.kbd { font-family:Consolas,monospace; background:#eef1f4; border:1px solid #c7d0d9; border-radius:3px; padding:0 4px; }
+.tag { display:inline-block; font-size:8pt; font-weight:700; padding:1px 5px; border-radius:3px; color:#fff; }
+.tag.a { background:#2f855a; }
+.tag.v { background:#b7791f; }
+.tag.d { background:#718096; }
+.tag.x { background:#c53030; }
+.tight li { margin-bottom:1px; }
+.keep { page-break-inside: avoid; }
+.src { display:inline-block; font-size:7.5pt; font-weight:700; padding:0 4px; border-radius:3px; color:#fff; margin-right:3px; }
+.src-tg { background:#2b6cb0; }
+.src-sys { background:#6b46c1; }
+.src-ext { background:#2f855a; }
+.src-mx { background:#c05621; }
+.src-tu { background:#4a5568; }
+.src-reg { background:#b7791f; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="sub">Banco de pruebas de day trading</div>
+  <h1>MANUAL COMPLETO<br>DE USO</h1>
+  <div class="sub">Day Trader PAPEL · Telegram · Paneles · Rutina diaria · Ejemplos de varios días</div>
+  <div class="meta">
+    Versión 1.0 · 18 de noviembre de 2026<br>
+    Proyecto: <b>day-trader-ops</b><br>
+    Ruta del PDF: <b>C:\Users\Javier\Desktop\Repositorios\day-trader-ops\trader-ops\MANUAL_COMPLETO.pdf</b><br>
+    Ruta del HTML: <b>C:\Users\Javier\Desktop\Repositorios\day-trader-ops\trader-ops\MANUAL_COMPLETO.html</b><br><br>
+    <b>SOLO PAPEL. No hay broker conectado. No se envía ninguna orden real.</b>
+  </div>
+</div>
+
+<h1 class="first">Aviso importante (léelo antes de nada)</h1>
+
+<div class="warn">
+<b>Esto no es asesoramiento financiero.</b> Es un banco de pruebas en papel para aprender a operar con reglas
+y para medir si una estrategia (ORB intradía) tiene ventaja después de costes. No predice el mercado, no
+garantiza resultados y no sustituye tu decisión. Si un día decides operar con dinero real, será tu decisión,
+con tu broker y tu responsabilidad.
+</div>
+
+<ul>
+<li><b>No hay órdenes reales.</b> <code>broker: "none"</code> y <code>paper: true</code>. El sistema solo registra lo que tú dices que has hecho.</li>
+<li><b>Los datos pueden llegar con retraso.</b> Yahoo no es un feed profesional; MyInvestor muestra cotizaciones con 15 minutos de retraso según su propia FAQ. El sistema marca la edad del dato y no avisa si es viejo, pero no puede convertir un dato lento en uno rápido.</li>
+<li><b>Las probabilidades del Time Machine son frecuencias</b> de una simulación y de un histórico, no promesas. Siempre van con muestra (n) e intervalo de Wilson.</li>
+<li><b>El sistema no da opinión de mercado.</b> Si preguntas “¿entro?”, solo puede decirte si hay una SEÑAL A vigente con su plan o qué criterios fallan. La decisión es tuya.</li>
+<li><b>No se relajan filtros para que aparezcan señales.</b> Un día sin señales es un resultado válido.</li>
+<li><b>Los secretos</b> (token del bot, chat_id, datos SEC) viven en <code>secrets/</code> y nunca se muestran en el chat, en los logs ni en este manual.</li>
+</ul>
+
+<h1>Índice</h1>
+<div class="toc">
+<div><a href="#s0">0. Cómo estudiar este manual (principiante)</a></div>
+<div><a href="#s1">1. Qué es este sistema (y qué no es)</a></div>
+<div><a href="#s2">2. Arranque, salud y archivos</a></div>
+<div><a href="#s3">3. Conceptos: ORB, R, stop, objetivo, Time Machine…</a></div>
+<div><a href="#s4">4. Horarios, sesiones y mercados</a></div>
+<div><a href="#s5">5. Rutina diaria, minuto a minuto</a></div>
+<div><a href="#s6">6. Todos los comandos, uno por uno</a></div>
+<div><a href="#s7">7. Frases naturales y atajos</a></div>
+<div><a href="#s8">8. Cómo leer una SEÑAL A línea por línea</a></div>
+<div><a href="#s9">9. Operar a mano: entrar, mover, salir</a></div>
+<div><a href="#s10">10. Re-entradas y límites del día</a></div>
+<div><a href="#s11">11. Ganadores y momentum</a></div>
+<div><a href="#s12">12. NVDA: Xetra vs EE. UU. (y tu caso)</a></div>
+<div><a href="#s13">13. Postmercado, overnight y BOATS</a></div>
+<div><a href="#s14">14. Telegram desde el móvil</a></div>
+<div><a href="#s15">15. Paneles de monitorización</a></div>
+<div><a href="#s16">16. Nueve días de ejemplo (simulación completa)</a></div>
+<div><a href="#s17">17. Problemas y soluciones</a></div>
+<div><a href="#s18">18. Checklists imprimibles</a></div>
+<div><a href="#s19">19. Glosario</a></div>
+<div><a href="#s20">20. Apéndices: costes, límites, archivos</a></div>
+<div><a href="#s21">21. Registro de cambios y evidencia</a></div>
+<div><a href="#s22">22. Salidas exactas de los comandos</a></div>
+<div><a href="#s23">23. Test final: ¿sabes qué hacer?</a></div>
+</div>
+
+<h1 id="s0">0. Cómo estudiar este manual (si eres principiante)</h1>
+<p>No hace falta leerlo entero de golpe ni memorizar comandos. El sistema se entiende en tres pasadas.
+Si hoy no vas a operar, esta es la ruta que yo seguiría:</p>
+
+<h2>0.1. Ruta en tres pasos</h2>
+<table>
+<tr><th>Paso</th><th>Qué lees</th><th>Tiempo</th><th>Qué consigues</th></tr>
+<tr><td><b>1. Vocabulario</b></td><td>§1, §3, §4</td><td>30–40 min</td><td>Saber qué es ORB, R, stop, objetivo, Time Machine, Wilson, EV, flat y los horarios.</td></tr>
+<tr><td><b>2. Decisión</b></td><td>§5, §8, §9.1–§9.19</td><td>60–90 min</td><td>Saber qué hacer antes del premarket, en la apertura, en la ventana, al entrar y al salir; qué orden usar.</td></tr>
+<tr><td><b>3. Práctica</b></td><td>§16.9 Día 8, §16.10 Día 9, §22, §23</td><td>90 min</td><td>Ver un día completo con datos, comandos, salidas exactas y un test de 12 situaciones.</td></tr>
+</table>
+<p><b>La primera vez puedes saltarte</b>: §2 (tareas, secretos y archivos), §12–§13 (Xetra/BOATS si no operas ahí) y
+§20–§21 (apéndices). Vuelve a ellos cuando ya entiendas el día.</p>
+
+<h2>0.2. Cheat sheet del principiante</h2>
+<table>
+<tr><th>Regla</th><th>Por qué</th></tr>
+<tr><td><b>1. Solo papel.</b></td><td>No hay broker conectado; ninguna orden real.</td></tr>
+<tr><td><b>2. Sin SEÑAL A no se compra.</b></td><td>La lista de candidatos no es una compra.</td></tr>
+<tr><td><b>3. No se entra antes de 15:45.</b></td><td>El rango 9:30–9:45 ET tiene que existir.</td></tr>
+<tr><td><b>4. La entrada es la confirmación, no el mínimo.</b></td><td>Se compra después del cierre de 5 min por encima del rango.</td></tr>
+<tr><td><b>5. Riesgo máximo 50 USD por operación; 150 USD/día.</b></td><td>Si el stop es más ancho, menos acciones.</td></tr>
+<tr><td><b>6. Compra y objetivo con limitada; stop con stop loss.</b></td><td>La pantalla de MyInvestor va 15 min retrasada; la limitada te protege.</td></tr>
+<tr><td><b>7. Si el precio ya se fue más de 0,5R, no persigas.</b></td><td>La señal caduca; el EV empeora.</td></tr>
+<tr><td><b>8. No promedies, no muevas el stop hacia abajo.</b></td><td>Convierte 1R en 3R.</td></tr>
+<tr><td><b>9. A las 21:55 se cierra todo.</b></td><td>No se mantiene overnight. Si te quedan 2, es swing/manual, no sistema.</td></tr>
+<tr><td><b>10. Si no entiendes algo, pregunta <code>/ensenar</code> o lee el glosario.</b></td><td>Mejor no operar que operar a ciegas.</td></tr>
+</table>
+
+<h2>0.3. Mercado 101: lo mínimo para no perderse</h2>
+<table>
+<tr><th>Término</th><th>Qué es</th><th>Ejemplo</th></tr>
+<tr><td><b>Bid</b></td><td>Lo que alguien está dispuesto a pagar (tu venta)</td><td>Si el bid es 20,10, vender a mercado te da ~20,10.</td></tr>
+<tr><td><b>Ask</b></td><td>Lo que alguien pide para vender (tu compra)</td><td>Si el ask es 20,12, comprar a mercado te cuesta ~20,12.</td></tr>
+<tr><td><b>Spread</b></td><td>Diferencia bid-ask</td><td>20,12 − 20,10 = 0,02.</td></tr>
+<tr><td><b>Limitada</b></td><td>Orden con precio máximo (compra) o mínimo (venta)</td><td>Comprar 87 SLS a 20,15 o mejor.</td></tr>
+<tr><td><b>Mercado / mejor mercado</b></td><td>Orden sin precio: ejecuta al mejor disponible</td><td>Puede llenar a 20,12 o a 20,50; no lo controlas.</td></tr>
+<tr><td><b>Stop loss</b></td><td>Orden que se activa al llegar a un precio y vende</td><td>Stop 19,55: si cae, vende; puede resbalar.</td></tr>
+<tr><td><b>Fill</b></td><td>Precio real al que se ejecutó</td><td>Tu limitada 20,15 llenó a 20,12: fill 20,12.</td></tr>
+<tr><td><b>Slippage</b></td><td>Diferencia entre el precio esperado y el fill</td><td>Esperabas 20,12 y llenó 20,15: 0,03 de slippage.</td></tr>
+<tr><td><b>Venue</b></td><td>Mercado donde se ejecuta</td><td>Xetra, Frankfurt, Tradegate, Nasdaq.</td></tr>
+<tr><td><b>Flat by close</b></td><td>Cerrar todo antes del cierre</td><td>21:55 Madrid; no se mantiene nada.</td></tr>
+</table>
+
+<h2>0.4. Cómo leer los días simulados</h2>
+<p>Cada día tiene tres capas:</p>
+<ol>
+<li><b>La conversación</b>: “Tú: …” y “Bot: …”. Es lo que escribirías y lo que respondería el sistema.</li>
+<li><b>La lectura</b>: el párrafo que explica por qué se hace o no se hace algo.</li>
+<li><b>La orden</b>: la línea “MyInvestor: …” con el tipo exacto (limitada, mercado o stop loss).</li>
+</ol>
+<p>Los bloques de código son <b>salidas literales</b> del sistema; los números cambian cada día, la estructura no.
+En el Día 8, la tabla de colores te dice de dónde sale cada parámetro. En el Día 9, el caso 5 → 3 → 2 te enseña
+qué pasa si te quedan acciones al cierre.</p>
+
+<h2>0.5. Si no entiendes una palabra</h2>
+<ul>
+<li>Escribe <code>/ensenar orb</code>, <code>/ensenar r</code>, <code>/ensenar time machine</code>, etc.</li>
+<li>Busca en el <b>Glosario</b> (§19).</li>
+<li>Pregunta en Telegram o en OpenCode: “explícame X con el dato de hoy”.</li>
+<li>Si sigues sin entenderlo, <b>no operes</b>. El sistema no se va a enfadar por no operar.</li>
+</ul>
+
+<h1 id="s1">1. Qué es este sistema (y qué no es)</h1>
+
+<h2>1.1. En una frase</h2>
+<p>Es un <b>banco de pruebas en papel</b> alrededor de <code>day-trader-skill</code>: escanea el mercado de EE. UU.,
+busca rupturas del rango de apertura (ORB), ejecuta una cadena de filtros y solo te avisa por Telegram cuando
+todo pasa. Tú decides y operas a mano en MyInvestor. El sistema no envía órdenes.</p>
+
+<h2>1.2. Lo que sí hace</h2>
+<ul>
+<li>Escanea ~5.900 valores de EE. UU. cada mañana y calcula setups diarios.</li>
+<li>Construye una lista de candidatos para el ORB con <b>ganadores líquidos + setups</b>.</li>
+<li>Vigila el rango 9:30–9:45 ET y escanea rupturas cada 5 minutos.</li>
+<li>Por cada ruptura ejecuta la cadena completa: noticias, plan, Time Machine, tamaño, risk, SEC, liquidez,
+contratabilidad, criterios (Wilson + EV) y validador de cifras.</li>
+<li>Envía una <b>SEÑAL A</b> solo si todo pasa; si no, lo registra como VIGILAR/DESCARTADA y puedes preguntar por qué.</li>
+<li>Monitoriza posiciones que tú registras, avisa de stop/objetivo/proximidad y calcula P&L bruto.</li>
+<li>Deja evidencia de todo en <code>logs/diario.jsonl</code> y en el registro vivo.</li>
+</ul>
+
+<h2>1.3. Lo que no hace</h2>
+<ul>
+<li><b>No opera</b>: no hay broker, ni claves, ni órdenes. <code>ticket.py</code> solo imprime tickets.</li>
+<li><b>No predice</b> si una acción va a subir varios días. Mide una regla intradía y la somete a filtros.</li>
+<li><b>No analiza postmercado ni overnight/BOATS</b>: el ORB, el Time Machine y el histórico son de la sesión regular.</li>
+<li><b>No da opinión de mercado</b> ni “recomendaciones” libreres. Sus veredictos salen de scripts.</li>
+<li><b>No garantiza ejecución</b>: tu precio real puede ser peor; el sistema mide el deslizamiento cuando lo registras.</li>
+<li><b>No sustituye tu fiscalidad</b>: comisiones, cambio de divisa y plusvalías son tuas.</li>
+</ul>
+
+<h2>1.4. Las piezas</h2>
+<table>
+<tr><th>Pieza</th><th>Qué es</th><th>Dónde</th></tr>
+<tr><td><code>vendor/day-trader-skill</code></td><td>Los 11 scripts originales (scanner, entry, exit, timemachine, budget, risk, news, analyst, alerts, broker, pelosi). No se modifica.</td><td><code>vendor/day-trader-skill</code></td></tr>
+<tr><td><code>trader-ops/lib</code></td><td>Capa propia: configuración, datos, criterios, pipeline, registro, posiciones, alertas, ganadores, informes.</td><td><code>trader-ops/lib</code></td></tr>
+<tr><td><code>trader-ops/run</code></td><td>Orquestador, bot de Telegram, paneles, watchdog, simuladores, secretos, smoke.</td><td><code>trader-ops/run</code></td></tr>
+<tr><td><code>trader/</code></td><td>Runtime del skill: configuración, plan, órdenes, watchlist, alertas, estado.</td><td><code>trader/</code></td></tr>
+<tr><td><code>trader-ops/state</code></td><td>Latido, agenda, registro vivo, posiciones, caché de candidatos, artefactos.</td><td><code>trader-ops/state</code></td></tr>
+<tr><td><code>logs/diario.jsonl</code></td><td>Toda la evidencia: comando, salida, hora UTC y Madrid, hash.</td><td><code>logs/diario.jsonl</code></td></tr>
+<tr><td><code>secrets/</code></td><td>Token del bot, chat_id, datos SEC. Nunca se muestra.</td><td><code>secrets/</code></td></tr>
+</table>
+
+<h2>1.5. Las tres tareas de Windows</h2>
+<table>
+<tr><th>Tarea</th><th>Qué hace</th><th>Si está parada…</th></tr>
+<tr><td><code>DayTraderOps</code></td><td>Orquestador: agenda, scanner, briefing, ORB, alertas, flat, informe.</td><td>No hay avisos ni escaneo.</td></tr>
+<tr><td><code>DayTraderOps-Bot</code></td><td>Bot de Telegram: escucha y responde a tus comandos.</td><td>El bot no contesta.</td></tr>
+<tr><td><code>DayTraderOps-Watchdog</code></td><td>Vigila el latido y los huecos de datos; avisa si algo se para.</td><td>No hay vigilancia de salud.</td></tr>
+</table>
+
+<p class="small">Comprobar: <code>powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Estado</code>.
+Parar: <code>Stop-ScheduledTask DayTraderOps</code> (y las otras dos). Reanudar: <code>Start-ScheduledTask DayTraderOps</code>.</p>
+
+<h1 id="s2">2. Arranque, salud y archivos</h1>
+
+<h2>2.1. Antes de operar cada día: 4 comprobaciones</h2>
+<pre>cd C:\Users\Javier\Desktop\Repositorios\day-trader-ops
+python trader-ops\run\saludo.py
+python trader-ops\run\smoke.py
+python trader-ops\run\watchdog.py
+python trader-ops\run\telegram_bot.py --simulate /estado</pre>
+<ul>
+<li><b>saludo.py</b>: 5 líneas con hora Madrid/NY, mercado, salud, vigilados, señales y próximo evento.</li>
+<li><b>smoke.py</b>: 14 herramientas, latencia y frescura. El ORB falla fuera de sesión: es normal.</li>
+<li><b>watchdog.py</b>: latido y huecos de datos. Si algo está parado, avisa.</li>
+<li><b>/estado simulado</b>: comprueba que el bot responde sin gastar mensajes.</li>
+</ul>
+
+<div class="ok">
+<b>Estado sano</b>: orquestador VIVO, latido de menos de 15 minutos en sesión (menos de 1 h fuera),
+datos de menos de 5 minutos en sesión, 0 errores recientes, y el próximo evento con cuenta atrás.
+</div>
+
+<h2>2.2. Si algo está parado</h2>
+<table>
+<tr><th>Síntoma</th><th>Comprobación</th><th>Arreglo</th></tr>
+<tr><td>El bot no contesta</td><td><code>instalar_tarea.ps1 -Estado</code> → <code>DayTraderOps-Bot</code></td><td><code>Start-ScheduledTask DayTraderOps-Bot</code></td></tr>
+<tr><td>No hay avisos ni escaneo</td><td><code>DayTraderOps</code> parada o latido viejo</td><td><code>Start-ScheduledTask DayTraderOps</code></td></tr>
+<tr><td>Datos viejos</td><td><code>/estado</code> o panel: edad de datos</td><td><code>python trader-ops\run\smoke.py</code>; revisar red/Yahoo</td></tr>
+<tr><td>Error 429</td><td>Panel: contador 429</td><td>El sistema tiene backoff; no lanzar <code>/scan</code> en bucle</td></tr>
+<tr><td>Todo caído</td><td>PC apagado, suspensión o sin red</td><td>Encender, conectar, reanudar tareas</td></tr>
+</table>
+
+<h2>2.3. Secretos</h2>
+<p>El token del bot y el chat_id están en <code>secrets/telegram.json</code>; los datos SEC en
+<code>secrets/sec.json</code>. El bot solo atiende a tu <code>chat_id</code>. Cualquier otro chat se ignora y se
+registra en el diario. <b>Nunca pegues el token en el chat, en un issue o en una captura.</b></p>
+
+<h2>2.4. Dónde mirar cuando no entiendes algo</h2>
+<table>
+<tr><th>Pregunta</th><th>Comando</th></tr>
+<tr><td>¿Qué está pasando ahora?</td><td><code>/estado</code> o <code>/ahora</code></td></tr>
+<tr><td>¿Qué ha pasado hoy?</td><td><code>/diario</code> o <code>/resumen</code></td></tr>
+<tr><td>¿Por qué no hay señal?</td><td><code>/porque</code> o <code>/descartadas</code></td></tr>
+<tr><td>¿Qué es ORB / R / Wilson?</td><td><code>/ensenar orb</code>, <code>/ensenar r</code>, etc.</td></tr>
+<tr><td>¿Qué comandos hay?</td><td><code>/ayuda</code></td></tr>
+</table>
+
+<h2>2.5. ¿Puedo apagar el PC?</h2>
+<table>
+<tr><th>Franja</th><th>¿PC encendido?</th><th>Por qué</th></tr>
+<tr><td>13:00–15:30 (premarket/briefing)</td><td><b>Sí</b></td><td>Scanner, noticias, briefing y lista ORB. Si está apagado, se pierde la base del día.</td></tr>
+<tr><td>15:30–21:55 (sesión/ORB/posiciones)</td><td><b>Sí</b></td><td>Escaneo cada 5 min, señales y alertas de stop/objetivo.</td></tr>
+<tr><td>21:55–22:00 (flat/informe)</td><td><b>Sí</b></td><td>Aviso de flat e informe; luego puede apagarse.</td></tr>
+<tr><td>22:00–13:00 (noche)</td><td><b>No</b></td><td>El sistema duerme. No escanea postmercado, overnight ni BOATS.</td></tr>
+</table>
+<p><b>Si el PC está apagado o suspendido</b>: el bot no responde, no llegan avisos y el orquestador no escanea. Al
+encenderlo, las tareas pueden recuperar la agenda con retraso, pero el premarket puede llegar tarde y el ORB
+empezar sin la lista buena. Para el ciclo completo, enciéndelo antes de las 13:00; para operar solo la sesión,
+antes de las 15:30. El orquestador pide al sistema que no se suspenda mientras corre, pero una tapa cerrada, un
+corte de luz o un apagado manual lo paran.</p>
+<p><b>Postmercado/overnight/BOATS</b>: no se escanean. Después de las 22:00 no hace falta tenerlo encendido. Si
+quieres consultar algo por Telegram, el bot necesita el PC encendido; no está en la nube.</p>
+<div class="warn">
+Si no puedes dejar el PC encendido 13:00–22:00, la alternativa es un mini-PC/VPS siempre encendido, pero eso es
+otra infraestructura y no está configurada. Para papel, lo normal es dejarlo encendido y enchufado.
+</div>
+
+<h1 id="s3">3. Conceptos: ORB, R, stop, objetivo, Time Machine…</h1>
+
+<h2>3.1. ORB (Opening Range Breakout)</h2>
+<p>Se mide el <b>máximo y mínimo de los primeros 15 minutos</b> de la sesión de EE. UU. (9:30–9:45 ET). Se entra
+cuando una vela de 5 minutos <b>cierra por encima del máximo</b> de ese rango. El mínimo del rango y el máximo
+forman el “rango de apertura”; su punto medio se usa como stop.</p>
+<div class="callout">
+<b>Por qué 15 minutos</b>: es el tiempo que el skill usa para definir el rango. Antes de las 9:45 ET no hay rango,
+así que <b>no se entra antes</b>. Cualquier movimiento previo es ruido para el sistema.
+</div>
+
+<h2>3.2. R, stop, objetivo y 2R</h2>
+<ul>
+<li><b>R</b> = lo que pierdes si salta el stop. Si entras a 42,10 con stop 41,20, 1R = 0,90 USD por acción.</li>
+<li><b>Stop</b> = precio al que aceptas que la idea falló. En este sistema: punto medio del rango de apertura, redondeado hacia abajo.</li>
+<li><b>Objetivo</b> = precio al que recoges. Por política: <b>2R</b> (el doble del riesgo).</li>
+<li><b>Todo se mide en R</b> para comparar operaciones de tamaños distintos.</li>
+</ul>
+
+<h2>3.3. Time Machine</h2>
+<p>Simula 10.000 repeticiones del resto de la sesión con las últimas 59 sesiones del valor, y además aplica la
+misma regla sobre el histórico real. Devuelve <b>frecuencias</b>: objetivo primero, stop primero, ninguna de las dos.
+No es una probabilidad de ganar; es una frecuencia condicionada a los datos y al plan.</p>
+
+<h2>3.4. Wilson y EV</h2>
+<ul>
+<li><b>Wilson</b>: intervalo de confianza al 95 % de una tasa. Con 33 disparos y 13 aciertos, la tasa es 39 % pero
+el intervalo real va del 25 % al 56 %: por eso no se concluye nada con muestras pequeñas.</li>
+<li><b>EV</b>: valor esperado en R después de costes. Si es negativo, la operación pierde dinero de media aunque
+a veces gane.</li>
+<li><b>Break-even</b>: tasa de acierto necesaria para EV=0. A 2R antes de costes es 33,3 %. Con costes sube.</li>
+</ul>
+
+<h2>3.5. Spread, liquidez y gap</h2>
+<ul>
+<li><b>Spread</b>: diferencia entre lo que pides y lo que ofrecen. El sistema usa un proxy (rango medio de velas)
+porque Yahoo no da bid-ask gratis.</li>
+<li><b>Liquidez</b>: mínimo 5 USD de precio y 20 M USD/día de volumen. Un ganador ilíquido es una trampa.</li>
+<li><b>Gap</b>: salto entre el cierre y la apertura. El sistema mide el “coste de esperar” con datos de sesión regular.</li>
+</ul>
+
+<h2>3.6. Veredictos</h2>
+<table>
+<tr><th>Veredicto</th><th>Significado</th><th>¿Se envía?</th></tr>
+<tr><td><span class="tag a">SEÑAL A</span></td><td>Todo pasa: setup, ventana, noticias, resultados, plan, risk, frescura, liquidez, contratable, Time Machine, histórico, EV, ruido, presupuesto y deriva.</td><td>Sí, una vez</td></tr>
+<tr><td><span class="tag v">VIGILAR</span></td><td>Falla algo no crítico o falta muestra. No es una compra.</td><td>No</td></tr>
+<tr><td><span class="tag d">DESCARTADA</span></td><td>Falla algo crítico. Se explica el motivo.</td><td>No</td></tr>
+<tr><td><span class="tag x">SIN SEÑAL</span></td><td>No ha habido ruptura del rango todavía.</td><td>No</td></tr>
+<tr><td><span class="tag x">SIN DATOS</span></td><td>Yahoo no da precio/calidad. No se inventa.</td><td>No</td></tr>
+<tr><td><span class="tag x">FRENO</span></td><td>El registro vivo tiene 12 cerradas con R medio ≤ 0. El sistema deja de avisar.</td><td>No</td></tr>
+<tr><td><span class="tag x">SEÑAL CADUCADA</span></td><td>El precio se alejó más de 0,5R antes de enviar. No se persigue.</td><td>No</td></tr>
+</table>
+
+<h2>3.7. Flat by close</h2>
+<p>“Flat by close” = cerrar todo antes del cierre. Aquí a las <b>15:55 ET</b> (21:55 Madrid en horario de invierno),
+porque no se mantiene nada overnight. Es una regla, no una preferencia. Si no puedes cerrar a esa hora, el sistema
+no es para ti ese día.</p>
+
+<h1 id="s4">4. Horarios, sesiones y mercados</h1>
+
+<h2>4.1. Reloj de Madrid y Nueva York</h2>
+<table>
+<tr><th>Sesión (ET)</th><th>Madrid (invierno)</th><th>Qué es</th></tr>
+<tr><td>04:00–09:30</td><td>10:00–15:30</td><td>Premarket de EE. UU.</td></tr>
+<tr><td>09:30–16:00</td><td>15:30–22:00</td><td><b>Sesión regular</b> (la que usa el sistema)</td></tr>
+<tr><td>16:00–20:00</td><td>22:00–02:00</td><td>After-hours / postmercado</td></tr>
+<tr><td>20:00–04:00</td><td>02:00–10:00</td><td>Overnight / BOATS (Blue Ocean ATS)</td></tr>
+</table>
+<p class="small">Normalmente Madrid = ET + 6 h. En las semanas en que EE. UU. y Europa cambian la hora en fechas
+distintas, el desfase es 5 h. <b>No memorices</b>: usa <code>/reloj</code>, que da el desfase real y la próxima sesión.</p>
+
+<h2>4.2. La sesión que usa el sistema</h2>
+<ul>
+<li><b>15:30</b> Madrid: abre NYSE/Nasdaq. Empieza a formarse el rango.</li>
+<li><b>15:45</b>: cierra el rango 9:30–9:45 ET.</li>
+<li><b>15:50</b>: primer escaneo ORB (9:50 ET). Después cada 5 minutos.</li>
+<li><b>21:30</b>: última entrada (15:30 ET).</li>
+<li><b>21:55</b>: flat by close (15:55 ET).</li>
+<li><b>22:00</b>: cierre e informe.</li>
+</ul>
+
+<h2>4.3. Xetra (Europa)</h2>
+<p>Xetra cotiza en euros, de <b>09:00 a 17:30 Madrid</b>. Solo solapa con NYSE de 15:30 a 17:30 (2 h). A las 21:55
+lleva 4 h 25 m cerrado, así que <b>el flat by close del plan no es ejecutable en Xetra</b>. Si sales a las 17:30 para
+no dejarlo abierto, las odds del Time Machine ya no valen: están medidas hasta las 15:55 ET.</p>
+
+<h2>4.4. Lo que ofrece MyInvestor (según su FAQ oficial)</h2>
+<ul>
+<li>Acciones y ETF de EE. UU., Europa y otros mercados; comisión 0,12 % por operación (mín. 3 €, máx. 25 €) + 0,30 % de cambio de divisa.</li>
+<li>Horario para operar en EE. UU.: <b>15:30–22:00 Madrid</b>. Si mandas la orden fuera de ese horario, <b>se lanza en la apertura</b>.</li>
+<li>Cotizaciones mostradas con <b>15 minutos de retraso</b>; la ejecución es al precio real del momento.</li>
+<li>Stop loss disponible en <b>NYSE, Nasdaq y Xetra</b>.</li>
+<li>No ofrece (según esa misma FAQ) premarket, postmercado ni overnight para acciones: solo sesión regular.</li>
+</ul>
+<div class="warn">
+<b>Consecuencia práctica</b>: el sistema puede avisarte a las 16:05 Madrid, pero MyInvestor te muestra un precio
+de 15 minutos antes y no te deja operar fuera de 15:30–22:00. Para ejecutar el plan con precisión necesitas una
+fuente de precio en tiempo real (TradingView, Yahoo, etc.) y asumir el deslizamiento. Ese es un límite del broker,
+no del sistema.
+</div>
+
+<h2>4.5. Qué analiza el sistema y qué no</h2>
+<table>
+<tr><th>Franja</th><th>¿La analiza?</th><th>Por qué</th></tr>
+<tr><td>Premarket (10:00–15:30 Madrid)</td><td>Solo como contexto (noticias, gap, coste de esperar)</td><td>El ORB se define en la sesión regular; el premarket tiene poca liquidez.</td></tr>
+<tr><td>Sesión regular (15:30–22:00)</td><td><b>Sí, entera</b></td><td>Es donde están el rango, las rupturas, el Time Machine y el flat.</td></tr>
+<tr><td>After-hours (22:00–02:00)</td><td>No</td><td>Liquidez baja, spreads anchos, sin regla validada.</td></tr>
+<tr><td>Overnight/BOATS (02:00–10:00)</td><td>No</td><td>Otra sesión, otro libro, otras reglas; el sistema no tiene datos ni riesgo para ella.</td></tr>
+<tr><td>Xetra (09:00–17:30)</td><td>Solo para tu posición y alertas</td><td>El motor es neoyorquino; los niveles USD no se trasladan a EUR sin convertir.</td></tr>
+</table>

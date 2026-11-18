@@ -1,0 +1,30 @@
+# Secretos: nunca en el repo
+secrets/
+*.secret
+*.secrets
+secrets.json
+.env
+.env.*
+
+# Runtime
+logs/
+trader-ops/cache/
+trader-ops/state/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos generados por las skills (se reconstruyen)
+trader/state/
+trader/*.json
+trader/*.txt
+!trader/config.json
+
+# Artefactos de revision del manual (se regeneran con build_pdf.py)
+trader-ops/manual/page_*.png
+
+# Entornos virtuales y temporales
+.venv/
+venv/
+*.tmp
+*.log

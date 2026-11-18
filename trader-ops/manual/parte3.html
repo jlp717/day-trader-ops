@@ -1,0 +1,408 @@
+<h1 id="s10">10. Re-entradas y límites del día</h1>
+
+<h2>10.1. La regla base</h2>
+<p><code>entry.py</code> da <b>un solo disparo por setup y día</b>: el primer cierre de 5 minutos por encima del
+máximo del rango. No hay segunda entrada por la misma ruptura. Después se aplican estos límites:</p>
+<table>
+<tr><th>Límite</th><th>Valor</th><th>Efecto</th></tr>
+<tr><td>SEÑAL A por valor y día</td><td>2</td><td>El pipeline no vuelve a avisar de ese valor</td></tr>
+<tr><td>SEÑAL A por día</td><td>3</td><td>El pipeline bloquea más señales</td></tr>
+<tr><td>Enfriamiento</td><td>30 minutos</td><td>No se avisa otra señal en ese tiempo</td></tr>
+<tr><td>Tras un stop</td><td>—</td><td>El sistema no vuelve a avisar del mismo setup ese día</td></tr>
+</table>
+
+<h2>10.2. Qué está permitido y qué no</h2>
+<table>
+<tr><th>Situación</th><th>¿Reentrar?</th><th>Por qué</th></tr>
+<tr><td>Primera ruptura, entras, stop</td><td><b>No</b> por el mismo setup</td><td>El setup ya falló; sería revenge trading</td></tr>
+<tr><td>Primera ruptura, entras, objetivo</td><td>No por el mismo setup</td><td>El disparo ya se usó; puede haber otra ruptura distinta, pero es decisión tuya y fuera de SEÑAL A</td></tr>
+<tr><td>Segunda ruptura distinta del mismo valor</td><td>Sí, si el pipeline vuelve a dar SEÑAL A (máx. 2 por valor)</td><td>Es otro setup, no una repetición</td></tr>
+<tr><td>Stop y luego “recuperar”</td><td><b>No</b></td><td>Revenge trading; el sistema no avisa</td></tr>
+<tr><td>Quieres reentrar a mano</td><td>Es tu decisión, <b>fuera de SEÑAL A</b></td><td>Queda registrada como ejecución manual; no es una señal del sistema</td></tr>
+</table>
+
+<h2>10.3. Salidas parciales y reentradas</h2>
+<p>Una salida parcial no “reinicia” el día: la posición sigue abierta con menos acciones. Si vendes todo y quieres
+volver a entrar, el sistema no te dará otra SEÑAL A por el mismo setup; si lo haces a mano, es fuera de señal.
+No se promedia a la baja ni se añade a una posición perdedora.</p>
+
+<h1 id="s11">11. Ganadores, selección diaria y momentum</h1>
+
+<h2>11.1. Cómo se construye la lista de cada día</h2>
+<ol>
+<li><b>Universo</b>: ~5.925 valores de EE. UU. (acciones y ETF líquidos).</li>
+<li><b>Scanner diario</b>: setups (oversold, reclaim_ma20, bull_flag, breakout_20d…), precio ≥ 5 USD y volumen ≥ 20 M USD/día.</li>
+<li><b>Ganadores</b>: los que más suben el último día completo (antes de abrir) o en la sesión (intradía), con el mismo filtro de liquidez.</li>
+<li><b>Lista ORB</b>: 20 ganadores primero + setups del scanner, máximo 150 valores. Se reconstruye cada día a las 13:00.</li>
+<li><b>Escaneo ORB</b>: cada 5 min; los ganadores que hayan roto se evalúan primero (máximo 8 evaluaciones por pasada).</li>
+</ol>
+<p>Por eso <b>no estás limitado a NVIDIA</b>: NVDA es el vigilado fijo para el briefing y el contexto, pero la lista
+del ORB es dinámica. Si quieres que NVDA deje de ser fijo, <code>/dejar NVDA</code>; si quieres añadir otro,
+<code>/vigila T</code>.</p>
+
+<div class="callout">
+<b>Ejemplo real: MNSO</b>. En el scan del 17/11, MNSO apareció con <code>breakout_20d</code>, precio 12,18,
+RSI 76,9 y 2,8 M de acciones. Su volumen en dólares (~34 M) lo dejó en el puesto <b>197 de 262</b>: probablemente
+<b>no entra</b> en el top 150 del ORB. Para analizarlo hoy: <code>/elegir MNSO</code> bajo demanda; para que el
+escaneo de 5 min lo tenga en cuenta, <code>/incluir MNSO</code> después de las 13:00. Antes de las 13:00, el
+premarket reconstruye la lista y se pierde.
+</div>
+
+<div class="warn">
+<b>No confundas tres listas.</b> Son cosas distintas y se llenan de forma distinta:
+<table>
+<tr><th>Lista</th><th>Quién la llena</th><th>Cuándo</th><th>Para qué</th></tr>
+<tr><td><b>Watchlist fija</b> (<code>/vigila</code>, <code>/dejar</code>, <code>config.watch</code>)</td><td>Tú</td><td>Cuando quieras; por defecto NVDA</td><td>Briefing, noticias y pipeline fijo. No es la lista del ORB.</td></tr>
+<tr><td><b>Lista ORB del día</b> (<code>orb_candidates.json</code>)</td><td>El sistema a las 13:00 + <code>/seguir</code></td><td>Se reconstruye cada día; se escanea cada 5 min</td><td>Valores que el ORB vigila hoy. 20 ganadores + setups, máx. 150.</td></tr>
+<tr><td><b>Lista de prioridad</b> (<code>seguir.json</code>)</td><td><code>/seguir</code></td><td>Solo hoy</td><td>Ordena qué rupturas se evalúan primero (máx. 8 por pasada). No es una watchlist permanente.</td></tr>
+</table>
+</div>
+
+<h2>11.2. Los tres comandos de ganadores</h2>
+<table>
+<tr><th>Comando</th><th>Qué hace</th><th>Cuándo</th></tr>
+<tr><td><code>/ganadores [N]</code></td><td>Lista los que más suben, con liquidez</td><td>Antes de abrir: <b>ayer</b> (último día completo). En sesión: <b>hoy</b> (movimiento ya hecho).</td></tr>
+<tr><td><code>/seguir [N]</code></td><td>Los mete en la lista ORB de hoy</td><td>Después de las 13:00, antes de que rompan</td></tr>
+<tr><td><code>/evaluar [N]</code></td><td>Cadena completa de los N primeros y ranking</td><td>A partir de las 15:50, cuando ya hay rango</td></tr>
+</table>
+<p><code>/elegir T</code> analiza uno a fondo. <code>/elegir N</code> analiza la fila N de <code>/hoy</code> o de
+<code>/ganadores</code>.</p>
+
+<div class="callout">
+<b>Qué hace exactamente <code>/seguir N</code></b>: coge los <b>N primeros</b> de la lista que <code>/ganadores</code>
+devuelve en ese momento, los añade a <code>orb_candidates.json</code> y los apunta en <code>seguir.json</code> para
+que el ORB los evalúe antes. No son “los N con más probabilidad”: son los N con más % observado. Antes de abrir,
+ese % es el de ayer; en sesión, el de hoy. Si lo ejecutas antes de las 13:00, el premarket sobrescribe la lista.
+Si lo ejecutas entre las 13:00 y las 15:30, añade ganadores de ayer (normalmente ya estaban). El caso útil es
+<b>después de las 15:30</b>: añade los movers de hoy.
+</div>
+
+<h2>11.3. “El que más % tiene de cumplir lo esperado” no existe</h2>
+<p>No hay un número mágico de “probabilidad de que suba”. Lo que el sistema puede darte es:</p>
+<ul>
+<li><b>Frecuencia histórica</b> de esa regla en ese valor: cuántas veces, tras un disparo, el objetivo llegó antes
+que el stop (Time Machine + histórico real).</li>
+<li><b>Intervalo de Wilson</b>: cuánta incertidumbre hay alrededor de esa frecuencia.</li>
+<li><b>EV tras costes</b>: si la regla, con ese plan y ese coste, gana o pierde de media.</li>
+<li><b>Muestra</b>: n disparos. Con n &lt; 12 no se concluye nada.</li>
+</ul>
+<p>En <code>/evaluar</code>, la columna <code>obj MC</code> es el % de simulaciones con el objetivo antes que el stop,
+con el plan de hoy. Es una frecuencia condicionada, no una promesa. Un 41 % no significa “41 % seguro”: significa
+“en esta simulación, con estos datos y este plan, pasó 41 de cada 100 veces”.</p>
+
+<h2>11.4. ¿Un ganador de hoy sube también mañana? Análisis profundo</h2>
+<div class="warn">
+<b>No te doy la razón por defecto.</b> Que una acción haya subido mucho hoy no es evidencia de que suba mañana.
+Puede repetir (momentum, noticia, sector, resultados) o puede revertir (mean reversion, recogida de beneficios,
+gap de apertura). El sistema no asume ninguna de las dos cosas: la evalúa cada día con datos frescos.
+</div>
+
+<h3>Lo que juega a favor de la repetición</h3>
+<ul>
+<li><b>Momentum de noticias</b>: una sorpresa de resultados o un contrato puede tardar días en digerirse.</li>
+<li><b>Flujo de sector</b>: si el sector entero se mueve, el valor puede repetir.</li>
+<li><b>Volumen</b>: un ganador con 2.000 M USD/día tiene liquidez para seguir; uno con 24 M puede ser un pico.</li>
+<li><b>Continuación intradía</b>: el ORB captura la extensión del movimiento del día, no la predicción del siguiente.</li>
+</ul>
+
+<h3>Lo que juega en contra</h3>
+<ul>
+<li><b>Reversión a corto plazo</b>: tras un +90 %, es frecuente que parte del movimiento se devuelva. No es una ley,
+pero el sistema no apuesta a que no ocurra.</li>
+<li><b>Rango de apertura enorme</b>: el stop en el mid del rango se hace muy ancho en %; el tamaño se reduce; el
+coste en R sube.</li>
+<li><b>Gap de apertura</b>: si abre con un hueco, el rango 9:30–9:45 puede ser violento y el stop quedar lejos.</li>
+<li><b>Liquidez engañosa</b>: un +128 % con 24 M USD/día puede ser un valor que se mueve con poco dinero; el spread
+se come el plan.</li>
+<li><b>Coste</b>: con cuenta EUR y 2.900 USD, el ida y vuelta son ~0,5R; en un stop de 50 USD, 25 USD de coste.
+Eso exige acertar más.</li>
+</ul>
+
+<h3>Qué hace el sistema con un ganador</h3>
+<ol>
+<li>Lo mete en la lista si pasa liquidez.</li>
+<li>Espera a que forme rango y rompa con cierre de 5 min.</li>
+<li>Ejecuta noticias, plan, TM, tamaño, risk, SEC, liquidez, contratabilidad y criterios.</li>
+<li>Si el EV es negativo o la muestra no da, lo descarta. La mayoría de los ganadores se descartan, y eso es el
+sistema funcionando.</li>
+</ol>
+
+<h3>Si quieres capturar movimientos de varios días</h3>
+<p>Eso es <b>otra estrategia</b>: swing/trend following, con barras diarias, riesgo overnight, gaps, resultados y
+otra gestión de posición. El ORB intradía no sirve para eso y el Time Machine actual no lo mide. Mezclarlo sería
+peligroso: el flat by close y los límites de 50/150 USD están pensados para no dormir con riesgo. Si algún día
+quieres un módulo swing, se construye aparte, con su propio libro, sus propias reglas y su propia evidencia. No se
+improvisa dentro de este.</p>
+
+<h2>11.5. Por qué el premarket no te dice “lo que va a subir hoy”</h2>
+<p>Porque el sistema <b>no tiene un modelo predictivo</b>. Su lógica es reactiva:</p>
+<ol>
+<li>El scanner y los ganadores son <b>mirar atrás</b>: el último cierre y el último día completo.</li>
+<li>La parte que mira adelante es la <b>confirmación</b>: el rango 9:30–9:45 y el cierre de 5 min por encima.</li>
+<li>Después, los filtros (noticias, EV, Wilson, coste, liquidez) deciden si esa confirmación merece un aviso.</li>
+</ol>
+<p>Llamar “recomendación” a la lista de premarket sería engañoso: es una <b>lista de candidatos</b>. La única
+recomendación del sistema es la SEÑAL A, y llega cuando el mercado ya ha enseñado su mano, no antes.</p>
+<p>¿Y una lista de <b>movers de premarket</b>? Sería más “de hoy” que la de ayer, pero seguiría siendo
+<b>movimiento observado</b>, no predicción. En premarket hay poca liquidez, spreads anchos y muchos movimientos que
+se deshacen en la apertura. Serviría como <b>fuente extra de candidatos</b>, no como oráculo. Hoy no está
+implementada; si la quieres, se construye aparte y se etiqueta como “mover de premarket, no predicción”.</p>
+
+<div class="callout">
+<b>Si quieres hoy los movers de hoy</b>: a partir de las 15:30, <code>/ganadores 10</code> ya usa el movimiento
+intradía; <code>/seguir 5</code> los mete en la lista ORB; el siguiente escaneo de 5 min los evalúa. Es la vía
+actual para reaccionar al día, sin inventar una predicción.
+</div>
+
+<h2>11.6. Las 11 skills y en qué paso intervienen</h2>
+<p>El repo vendorizado tiene las 11 skills completas (31 archivos verificados, 315 tests). No todas intervienen
+en la misma señal; este es el reparto real:</p>
+<table>
+<tr><th>Skill</th><th>Archivo</th><th>Para qué</th><th>Cuándo</th></tr>
+<tr><td><code>trader-scanner</code></td><td><code>scan.py</code></td><td>Universo, setups diarios y rango ORB</td><td>Premarket y cada 5 min</td></tr>
+<tr><td><code>trader-news</code></td><td><code>news.py</code></td><td>Titulares y 8-K; noticias adversas</td><td>En cada evaluación</td></tr>
+<tr><td><code>trader-entry</code></td><td><code>entry.py</code></td><td>Disparo: cierre de 5 min por encima del rango</td><td>En cada evaluación</td></tr>
+<tr><td><code>trader-exit</code></td><td><code>exit.py</code></td><td>Stop en el mid, objetivo 2R, flat</td><td>Si hay disparo</td></tr>
+<tr><td><code>trader-timemachine</code></td><td><code>timemachine.py</code></td><td>10.000 replays + histórico real</td><td>Si hay plan</td></tr>
+<tr><td><code>trader-budget</code></td><td><code>size.py</code></td><td>Tamaño según riesgo y presupuesto</td><td>Si hay plan</td></tr>
+<tr><td><code>trader-risk</code></td><td><code>check.py</code></td><td>PASS/BLOCK de la orden propuesta</td><td>Si hay tamaño</td></tr>
+<tr><td><code>trader-analyst</code></td><td><code>facts.py</code></td><td>XBRL: último trimestre presentado</td><td>En cada evaluación</td></tr>
+<tr><td><code>trader-alerts</code></td><td><code>alerts.py</code></td><td>Stop, objetivo y proximidad de la posición</td><td>Después de <code>/entre</code></td></tr>
+<tr><td><code>trader-broker</code></td><td><code>ticket.py</code></td><td>Ticket en papel; nunca envía orden</td><td>Bajo demanda (<code>/ticket</code>)</td></tr>
+<tr><td><code>trader-pelosi</code></td><td><code>ptr.py</code></td><td>PTR públicos; contexto, nunca señal</td><td>Premarket / <code>/pelosi</code></td></tr>
+</table>
+<p><b>En una SEÑAL A</b> se usan scanner, news, entry, exit, timemachine, budget, risk, analyst y los criterios
+propios (Wilson + EV + liquidez + MyInvestor). <code>alerts</code> vigila la posición; <code>broker/ticket</code>
+imprime el papel; <code>pelosi</code> es contexto diario. Ninguna envía una orden real.</p>
+
+<h1 id="s12">12. NVDA: Xetra vs EE. UU. (y tu caso)</h1>
+
+<h2>12.1. Es la misma empresa, no el mismo mercado</h2>
+<table>
+<tr><th></th><th>NVDA (EE. UU.)</th><th>NVD.DE (Xetra)</th></tr>
+<tr><td>Mercado</td><td>Nasdaq (XNAS)</td><td>Xetra (XETR)</td></tr>
+<tr><td>Divisa</td><td>USD</td><td>EUR</td></tr>
+<tr><td>Horario Madrid</td><td>15:30–22:00</td><td>09:00–17:30</td></tr>
+<tr><td>Solape</td><td>Toda la sesión</td><td>15:30–17:30 (2 h)</td></tr>
+<tr><td>Flat by close 21:55</td><td>Sí</td><td><b>No</b>: Xetra cerró 4 h 25 m antes</td></tr>
+<tr><td>Time Machine / ORB</td><td>Sí, es su mercado</td><td>No: el motor es neoyorquino</td></tr>
+<tr><td>Coste ida+vuelta (2.900 USD)</td><td>~24 USD con cuenta EUR · ~7 USD con cuenta USD</td><td>~7 USD (sin FX; comisión EUR)</td></tr>
+<tr><td>Alertas</td><td>Sí (skill)</td><td>Sí (motor propio, precio EUR)</td></tr>
+</table>
+<p class="small">Verificado con el MCP de MyInvestor el 18/11/2026: NVDA aparece en XNAS/USD y NVD.DE/XETR/EUR.
+El MCP es de solo lectura y no permite órdenes.</p>
+
+<h2>12.2. ¿Conviene vender NVD.DE y comprar NVDA?</h2>
+<p>Depende de por qué lo harías. Sepáralo en tres preguntas:</p>
+
+<h3>a) ¿Solo por las alertas?</h3>
+<p><b>No hace falta.</b> Las alertas de Xetra ya funcionan con el motor propio: <code>/entre NVD.DE ...</code> arma
+stop y objetivo en EUR, y el orquestador los comprueba cada minuto. El argumento de las alertas ya no justifica
+vender.</p>
+
+<h3>b) ¿Para hacer day trading con el sistema?</h3>
+<p>El sistema calcula niveles en USD sobre la sesión de Nueva York. Ejecutar en Xetra cambia el reloj, la liquidez,
+la divisa y el momento de salida. Si quieres hacer day trading de la señal, hazlo en <b>NVDA (EE. UU.)</b>, no en
+NVD.DE. Pero antes mira los límites reales de MyInvestor:</p>
+<ul>
+<li>Cotizaciones con 15 min de retraso en la app/web (su FAQ).</li>
+<li>Solo puedes operar en horario de bolsa de EE. UU. (15:30–22:00 Madrid); fuera de ese horario, la orden se lanza
+en la apertura.</li>
+<li>Comisión 0,12 % (mín. 3 €, máx. 25 €) + 0,30 % FX por lado. En un trade de 2.900 USD, ~24 USD de ida y vuelta;
+con cuenta USD, ~7 USD.</li>
+<li>Stop loss disponible en NYSE, Nasdaq y Xetra; no es una orden nativa en todos los mercados.</li>
+</ul>
+<p>Para un ORB de 5 minutos, un broker con precio retrasado y ejecución manual es una desventaja estructural. El
+sistema en papel puede enseñarte la mecánica; no convierte a MyInvestor en una plataforma de scalping.</p>
+
+<h3>c) ¿Porque tu posición es de largo plazo?</h3>
+<p>Entonces <b>no la toques por el sistema</b>. Una posición de largo plazo no se rige por el flat by close ni por
+el stop de 1R del ORB. Venderla para comprar la misma empresa en USD puede generar:</p>
+<ul>
+<li><b>Comisión y FX</b> de la venta y de la compra (dos operaciones, no una).</li>
+<li><b>Plusvalía</b> sujeta a tributación en España si hay ganancia; consulta tu caso con un asesor. No es una
+operación “neutra”.</li>
+<li><b>Spread</b> y precio de ejecución en dos mercados distintos.</li>
+<li><b>Pérdida de la referencia fiscal</b> de la posición original.</li>
+</ul>
+<div class="ok">
+<b>Recomendación de diseño, no de inversión</b>: mantén tu NVDA de Xetra como posición de largo plazo, fuera del
+libro de day trading. Usa <b>NVDA (USD)</b> solo para las señales y el análisis del sistema. No vendas solo para
+tener alertas: ya las tienes. Si algún día quieres day trading real, evalúa un broker con datos en tiempo real y
+costes más bajos, y hazlo después de una muestra positiva en papel. No es una decisión que deba tomar el sistema
+por ti.
+</div>
+
+<h2>12.3. Cómo registrar tu NVDA de Xetra (opcional)</h2>
+<pre>/entre NVD.DE 139.40 8 130.00 160.00
+→ Registrada: NVD.DE 8.0 acc a 139.40. Stop 130.00, objetivo 160.00.
+  Avisos armados: stop 130.00, objetivo 160.00. Solo hoy.
+  Riesgo real al stop 75.20 USD.
+  Estado: FUERA DE SEÑAL A. Registrada como ejecución manual, no como señal.</pre>
+<p>Ese registro es solo para alertas y seguimiento. No es una señal del sistema, no le aplica el flat by close y
+no debería contar como día de trading. Si no quieres mezclarlo con el P&L manual, no lo registres: usa
+<code>/alerta NVD.DE precio</code> para un nivel puntual.</p>
+
+<h2>12.4. Cómo analizar NVDA (USD)</h2>
+<pre>/elegir NVDA          → análisis completo (SIN SEÑAL hasta que haya rango)
+/ticker NVDA          → resumen de la cadena
+/tm NVDA              → Time Machine
+/noticias NVDA        → titulares 24 h
+/resultados NVDA      → último trimestre SEC
+/mercados NVDA        → comparativa con Xetra</pre>
+<p><code>/elegir NVD.DE</code> responde con un aviso: el motor es de Nueva York y no acepta sufijos; la señal se
+calcula sobre NVDA. Para la posición en EUR, usa <code>/entre NVD.DE</code> y sus alertas.</p>
+
+<h2>12.5. Cuenta EUR o USD</h2>
+<p>El coste y el break-even cambian:</p>
+<table>
+<tr><th>Cuenta</th><th>Coste ida+vuelta (2.900 USD)</th><th>Coste en R (stop 50 USD)</th><th>Break-even a 2R</th></tr>
+<tr><td>EUR (con FX 0,30 % por lado)</td><td>~24 USD</td><td>~0,48R</td><td>~50,7 %</td></tr>
+<tr><td>USD (sin FX)</td><td>~7 USD</td><td>~0,14R</td><td>~38,3 %</td></tr>
+</table>
+<p>Ahora mismo el sistema asume <code>"cuenta_eur": true</code>. Si tu cuenta es USD, dímelo y se cambia a
+<code>false</code>; el break-even baja y el sistema es menos pesimista con el coste. No es un detalle menor: con
+cuenta EUR, la mitad de la ventaja se la come el FX.</p>
+
+<h1 id="s13">13. Postmercado, overnight y BOATS</h1>
+
+<h2>13.1. Las cuatro sesiones de EE. UU.</h2>
+<table>
+<tr><th>Sesión</th><th>Hora ET</th><th>Madrid (invierno)</th><th>Qué es</th></tr>
+<tr><td>Premarket</td><td>04:00–09:30</td><td>10:00–15:30</td><td>Antes de la apertura; poca liquidez</td></tr>
+<tr><td>Regular</td><td>09:30–16:00</td><td>15:30–22:00</td><td>La sesión que usa el sistema</td></tr>
+<tr><td>After-hours</td><td>16:00–20:00</td><td>22:00–02:00</td><td>Después del cierre; resultados y noticias</td></tr>
+<tr><td>Overnight / BOATS</td><td>20:00–04:00</td><td>02:00–10:00</td><td>Blue Ocean ATS; domingo–jueves</td></tr>
+</table>
+
+<h2>13.2. Qué es BOATS</h2>
+<p><b>BOATS</b> es el <i>Blue Ocean ATS</i>, un sistema de negociación alternativo (ATS) de EE. UU. para acciones
+del National Market System (NMS) en horario nocturno. Según su documentación:</p>
+<ul>
+<li>Sesión: <b>20:00–04:00 ET</b>, de domingo a jueves (empieza el domingo por la noche y termina el viernes por la
+mañana; no hay sesión el viernes por la noche).</li>
+<li>Solo <b>órdenes limitadas</b> con vigencia de sesión; no son órdenes a mercado.</li>
+<li>Banda de precio del <b>20 %</b> respecto a la referencia; fuera de esa banda, la orden se rechaza.</li>
+<li>Liquidez mucho menor, spreads más anchos, gaps y riesgo de ejecución parcial.</li>
+<li>Acceso minorista a través de un broker-dealer de EE. UU. suscriptor; no es un mercado al que se conecte
+cualquier inversor europeo directamente.</li>
+</ul>
+
+<h2>13.3. ¿Puedes operar BOATS con MyInvestor?</h2>
+<p><b>No consta.</b> La FAQ oficial de MyInvestor dice que puedes operar “cuando la bolsa está abierta” y que en
+EE. UU. el horario es <b>15:30–22:00 Madrid</b>; si mandas la orden fuera de ese horario, <b>se lanza en la apertura</b>.
+No menciona premarket, after-hours ni overnight para acciones. Es decir: puedes <b>ver</b> precios de BOATS en
+TradingView/Yahoo, pero no ejecutarlos desde MyInvestor. Si algún día cambia, habría que verificarlo de nuevo en su
+web; este manual no lo asume.</p>
+
+<h2>13.4. ¿Por qué el sistema no analiza postmercado ni overnight?</h2>
+<ol>
+<li><b>El ORB se define en la sesión regular</b>: rango 9:30–9:45 ET, ruptura con cierre de 5 min, stop en el mid,
+objetivo 2R, flat 15:55 ET. Si lo aplicas a otra sesión, ya no es el mismo sistema.</li>
+<li><b>El Time Machine y el histórico</b> usan barras de la sesión regular. Las odds no se trasladan a BOATS.</li>
+<li><b>Liquidez y spreads</b>: en overnight, el spread puede ser varias veces el de la sesión; el coste en R se
+dispara y el EV se vuelve negativo.</li>
+<li><b>Riesgo de gap</b>: el sistema vive de no mantener overnight. Un stop en un mercado fino puede saltarse.</li>
+<li><b>Datos</b>: no hay feed de BOATS en el sistema; Yahoo no es suficiente para validar una regla overnight.</li>
+</ol>
+
+<h2>13.5. Qué sí puedes hacer con el postmercado</h2>
+<ul>
+<li><b>Contexto</b>: leer noticias y resultados que salen después del cierre; el sistema los recoge en el pipeline
+del día siguiente (noticias 24 h, 8-K, SEC).</li>
+<li><b>Gap</b>: mirar el precio de apertura y el “coste de esperar” con <code>/apertura T</code>; el sistema mide
+hueco y primeros 15 minutos con datos de sesión regular.</li>
+<li><b>No operar</b>: no hay señal, no hay plan, no hay stop validado. Espera a las 15:30.</li>
+</ul>
+<div class="warn">
+Si tu idea es “comprar en el overnight porque la noticia es buena”, eso es otra estrategia y otro riesgo. El sistema
+no la cubre y no la va a validar con este Time Machine. No mezcles el libro de day trading con una apuesta overnight.
+</div>
+
+<h1 id="s14">14. Telegram desde el móvil</h1>
+
+<h2>14.1. Sí, funciona desde el móvil</h2>
+<p>El bot es <b>@day_trading_skill_bot</b>. Abre Telegram en el móvil, búscalo, pulsa <b>Start</b> y escribe
+<code>/estado</code>. Solo atiende a tu <code>chat_id</code>; cualquier otro chat se ignora. No hay una versión
+“móvil” distinta: es el mismo bot y las mismas respuestas.</p>
+
+<h2>14.2. Lo que necesitas para que funcione</h2>
+<ul>
+<li><b>El PC encendido</b> y con internet. El bot corre en tu PC, no en la nube.</li>
+<li>Las tareas <code>DayTraderOps</code> y <code>DayTraderOps-Bot</code> en marcha.</li>
+<li>El móvil con internet (Wi-Fi o datos).</li>
+<li>El token y el chat_id en <code>secrets/telegram.json</code>; no se muestran.</li>
+</ul>
+<div class="warn">
+Si el PC se apaga, se suspende o pierde la red, el bot no responde y no llegan avisos. El orquestador pide al
+sistema que no se suspenda mientras corre, pero una tapa cerrada o un corte de luz lo pueden parar. Para un día
+importante, comprueba el latido antes de las 15:30.
+</div>
+
+<h2>14.3. Límites reales</h2>
+<table>
+<tr><th>Límite</th><th>Valor</th><th>Consecuencia</th></tr>
+<tr><td>Longitud de mensaje</td><td>4.096 caracteres (se recorta a ~4.000)</td><td>Los análisis muy largos se cortan; el detalle queda en el diario</td></tr>
+<tr><td>Ritmo de envío</td><td>1/s y 20/min</td><td>No hay ráfagas; los avisos pueden esperar unos segundos</td></tr>
+<tr><td>Enfriamientos</td><td>scan 30 s, ticker 20 s, tm 15 s, briefing 30 s</td><td>Si repites, te dice que esperes</td></tr>
+<tr><td>Comandos pesados</td><td><code>/scan</code>, <code>/elegir</code>, <code>/evaluar</code></td><td>Pueden tardar 10–60 s; no hay streaming</td></tr>
+<tr><td>Contenido</td><td>Solo texto</td><td>No voz, no imágenes, no adjuntos</td></tr>
+<tr><td>Autorización</td><td>Solo tu chat_id</td><td>Otros chats se ignoran</td></tr>
+</table>
+
+<h2>14.4. Pausa: qué silencia y qué no</h2>
+<p><code>/pausa</code> detiene <b>solo las SEÑAL A nuevas</b>. El premarket, el briefing, el flat y el informe
+siguen llegando. Si quieres silencio total, para las tareas de Windows. <code>/reanudar</code> vuelve a permitir
+SEÑAL A.</p>
+
+<h2>14.5. Seguridad</h2>
+<ul>
+<li>El intérprete de frases es determinista: no hay LLM y no se pasa texto libre a un shell.</li>
+<li>Tickers, precios y cantidades se validan con regex; los comandos tienen lista blanca.</li>
+<li>El bot no tiene herramientas de órdenes ni de broker.</li>
+<li>No compartas el token ni el chat_id. Si sospechas, rota el token con BotFather y actualiza
+<code>secrets/telegram.json</code>.</li>
+</ul>
+
+<h2>14.6. Si el bot no responde</h2>
+<ol>
+<li>Mira la tarea <code>DayTraderOps-Bot</code>: <code>instalar_tarea.ps1 -Estado</code>.</li>
+<li>Mira el latido: <code>/estado</code> en el PC o el panel.</li>
+<li>Comprueba internet en el PC.</li>
+<li>Mira <code>logs/diario.jsonl</code> por <code>telegram_error</code> o <code>bot_error</code>.</li>
+<li>Reinicia la tarea: <code>Stop-ScheduledTask DayTraderOps-Bot; Start-ScheduledTask DayTraderOps-Bot</code>.</li>
+</ol>
+
+<h1 id="s15">15. Paneles de monitorización</h1>
+
+<h2>15.1. Panel de terminal</h2>
+<p>Doble clic en <code>Abrir panel.cmd</code> (en la raíz del proyecto) o:</p>
+<pre>python trader-ops\run\panel.py
+python trader-ops\run\panel.py --once      # una pasada, para captura
+python trader-ops\run\panel.py --cada 3    # refresco cada 3 s</pre>
+<p>Muestra: hora Madrid/NY, mercado, fase, próximo evento con cuenta atrás, salud (latido, errores, 429), edad de
+datos, vigilados con precio y distancia al nivel, señales por nivel, posiciones con distancia a stop/objetivo,
+alertas armadas, P&L, riesgo del día y “qué hacer ahora”. Se refresca cada 5 s y es solo lectura.</p>
+
+<h2>15.2. Panel web</h2>
+<p>Doble clic en <code>Abrir panel web.cmd</code> o:</p>
+<pre>python trader-ops\run\panel_web.py              # http://127.0.0.1:8765
+python trader-ops\run\panel_web.py --puerto 8766</pre>
+<p>Es la misma información en HTML, ligada a <code>127.0.0.1</code>, sin secretos y sin botones que ejecuten nada.
+Se refresca cada 5 s. Ideal para una segunda pantalla. Si el puerto está ocupado, usa <code>--puerto 8766</code>.</p>
+
+<h2>15.3. Qué mirar de un vistazo</h2>
+<table>
+<tr><th>Bloque</th><th>Qué te dice</th><th>Cuándo te importa</th></tr>
+<tr><td>Salud</td><td>VIVO/PARADO, latido, errores, 429, edad de datos</td><td>Antes de operar y si no llegan avisos</td></tr>
+<tr><td>Fase / próximo</td><td>Dónde estás y cuánto falta</td><td>Para no preguntar “¿ya abrió?”</td></tr>
+<tr><td>Vigilados</td><td>Precio y distancia al nivel</td><td>Para contexto, no para decidir</td></tr>
+<tr><td>Señales</td><td>A / vigilar / descartadas</td><td>Para entender el día</td></tr>
+<tr><td>Posiciones</td><td>Qty, entrada, stop, objetivo, distancia</td><td>Para gestionar</td></tr>
+<tr><td>Alertas</td><td>Reglas armadas</td><td>Para saber qué está vigilado</td></tr>
+<tr><td>Resultado</td><td>P&L bruto, señales cerradas, R medio, riesgo del día</td><td>Para no pasarte de límites</td></tr>
+</table>
+<div class="ok">
+Los paneles leen archivos de estado: <b>no llaman a Yahoo, no gastan cuota y no pueden ejecutar nada</b>. Son un
+espejo, no un centro de control.
+</div>
