@@ -17,7 +17,7 @@
 | 10 Resiliencia | HECHO | 92 tests propios + caos; `REVISION_INDEPENDIENTE.md` |
 | 11 Evaluacion | HECHO | `lib/informe.py`, `historico/`, resumen diario y semanal |
 | 12 Extras | HECHO | CSV, semanal, por setup/hora, Pelosi contexto, datos obsoletos, panel terminal, panel web, simulador de filtros, ganadores y evaluacion bajo demanda |
-| 13 Guias | HECHO | `GUIA_USO.md`, `INICIO_RAPIDO.md`, `MANUAL_COMPLETO.pdf` (90 páginas) |
+| 13 Guias | HECHO | `GUIA_USO.md`, `INICIO_RAPIDO.md`, `MANUAL_COMPLETO.pdf` (91 páginas) |
 | 14 Vendor repo | HECHO | 31/31 archivos, commit `3d0f4ef6...`, 315 tests del skill OK |
 | 15 GitHub + mini PC | HECHO | repo privado `jlp717/day-trader-ops`, 167 archivos, clon limpio verificado (92 + 315 tests); runbook `INSTALACION_MINI_PC.md` |
 
@@ -100,7 +100,7 @@ Bugs reales encontrados al revisar el uso de extremo a extremo, ya corregidos y 
 
 Evidencia: **92 tests propios OK** (1 skipped); `/elegir NVDA` y `/evaluar 1` ejecutados con datos de
 hoy; panel y web renderizados con el desglose de riesgo. **Vendor repo**: 31/31 archivos, commit
-`3d0f4ef6...`, **315 tests del skill OK**. **Manual**: 90 páginas con árbol de decisión, guion del día y
+`3d0f4ef6...`, **315 tests del skill OK**. **Manual**: 91 páginas con árbol de decisión, guion del día y
 día 7 de dos señales.
 
 ## 5c. GitHub y mini PC (2026-11-18, 11:30-11:40 UTC)
@@ -149,9 +149,22 @@ día 7 de dos señales.
   actualización no es fiable.
   No se integra la app de MyInvestor: el MCP no expone precio y automatizar la sesión del bróker
   sería frágil, opaco y contrario a la regla 1.
+- **Segundo testigo público integrado (18/11 21:20)**: CNBC (`quote_cnbc`) en `lib/datos.py`,
+  sin clave. `/precios` muestra Yahoo + CNBC y avisa si difieren >0,5 %. En la señal, el cross-check
+  bloquea el envío si la diferencia supera 0,5 %; si CNBC cae, no bloquea. Probado en vivo:
+  Yahoo 53,80 / CNBC 53,80 (0,00 %).
+- **Comando `/guia`** (también "qué hago ahora"): lee posición, precio, coste, break-even, neto en
+  stop/objetivo y fase del día, y devuelve la orden exacta en cada escenario. Los avisos de
+  stop/objetivo y el flat añaden la acción concreta y remiten a `/guia`.
+- **Manual 91 páginas**: nueva §0.6 "Los comandos, explicados como a un niño" con el desglose de
+  `/entre`, `/sali`, `/stop`, `/vender`, `/guia` y el ejemplo CRCL con costes; aviso al inicio de
+  los días simulados.
+- **Bot caído ~21:19–21:41**: la tarea `DayTraderOps-Bot` quedó en `Ready` con resultado 1 tras el
+  reinicio (carrera con la instancia anterior). Reiniciada a las 21:41 (PID 38844). Si `/guia` no
+  responde, comprobar `Get-ScheduledTask -TaskName DayTraderOps-Bot`.
 - **Falso positivo del vigilante**: a las 15:34 avisó "sin pasada del scanner desde hace 152 min"
   porque contaba la ventana de sesión completa (15:30-22:00) y el ORB no empieza hasta las 15:50.
-  Ahora solo comprueba entre la primera pasada y el corte de entradas. 103 tests propios OK.
+  Ahora solo comprueba entre la primera pasada y el corte de entradas. 110 tests propios OK.
 
 ## 6. Cambios de ultima hora (reversibles)
 

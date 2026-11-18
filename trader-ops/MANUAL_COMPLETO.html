@@ -174,6 +174,67 @@ qué pasa si te quedan acciones al cierre.</p>
 <li>Si sigues sin entenderlo, <b>no operes</b>. El sistema no se va a enfadar por no operar.</li>
 </ul>
 
+<h2>0.6. Los comandos, explicados como a un niño</h2>
+<p>Un comando es una frase que empieza por <code>/</code>. Se escribe en Telegram y el bot hace una cosa.
+No hay que memorizar nada: estos son los cinco que se usan para operar.</p>
+
+<p><b>La idea en una frase</b>: comprar es <b>entrar</b>; vender es <b>salir</b>; el <b>stop</b> es el precio
+al que aceptas perder; el <b>objetivo</b> es el precio al que quieres ganar. Todo lo demás es decirle al bot
+esos cuatro números.</p>
+
+<table>
+<tr><th>Comando</th><th>Qué hace</th><th>Cuándo se usa</th></tr>
+<tr><td><code>/entre</code></td><td>Registra una compra</td><td>cuando ya has comprado en MyInvestor</td></tr>
+<tr><td><code>/sali</code></td><td>Registra una venta</td><td>cuando ya has vendido</td></tr>
+<tr><td><code>/stop</code></td><td>Vigila el precio de pérdida</td><td>cuando quieres que te avise si cae</td></tr>
+<tr><td><code>/vender</code></td><td>Vigila el precio de beneficio</td><td>cuando quieres que te avise si sube</td></tr>
+<tr><td><code>/guia</code></td><td>Te dice qué hacer ahora</td><td>siempre que tengas dudas</td></tr>
+</table>
+
+<h3><code>/entre</code>: “he comprado”</h3>
+<pre>/entre CRCL 52.96 7 52.40 55.34</pre>
+<table>
+<tr><th>Palabra</th><th>Qué es</th><th>De dónde sale</th></tr>
+<tr><td><code>CRCL</code></td><td>el valor</td><td>el ticker de la acción</td></tr>
+<tr><td><code>52.96</code></td><td>precio al que compraste</td><td>el ticket de MyInvestor, no la pantalla</td></tr>
+<tr><td><code>7</code></td><td>cuántas acciones</td><td>el ticket</td></tr>
+<tr><td><code>52.40</code></td><td>stop: si cae aquí, vendes</td><td>tu decisión; por debajo del mínimo del día</td></tr>
+<tr><td><code>55.34</code></td><td>objetivo: si sube aquí, vendes</td><td>tu decisión; 2R = entrada + 2 × (entrada − stop)</td></tr>
+</table>
+<p>Si no pones stop ni objetivo, el bot registra la compra pero no sabe cuánto arriesgas. Mejor ponerlos siempre.</p>
+
+<h3><code>/sali</code>: “he vendido”</h3>
+<pre>/sali CRCL 55.34</pre>
+<p>Cierra la posición y calcula el beneficio bruto y en R. Si vendes solo una parte:
+<code>/sali CRCL 55.34 3</code> (3 acciones; el resto sigue abierto).</p>
+
+<h3><code>/stop</code> y <code>/vender</code>: “vigila este precio”</h3>
+<pre>/stop CRCL 52.40
+/vender CRCL 55.34</pre>
+<p>Si ya hay una posición abierta, <b>mueven</b> el nivel y rearman el aviso. Si no la hay, dejan un aviso
+para hoy. <b>No venden</b>: solo avisan. La venta la haces tú en MyInvestor.</p>
+
+<h3><code>/guia</code>: “¿qué hago ahora?”</h3>
+<p>Lee tu posición, el precio, el coste y la hora, y te dice la orden exacta en cada escenario: si toca el
+stop, si toca el objetivo y qué hacer a las 21:55. Es el comando para no tener que recordar nada.</p>
+
+<h3>Un ejemplo completo, con todos los números</h3>
+<p>Compra de 7 CRCL a 52,96. Stop 52,40. Objetivo 55,34.</p>
+<table>
+<tr><th>Número</th><th>Cómo se calcula</th><th>Resultado</th></tr>
+<tr><td>Riesgo por acción</td><td>52,96 − 52,40</td><td>0,56 USD</td></tr>
+<tr><td>Riesgo total</td><td>0,56 × 7</td><td>3,92 USD</td></tr>
+<tr><td>Objetivo 2R “de precio”</td><td>52,96 + 2 × 0,56</td><td>54,08</td></tr>
+<tr><td>Coste ida y vuelta</td><td>0,12 % + 0,30 % por lado, mínimo 3 EUR</td><td>≈8,80 USD</td></tr>
+<tr><td>Break-even</td><td>52,96 + 8,80 / 7</td><td>54,22</td></tr>
+<tr><td>Objetivo 2R <b>neto</b></td><td>52,96 + (7,84 + 8,80) / 7</td><td>55,34</td></tr>
+</table>
+<div class="warn">
+<b>Moraleja:</b> con 7 acciones, el objetivo 2R “de precio” (54,08) <b>no paga las comisiones</b>. Por eso el
+objetivo se pone en 55,34: el que deja 2R <b>después</b> de costes. Con pocas acciones, las comisiones pesan
+más que el acierto.
+</div>
+
 <h1 id="s1">1. Qué es este sistema (y qué no es)</h1>
 
 <h2>1.1. En una frase</h2>
@@ -1871,6 +1932,13 @@ Esa misma lógica se aplica a todos los días: cada número viene de un sitio y 
 <b>Tipo de orden en los ejemplos</b>: compra y objetivo con <b>limitada</b>; stop con <b>stop loss</b> del broker o
 venta manual; flat 21:55 con <b>mercado/limitada agresiva</b>; parcial con <b>limitada</b>. Cada línea
 “MyInvestor: …” de los días te dice exactamente qué orden poner.
+</div>
+
+<div class="callout">
+<b>Cómo leer los comandos de estos días.</b> Cada línea “Tú: /entre ...” se lee igual que en §0.6:
+ticker, precio de compra, acciones, stop y objetivo. La línea “MyInvestor: comprar 5 ...” es la orden que
+se pone en el bróker. Los números no se inventan: salen del plan del día. Si un día no hay señal, no hay
+orden. Si algo no cuadra, <code>/guia</code> te dice qué toca hacer en ese momento.
 </div>
 
 <h2>16.1. Día 0 — miércoles 18/11/2026: primer día, sin operar</h2>

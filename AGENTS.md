@@ -103,7 +103,7 @@ Pausar solo avisos: comando `/pausa` en Telegram (escribe `trader-ops/state/paus
 trader-ops/
   NOTAS_LECTURA.md  MAPA_DE_CAPACIDADES.md  AUDITORIA.md  VERIFICACION.md
   CRITERIOS.md  MERCADOS.md  APERTURA.md  GUIA_USO.md  INICIO_RAPIDO.md
-  MANUAL_COMPLETO.pdf  (guia completa de uso, 90 paginas)
+  MANUAL_COMPLETO.pdf  (guia completa de uso, 91 paginas)
   ESTADO.md  REVISION_INDEPENDIENTE.md
   lib/    cfg, zonatiempo, calendario, datos, skills, diario, texto, criterios,
           registro, posiciones, avisos, proceso, apertura, mercado, briefing,

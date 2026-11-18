@@ -1,7 +1,7 @@
 # GUIA DE USO
 
 **Manual completo en PDF**: `C:\Users\Javier\Desktop\Repositorios\day-trader-ops\trader-ops\MANUAL_COMPLETO.pdf`
-(90 páginas: ruta de aprendizaje, comandos, rutina, datos gratis, ejecución, nueve días de ejemplo, salidas exactas, Telegram, Xetra, BOATS y solución de problemas).
+(91 páginas: ruta de aprendizaje, comandos, rutina, datos gratis, ejecución, nueve días de ejemplo, salidas exactas, Telegram, Xetra, BOATS y solución de problemas).
 
 ## 1. Qué ocurre cada día sin que hagas nada
 
