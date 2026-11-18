@@ -387,5 +387,45 @@ class FrasesNuevas(unittest.TestCase):
         self.assertEqual(self.bot._ticker("NVDA"), "NVDA")
 
 
+class NoticiasPremarket(unittest.TestCase):
+    """El aviso debe nombrar el valor del titular, no toda la watchlist."""
+
+    def _doc(self):
+        ahora = zt.now_utc().isoformat()
+        return {"items": [
+            {"ticker": "NVDA", "title": "Nvidia Q3 earnings beat estimates",
+             "time": ahora, "source": "Yahoo Finance", "tags": ["earnings"]},
+            {"ticker": "MNSO", "title": "MNSO opens a new store in Lima",
+             "time": ahora, "source": "Yahoo Finance", "tags": []},
+        ]}
+
+    def test_resultados_solo_del_ticker_del_titular(self):
+        from lib import proceso
+        self.assertEqual(proceso.simbolos_afectados(self._doc(), "earnings"), ["NVDA"])
+
+    def test_adversas_solo_del_ticker_del_titular(self):
+        from lib import proceso
+        doc = {"items": [
+            {"ticker": "MNSO", "title": "MNSO faces a lawsuit over a lease",
+             "time": zt.now_utc().isoformat()},
+        ]}
+        self.assertEqual(proceso.simbolos_afectados(doc, "adverse"), ["MNSO"])
+
+    def test_clasificar_sigue_devolviendo_textos(self):
+        from lib import proceso
+        adverse, earnings = proceso.clasificar_noticias(self._doc(), "NVDA")
+        self.assertEqual(adverse, [])
+        self.assertEqual(len(earnings), 1)
+        self.assertIn("Nvidia", earnings[0])
+
+    def test_titular_viejo_no_cuenta_como_resultado(self):
+        from lib import proceso
+        doc = {"items": [
+            {"ticker": "NVDA", "title": "Nvidia earnings from last month",
+             "time": "2026-10-01T12:00:00+00:00", "tags": []},
+        ]}
+        self.assertEqual(proceso.simbolos_afectados(doc, "earnings"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

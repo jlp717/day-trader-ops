@@ -29,6 +29,28 @@ def _num(x, dec=2):
     return ("%%.%df" % dec) % float(x)
 
 
+def _edad_horas(it, now):
+    when = it.get("time") or ""
+    try:
+        return (now - __import__("datetime").datetime.fromisoformat(when)).total_seconds() / 3600.0
+    except Exception:
+        return 0.0
+
+
+def _es_adversa(it):
+    low = (it.get("title") or "").lower()
+    return bool(any(w in low for w in ADVERSE_WORDS)
+                or it.get("important")
+                or (it.get("kind") == "filing" and "2.02" in str(it)))
+
+
+def _es_resultado(it, now):
+    low = (it.get("title") or "").lower()
+    tags = [str(t).lower() for t in (it.get("tags") or [])]
+    age_h = _edad_horas(it, now)
+    return ("earnings" in tags and age_h <= 30) or (any(w in low for w in EARNINGS_WORDS) and age_h <= 18)
+
+
 def clasificar_noticias(doc, symbol):
     """(adverse[], earnings[]) a partir del JSON de news.py. Conservador: bloquea de mas."""
     adverse, earnings = [], []
@@ -37,21 +59,30 @@ def clasificar_noticias(doc, symbol):
     now = zt.now_utc()
     for it in doc.get("items") or []:
         title = (it.get("title") or "")
-        low = title.lower()
-        tags = [str(t).lower() for t in (it.get("tags") or [])]
-        when = it.get("time") or ""
-        try:
-            age_h = (now - __import__("datetime").datetime.fromisoformat(when)).total_seconds() / 3600.0
-        except Exception:
-            age_h = 0.0
-        adverse_hit = any(w in low for w in ADVERSE_WORDS)
-        if it.get("important") or it.get("kind") == "filing" and "2.02" in str(it):
-            adverse_hit = True
-        if adverse_hit:
+        if _es_adversa(it):
             adverse.append("%s (%s)" % (title[:90], it.get("source") or "?"))
-        if ("earnings" in tags and age_h <= 30) or (any(w in low for w in EARNINGS_WORDS) and age_h <= 18):
+        if _es_resultado(it, now):
             earnings.append("%s (%s)" % (title[:90], it.get("time", "")[:16]))
     return adverse[:3], earnings[:3]
+
+
+def simbolos_afectados(doc, tipo="earnings"):
+    """Tickers concretos con titular adverso o de resultados, con la misma regla que arriba.
+
+    El aviso de premarket nombraba toda la watchlist aunque el titular fuera de un solo
+    valor; esto devuelve solo los que de verdad aparecen en las noticias.
+    """
+    if not isinstance(doc, dict):
+        return []
+    now = zt.now_utc()
+    fuera = []
+    for it in doc.get("items") or []:
+        sym = str(it.get("ticker") or it.get("symbol") or "").upper()
+        if not sym or sym in fuera:
+            continue
+        if (tipo == "adverse" and _es_adversa(it)) or (tipo != "adverse" and _es_resultado(it, now)):
+            fuera.append(sym)
+    return fuera
 
 
 def contratable(symbol, market="US"):

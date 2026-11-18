@@ -216,9 +216,11 @@ class Runner:
         for h in (scan.get("hits") or [])[:5]:
             msg.append("  %s %s (%s)" % (h.get("symbol"), h.get("price"), ", ".join(h.get("setups") or [])))
         if adverse:
-            msg.append("⚠️ Noticias adversas %s: %s" % (", ".join(watch), adverse[0]))
+            syms = proceso.simbolos_afectados(nw.data, "adverse")
+            msg.append("⚠️ Noticias adversas %s: %s" % (", ".join(syms) or "watchlist", adverse[0]))
         if earnings:
-            msg.append("⚠️ Resultados cerca %s: %s" % (", ".join(watch), earnings[0]))
+            syms = proceso.simbolos_afectados(nw.data, "earnings")
+            msg.append("⚠️ Resultados cerca %s: %s" % (", ".join(syms) or "watchlist", earnings[0]))
         if not scan.get("hits"):
             msg.append("Sin setups en el scanner: es un resultado valido.")
         g = getattr(self, "_ganadores", None) or {"filas": []}

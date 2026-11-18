@@ -117,6 +117,9 @@ día 7 de dos señales.
   probar el clon limpio).
 - `estado_vivo.resumen_5_lineas` mostraba "latido Nones" en una instalación sin latido; ahora dice
   "nunca" y hay test (`test_saludo_sin_latido_no_muestra_none`). Total: **92 tests propios**.
+- El aviso de premarket nombraba **toda la watchlist** aunque el titular fuera de un solo valor
+  ("Resultados cerca NVDA, MNSO" con una noticia solo de NVDA). Ahora `proceso.simbolos_afectados`
+  devuelve los tickers reales del titular. Total: **96 tests propios**.
 - Runbook de instalación: `INSTALACION_MINI_PC.md`. Verificado sobre un clon real de GitHub:
   92 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
 
