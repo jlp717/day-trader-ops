@@ -19,6 +19,7 @@
 | 12 Extras | HECHO | CSV, semanal, por setup/hora, Pelosi contexto, datos obsoletos, panel terminal, panel web, simulador de filtros, ganadores y evaluacion bajo demanda |
 | 13 Guias | HECHO | `GUIA_USO.md`, `INICIO_RAPIDO.md`, `MANUAL_COMPLETO.pdf` (90 páginas) |
 | 14 Vendor repo | HECHO | 31/31 archivos, commit `3d0f4ef6...`, 315 tests del skill OK |
+| 15 GitHub + mini PC | HECHO | repo privado `jlp717/day-trader-ops`, 167 archivos, clon limpio verificado (92 + 315 tests); runbook `INSTALACION_MINI_PC.md` |
 
 ## 2. Decisiones
 
@@ -33,6 +34,10 @@
 - **MCP de MyInvestor**: conectado el 18-nov (`https://mcp.myinvestor.es/mcp`, 12 herramientas).
   Verificado en vivo: `NVDA` en XNAS/USD y también NVD.DE/EUR. Uso solo lectura y bajo demanda.
 - **SEC**: nombre y email de Javier guardados y probados (`analyst NVDA` devuelve XBRL).
+- **GitHub privado** (`jlp717/day-trader-ops`) en vez de público: contiene estrategia y hábitos
+  personales. Los secretos no viajan aunque el repo fuera público, pero no hay razón para publicarlo.
+- **Vendor como snapshot**, no submódulo: el mini PC se clona en un comando y el skill no cambia
+  sin una decisión explícita.
 
 ## Pendiente de Javier (10 minutos)
 
@@ -97,6 +102,23 @@ Evidencia: **92 tests propios OK** (1 skipped); `/elegir NVDA` y `/evaluar 1` ej
 hoy; panel y web renderizados con el desglose de riesgo. **Vendor repo**: 31/31 archivos, commit
 `3d0f4ef6...`, **315 tests del skill OK**. **Manual**: 90 páginas con árbol de decisión, guion del día y
 día 7 de dos señales.
+
+## 5c. GitHub y mini PC (2026-11-18, 11:30-11:40 UTC)
+
+- Repo **privado** `https://github.com/jlp717/day-trader-ops` (167 archivos, 13 MB con historial).
+  Privado porque contiene estrategia, configuración y diario personales; los secretos ni siquiera
+  están dentro.
+- `secrets/`, `logs/`, `trader-ops/state/`, `trader-ops/cache/` y los PNG de revisión quedan fuera.
+  `trader/config.json` sí viaja: es la configuración de papel.
+- **Vendor como snapshot plano**: se retiró el `.git` anidado (copia en
+  `%TEMP%\opencode\day-trader-skill-git-20261118`) y el hash vive en `vendor/VENDOR_COMMIT`, que lee
+  `verificar_skill.py`. Motivo: un solo `git clone`, sin submódulos, y el skill no se mueve solo.
+- `verificar_skill.py` ya no confunde el commit del repo padre con el del skill (bug detectado al
+  probar el clon limpio).
+- `estado_vivo.resumen_5_lineas` mostraba "latido Nones" en una instalación sin latido; ahora dice
+  "nunca" y hay test (`test_saludo_sin_latido_no_muestra_none`). Total: **92 tests propios**.
+- Runbook de instalación: `INSTALACION_MINI_PC.md`. Verificado sobre un clon real de GitHub:
+  92 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
 
 ## 6. Cambios de ultima hora (reversibles)
 
