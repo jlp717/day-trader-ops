@@ -132,6 +132,11 @@ día 7 de dos señales.
 - **MyInvestor (18/11 15:34)**: ficha de NVDA a **158,59** con Yahoo en **158,75** (0,1 % de
   diferencia). Parecía ir en vivo, pero era **coincidencia**: el precio de premarket estaba cerca
   del vivo. La medición de las 15:50 lo desmiente (siguiente punto).
+- **Segundo testigo público verificado (18/11 16:09)**: CNBC
+  (`quote.cnbc.com/quote-html-webservice/restQuote/...`) devolvió **154,96** a las 10:09:24 ET
+  mientras Yahoo daba **154,95** con edad 1 s. Dos fuentes independientes coinciden al céntimo.
+  Sin clave ni login. Candidata a segundo testigo automático; el endpoint es público pero no tiene
+  contrato de estabilidad, así que la integración irá con fallback y aviso si falla.
 - **MyInvestor ficha vs Yahoo (18/11 15:46)**: ficha a **158,19** mientras Yahoo marcaba **154,44**.
   La vela de 5 min de las 15:35 abrió en 158,15 y cerró en 156,56: 158,19 es el precio de ~15:35.
   **La ficha va ~11 min retrasada**; Yahoo iba en vivo (probado con 6 muestras y precios cambiantes).
