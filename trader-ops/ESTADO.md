@@ -125,7 +125,11 @@ día 7 de dos señales.
   esa línea. Corregido el import y extraída `_simbolos_orb()` (ganadores primero, sin duplicados,
   techo 150). Lista de hoy regenerada: 20 ganadores + 130 hits. **99 tests propios OK**.
 - Runbook de instalación: `INSTALACION_MINI_PC.md`. Verificado sobre un clon real de GitHub:
-  92 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
+  99 tests propios OK, 315 del skill OK, `saludo.py` y `telegram_bot.py --simulate /estado` OK.
+- **Latencia medida (18/11 15:31 Madrid)**: `/precios NVDA` → 158,75 USD, `data_time`
+  14:31:29Z, **edad 2 s**, exchange NMS. Yahoo va en tiempo real para US; la hipótesis de
+  15 minutos queda descartada para el feed del sistema. La pantalla de MyInvestor es otro reloj.
+  El filtro `frescura` (<300 s) sigue midiendo en cada señal: si el dato envejece, no hay aviso.
 
 ## 6. Cambios de ultima hora (reversibles)
 
