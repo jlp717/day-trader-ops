@@ -622,5 +622,16 @@ class MensajeSenal(unittest.TestCase):
         self.assertTrue(ok, problems)
 
 
+class Chuleta(unittest.TestCase):
+    def test_es_telegram_safe(self):
+        bot = _cargar("tgbot_chuleta", ROOT / "trader-ops" / "run" / "telegram_bot.py")
+        t = bot.c_chuleta(None, [])
+        self.assertLess(len(t), 4000)
+        self.assertNotIn("&", t)
+        self.assertNotIn("<fill>", t)
+        for cmd in ("/entre", "/sali", "/stop", "/vender", "/posiciones", "/guia", "/precios"):
+            self.assertIn(cmd, t)
+
+
 if __name__ == "__main__":
     unittest.main()

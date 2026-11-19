@@ -24,7 +24,8 @@
   "sec_user_agent": "Javier Lacal Pelegrin (email pendiente)",
   "watch": [
     "NVDA",
-    "MNSO"
+    "MNSO",
+    "TLK"
   ],
   "execution_market": "US",
   "cuenta_eur": true,

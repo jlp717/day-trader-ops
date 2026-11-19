@@ -717,6 +717,72 @@ def c_reanudar(bot, args):
     return "Reanudado."
 
 
+def c_chuleta(bot, args):
+    """Chuleta estatica para el movil: comandos, stops, objetivos y escenarios."""
+    return (
+        "<b>CHULETA · operar con el bot</b>\n\n"
+        "<b>1. Mirar</b>\n"
+        "/posiciones · que tengo y a que precio\n"
+        "/guia · que hago ahora, con numeros\n"
+        "/alertas · que niveles vigila hoy\n"
+        "/precios T · Yahoo + CNBC + Finnhub + tu referencia\n"
+        "/elegir T · analisis completo de un valor\n"
+        "/hoy · lista ORB y rupturas\n"
+        "/resumen · informe del dia\n\n"
+        "<b>2. Registrar</b>\n"
+        "/entre T fill cantidad stop objetivo\n"
+        "  fill = precio del ticket (no la ficha)\n"
+        "  cantidad = acciones llenadas\n"
+        "  stop = nivel que invalida la compra\n"
+        "  objetivo = nivel de beneficio\n"
+        "/sali T fill [cantidad] · cerrar todo o parte\n"
+        "/stop T precio · mover stop y rearmar aviso\n"
+        "/vender T precio · mover objetivo y rearmar aviso\n\n"
+        "<b>3. Como fijar el stop</b>\n"
+        "- Break-even neto = entrada + costes / cantidad.\n"
+        "  Con 7 acciones y 8,80 USD: entrada + 1,26.\n"
+        "- Estructura: debajo del minimo del dia o de 20 dias.\n"
+        "- Volatilidad: 1 ATR; si es muy ancho, reduce cantidad.\n"
+        "- Trailing: solo hacia arriba. Nunca hacia abajo.\n"
+        "- Stop por encima de la entrada = bloquea beneficio.\n\n"
+        "<b>4. Como fijar el objetivo</b>\n"
+        "- Resistencia: cierre o minimo previo (ej. 57,65; luego 60,56).\n"
+        "- 2R = entrada + 2 x (entrada - stop).\n"
+        "- No lo muevas sin un nivel nuevo. No persigas.\n\n"
+        "<b>5. Costes (MyInvestor)</b>\n"
+        "0,12% comision + 0,30% FX por lado, minimo 3 EUR.\n"
+        "Con 7 acciones: ~8,80 USD ida+vuelta.\n"
+        "Break-even = entrada + 8,80 / 7.\n"
+        "Con pocas acciones, las comisiones mandan: mejor una venta que tres parciales.\n\n"
+        "<b>6. Si llega SEÑAL A</b>\n"
+        "1. Lee VEREDICTO: comprar solo si el precio esta entre stop y max.\n"
+        "2. MyInvestor: LIMITADA, cantidad y precio del mensaje, validez DIA.\n"
+        "3. Fill: /entre T [fill] cantidad stop objetivo.\n"
+        "4. MyInvestor: stop-loss cantidad a stop, validez DIA.\n"
+        "5. Opcional: venta limitada al objetivo; si pones las dos, cancela la que sobre.\n"
+        "6. Si no puedes actuar: no compres. No persigas.\n\n"
+        "<b>7. Si tienes posicion (CRCL)</b>\n"
+        "- Sube: puedes subir el stop; nunca bajarlo.\n"
+        "- Toca objetivo: vende limitada; /sali T [fill].\n"
+        "- Toca stop: vende; /sali T [fill].\n"
+        "- 21:55: flat; vende al bid, cancela todo, /sali.\n"
+        "- Overnight: rearma /stop y /vender manana.\n\n"
+        "<b>8. Avisos</b>\n"
+        "- STOP: vende, cancela ordenes, /sali.\n"
+        "- OBJETIVO: vende limitada, cancela stop, /sali.\n"
+        "- Proximidad: no hagas nada; solo avisa.\n"
+        "- Flat 21:55: cierra.\n"
+        "- Informe 22:00: automatico.\n\n"
+        "<b>9. Fuentes</b>\n"
+        "Yahoo + CNBC + Finnhub. /precios muestra las tres.\n"
+        "Si difieren mas de 0,5%: no se envia señal y te avisa con los valores.\n"
+        "El fill del ticket es la verdad; la ficha de MyInvestor puede ir con retraso.\n\n"
+        "<b>10. Reglas</b>\n"
+        "Sin SEÑAL A no se compra. No a mercado. No promediar. No mover stop abajo. No mantener de noche.\n"
+        "Si dudas: /guia. Si no entiendes: /ensenar concepto."
+    )
+
+
 def c_ayuda(bot, args):
     return ("<b>Comandos</b>\n"
             "<b>Lo del dia:</b> /hoy · /ganadores [N] · /seguir [N] · /incluir T · /evaluar [N] · /elegir N|T · /ahora · /resumen · /briefing\n"
@@ -724,7 +790,7 @@ def c_ayuda(bot, args):
             "<b>Analisis:</b> /ticker T · /plan T · /tm T · /tamano T · /risk · /noticias T · /resultados T\n"
             "<b>Operar a mano:</b> /entre T precio cantidad [stop] [objetivo] · /sali T precio [acciones] · "
             "/vender T precio · /stop T precio · /posiciones · /pnl\n"
-            "<b>Guia:</b> /guia · qué hacer ahora, paso a paso, con la posición real\n"
+            "<b>Guia:</b> /chuleta · comandos, stops y objetivos · /guia · qué hacer ahora, paso a paso, con la posición real\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -1522,6 +1588,8 @@ def interpretar(texto_libre):
         return "/ganadores"
     if re.search(r"\b(que hago ahora|que toca ahora|y ahora que|que debo hacer ahora|ahora que hago|guia|siguiente paso)\b", t):
         return "/guia"
+    if re.search(r"\b(chuleta|ayuda operativa|como opero|como se opera|recordatorio de comandos)\b", t):
+        return "/chuleta"
     if re.search(r"\b(que esta pasando|como esta el sistema|esta vivo|estado del sistema|como va todo)\b", t):
         return "/estado"
     if re.search(r"\b(ensename|explicame|que es|como funciona)\b", t):
@@ -1630,7 +1698,7 @@ COMANDOS = {
     "ahora": c_ahora, "explica": c_explica, "porque": c_porque, "ensenar": c_ensenar,
     "ganadores": c_ganadores, "ganadoras": c_ganadores, "suben": c_ganadores,
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
-    "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia,
+    "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}
