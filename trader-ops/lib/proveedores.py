@@ -17,6 +17,42 @@ class Nivel2:
         raise ProveedorError(
             "nivel 2 no configurado: requiere proveedor de pago (Polygon, Databento, etc.)")
 
+    def profundidad(self, symbol):
+        raise ProveedorError("profundidad no disponible: nivel 2 de pago")
+
+
+class AlpacaIEX(Nivel2):
+    """Top-of-book IEX gratis. No es libro completo: solo bid/ask y tamanos."""
+
+    nombre = "alpaca_iex"
+
+    def libro(self, symbol):
+        from . import alpaca
+        sym = str(symbol).upper()
+        try:
+            doc = alpaca.data_request(
+                "/v2/stocks/%s/quotes/latest" % sym, params={"feed": "iex"})
+        except alpaca.AlpacaError as exc:
+            raise ProveedorError(str(exc))
+        q = (doc or {}).get("quote") or {}
+        if not q:
+            raise ProveedorError("Alpaca IEX sin quote para %s" % sym)
+        return {
+            "symbol": sym,
+            "bid": q.get("bp"),
+            "ask": q.get("ap"),
+            "bid_size": q.get("bs"),
+            "ask_size": q.get("as"),
+            "time": q.get("t"),
+            "depth": 1,
+            "source": "alpaca_iex",
+            "completo": False,
+        }
+
+    def profundidad(self, symbol):
+        raise ProveedorError(
+            "Alpaca free/IEX solo da top-of-book; la profundidad completa es de pago")
+
 
 class PolygonL2(Nivel2):
     nombre = "polygon"
@@ -30,7 +66,7 @@ class PolygonL2(Nivel2):
         raise ProveedorError("Polygon L2 no implementado: falta plan/contrato")
 
 
-PROVEEDORES = {"ninguno": Nivel2(), "polygon": PolygonL2()}
+PROVEEDORES = {"ninguno": Nivel2(), "alpaca_iex": AlpacaIEX(), "polygon": PolygonL2()}
 
 
 def get(nombre="ninguno", **kwargs):

@@ -8,6 +8,7 @@ import hashlib
 import time
 
 from . import cfg
+from . import alpaca
 
 
 class BrokerError(Exception):
@@ -89,6 +90,48 @@ class PaperBroker(Broker):
 
 
 REGISTRO = {"null": Broker(), "paper": PaperBroker()}
+
+
+class AlpacaPaperBroker(Broker):
+    """Ordenes en la cuenta PAPEL de Alpaca. Nunca usa el endpoint real."""
+
+    nombre = "alpaca_paper"
+    real = False
+
+    def _orden(self, side, symbol, qty, limit=None, key=None):
+        qty = float(qty)
+        if qty <= 0:
+            raise BrokerError("cantidad invalida")
+        body = {
+            "symbol": str(symbol).upper(),
+            "qty": ("%g" % qty),
+            "side": side,
+            "time_in_force": "day",
+            "type": "limit" if limit is not None else "market",
+        }
+        if limit is not None:
+            body["limit_price"] = "%.2f" % float(limit)
+        if key:
+            body["client_order_id"] = str(key)[:48]
+        try:
+            return alpaca.paper_request("POST", "/v2/orders", body=body)
+        except alpaca.AlpacaError as exc:
+            raise BrokerError(str(exc))
+
+    def comprar(self, symbol, qty, limit=None, key=None):
+        return self._orden("buy", symbol, qty, limit=limit, key=key)
+
+    def vender(self, symbol, qty, limit=None, key=None):
+        return self._orden("sell", symbol, qty, limit=limit, key=key)
+
+    def cuenta(self):
+        try:
+            return alpaca.paper_request("GET", "/v2/account")
+        except alpaca.AlpacaError as exc:
+            raise BrokerError(str(exc))
+
+
+REGISTRO["alpaca_paper"] = AlpacaPaperBroker()
 
 
 def get(nombre="null", **kwargs):

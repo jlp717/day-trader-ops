@@ -19,8 +19,9 @@ Python estandar, datos publicos). El skill **no se modifica**. Todo lo propio vi
 
 ## Reglas inamovibles (resumen operativo)
 
-1. Solo papel. Nunca ordenes reales ni claves de broker. `"broker": "none"`, `"paper": true`.
-   Si alguien propone conectar Alpaca/IBKR: se rechaza y se explica.
+1. Solo papel. Nunca ordenes reales ni claves de broker real. `"broker": "none"`, `"paper": true`.
+   Alpaca **paper** (`paper-api.alpaca.markets`) se permite solo como simulacion; el endpoint
+   real no existe en el codigo. Si alguien propone un broker real: se rechaza y se explica.
 2. Ningun numero sale del modelo. Sale de un script o de `datos.py`. Si no hay dato: "no disponible".
 3. Todo con evidencia: comando, salida, hora. Nada "funciona" sin ejecutarlo.
 4. Secretos solo en `secrets/` o variables de entorno. Nunca en chat, logs, ESTADO.md ni git.

@@ -94,6 +94,10 @@ python trader-ops\run\saludo.py      # 5 líneas: hora, mercado, estado, señale
 python trader-ops\run\smoke.py       # salud de las 11 herramientas
 python trader-ops\run\watchdog.py    # latido y huecos de datos
 python trader-ops\run\backtest.py --symbols NVDA,AMD --days 30   # mide el ORB bruto
+python trader-ops\run\ml.py --features features.csv --split 0.7   # baseline ML
+python trader-ops\run\prepost.py --symbols NVDA,AMD --modo pre    # análisis pre/post
+python trader-ops\run\libro.py --symbol NVDA --proveedor alpaca_iex  # top-of-book IEX
+python trader-ops\run\orden.py --broker paper --side buy --symbol NVDA --qty 1  # simulacro
 ```
 
 Paneles locales: `Abrir panel.cmd` (terminal) y `Abrir panel web.cmd` (<http://127.0.0.1:8765>,
@@ -106,9 +110,11 @@ AGENTS.md                 contrato permanente del proyecto (leer antes de tocar 
 REFERENCIA.md             referencia, límites y hoja de ruta (pre/post, Europa, ejecución)
 INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/
-  lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram, backtest
-  run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest
-  tests/                  132 tests propios (+ caos)
+  lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram, backtest,
+                          brokers, proveedores, ml, prepost
+  run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest,
+                          ml, prepost, orden, libro
+  tests/                  141 tests propios (+ caos)
   manual/                 fuentes HTML del manual y script que genera el PDF
   MANUAL_COMPLETO.pdf     manual de 91 páginas, para estudiar
   ESTADO.md               estado real, decisiones y pendientes

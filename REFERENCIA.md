@@ -41,12 +41,13 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | 132 propios + 315 del skill |
+| Tests | 141 propios + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
-| Ejecución | **papel**: `lib/brokers.py` (Null/Paper); real **no** |
-| Nivel 2 | **interfaz**: `lib/proveedores.py`; sin datos |
-| Machine learning | **export de features**; sin modelo |
+| Ejecución | **Alpaca paper** (`lib/brokers.py`); real **no** |
+| Nivel 2 | **IEX top-of-book** (`lib/proveedores.py`); profundidad completa **no** |
+| Machine learning | **baseline logístico** (`lib/ml.py`); sin señal en la muestra |
+| Pre/post | **análisis** (`run/prepost.py`); ejecución **no** |
 
 ---
 
@@ -79,6 +80,25 @@ Si el dato tiene más de **300 s**, no hay señal (`frescura`).
 8. **No se escala** hasta tener 30–50 operaciones cerradas y un R neto positivo.
 
 ---
+
+## 4b. Claves y planes gratis
+
+| Servicio | Archivo | Plan | Límite | Uso |
+| --- | --- | --- | --- | --- |
+| Alpaca | `secrets/alpaca.json` | paper gratis | cuenta paper | órdenes simuladas + IEX top-of-book |
+| Finnhub | `secrets/finnhub.json` | free | ~60/min | cotización US en tiempo real (IEX) |
+| Polygon | `secrets/polygon.json` | de pago | según plan | nivel 2 completo (no gratis) |
+| Yahoo | sin clave | free | sin SLA | velas 5m/1d y pre/post |
+| CNBC | sin clave | free | sin SLA | segundo testigo de precio |
+
+`secrets/` está en `.gitignore`. Ninguna clave se sube a GitHub, se pega en el chat ni se
+escribe en logs.
+
+**Lo que no existe gratis**: libro de órdenes completo (nivel 2) de acciones US, y ejecución
+real sin bróker fondeado. Alpaca paper da ejecución simulada; IEX da profundidad 1. Eso es el
+máximo gratuito y legal.
+
+
 
 ## 5. Capacidades avanzadas: qué se puede hacer y qué no
 
@@ -153,46 +173,67 @@ pierden**; la variante no arregla el patrón bruto. Añadir una estrategia nueva
 
 No se mezcla con el pipeline vivo hasta que pase su propia muestra.
 
-### 5.3 Ejecución real — **interfaz y modo papel; real no**
+### 5.3 Ejecución — **Alpaca paper; real no**
 
 `lib/brokers.py` implementa:
 
-- `Broker` (nulo): cualquier orden lanza error. Es el modo por defecto.
+- `Broker` (nulo): cualquier orden lanza error. Modo por defecto.
 - `PaperBroker`: rellena al precio actual, guarda la orden en `state/paper_orders.json`,
-  soporta clave de idempotencia y **nunca envía nada al mercado**.
+  idempotencia y **nunca envía nada**.
+- `AlpacaPaperBroker`: órdenes en la cuenta **paper** de Alpaca (`paper-api.alpaca.markets`),
+  con `client_order_id` para idempotencia. Endpoint real **no existe en el código**.
 
-La ejecución real sigue cerrada. Requisitos si algún día se abre:
+Claves: `secrets/alpaca.json`
 
-- bróker con API de órdenes (no MyInvestor; no scraping);
-- cuenta separada, capital pequeño;
-- sandbox/paper del bróker primero;
-- límites duros por operación, día y drawdown;
-- kill switch;
-- idempotencia para no duplicar órdenes;
-- auditoría de cada orden;
-- revisión independiente del código que toca dinero.
+```json
+{"api_key": "TU_KEY", "secret_key": "TU_SECRET"}
+```
 
-Con 0 operaciones cerradas, automatizar sería escalar una hipótesis no validada.
+Cuenta gratis en alpaca.markets; se usa el entorno **paper**, no el real. La ejecución real
+sigue cerrada: exige cuenta fondeada, límites duros, kill switch y aprobación explícita.
 
-### 5.4 Datos de nivel 2 — **interfaz; sin datos**
+```powershell
+# Simulacro: no envia nada
+python trader-ops\run\orden.py --broker alpaca_paper --side buy --symbol NVDA --qty 1 --limit 100
+# Envio a la cuenta PAPER de Alpaca
+python trader-ops\run\orden.py --broker alpaca_paper --side buy --symbol NVDA --qty 1 --limit 100 --confirm
+```
 
-`lib/proveedores.py` define la interfaz y un proveedor `ninguno` que falla de forma explícita.
-No se inventan libros de órdenes. El nivel 2 es de pago (Polygon, Databento, etc.) y no está en
-Yahoo/CNBC/Finnhub free. Sin una razón medida (por ejemplo, medir el impacto del spread en el
-ORB), no compensa el coste.
+### 5.4 Nivel 2 — **IEX top-of-book; profundidad no**
 
-### 5.5 Machine learning — **features sí; modelo no**
+`lib/proveedores.py` implementa:
 
-`run/backtest.py --features salida.csv` exporta features y etiquetas reproducibles:
+- `ninguno`: falla explícito.
+- `alpaca_iex`: bid/ask y tamaños del feed IEX (gratis), **profundidad 1**, no libro completo.
+- `polygon`: interfaz para L2 de pago; sin clave/plan no funciona.
 
-- fecha, hora, símbolo;
-- rango de apertura y su porcentaje;
-- entrada, stop, objetivo, riesgo;
-- coste en R, motivo de salida, R neto.
+Claves: las mismas de `secrets/alpaca.json` para IEX; `secrets/polygon.json` para el proveedor
+de pago. **No existe nivel 2 completo gratis para acciones US**: es una limitación de licencias,
+no de código. El sistema no inventa profundidad.
 
-No se entrena ningún modelo. Con 33 disparos históricos y 0 propios, cualquier modelo aprendería
-ruido. Antes hacen falta 300–500 operaciones etiquetadas, validación walk-forward y costes
-modelados.
+```powershell
+python trader-ops\run\libro.py --symbol NVDA --proveedor alpaca_iex
+```
+
+### 5.5 Machine learning — **baseline, sin señal**
+
+`lib/ml.py` implementa una regresión logística sin dependencias, con estandarización,
+regularización L2 y validación walk-forward. `run/ml.py` la ejecuta sobre el CSV de features.
+
+Resultado con 50 trades (35 train / 15 test):
+
+```text
+Accuracy 0.800 · base 0.133 · AUC 0.269
+```
+
+La accuracy engaña por desbalance; el **AUC < 0.5** dice que el modelo ordena peor que el azar.
+No hay señal. No se usa en producción; con 300–500 trades se puede repetir.
+
+### 5.5b Pre/post — **análisis, no ejecución**
+
+`run/prepost.py` analiza el premarket y el after-hours con Yahoo (`includePrePost=true`):
+último precio, máximo, mínimo, variación y volumen (si Yahoo lo da). No ejecuta nada.
+MyInvestor no permite órdenes fuera del horario regular.
 
 ### 5.6 Matriz de huecos (nada oculto)
 
@@ -201,10 +242,12 @@ modelados.
 | Backtest | `lib/backtest.py`, `run/backtest.py` | sí | no aplica | ninguna |
 | Multi-estrategia | `lib/estrategias.py` | sí | solo ORB | backtest + papel |
 | Ejecución papel | `lib/brokers.py` | sí | no | integrar en el flujo |
-| Ejecución real | interfaz nula | sí | **no** | bróker API + aprobación |
-| Nivel 2 | `lib/proveedores.py` | sí | **no** | proveedor de pago |
-| ML | export de features | sí | **no** | 300–500 trades + walk-forward |
-| Pre/post | solo documento | no | **no** | proyecto separado |
+| Ejecución Alpaca paper | `lib/brokers.py`, `run/orden.py` | sí | **no** | clave + cuenta paper |
+| Ejecución real | no existe | — | **no** | bróker fondeado + aprobación |
+| Nivel 2 IEX | `lib/proveedores.py`, `run/libro.py` | sí | **no** | clave Alpaca |
+| Nivel 2 completo | interfaz Polygon | sí | **no** | proveedor de pago |
+| ML | `lib/ml.py`, `run/ml.py` | sí | **no** | 300–500 trades; hoy AUC 0.269 |
+| Pre/post | `lib/prepost.py`, `run/prepost.py` | sí | **no** | solo análisis |
 | Europa | solo documento | no | **no** | proyecto separado |
 
 Un hueco documentado y con puerta no es un fallo oculto: es una decisión de ingeniería.
