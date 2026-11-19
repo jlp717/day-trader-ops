@@ -33,6 +33,10 @@ Python estandar, datos publicos). El skill **no se modifica**. Todo lo propio vi
 10. Persistencia: actualizar `trader-ops/ESTADO.md` tras cada hito.
 11. Cambios reversibles; documentar como revertir.
 12. Solo libreria estandar (excepcion: tzdata en Windows; ya presente).
+13. El backtest mide la mecanica bruta del patron; no es la senal filtrada. Un resultado negativo
+    se reporta tal cual, sin maquillar.
+14. No se escala ni se automatiza ejecucion real hasta 30-50 operaciones cerradas con R neto
+    positivo. La ejecucion real exige broker con API y aprobacion explicita.
 
 ## COPILOTO (rol permanente)
 
@@ -78,6 +82,7 @@ Responder con: orquestador vivo/no, ultimo latido, ultima señal, errores recien
 | Vigilante | `python trader-ops/run/watchdog.py [--bucle]` |
 | Ensayo general | `python trader-ops/run/ensayo.py [--send]` |
 | Tests propios | `python -m unittest discover -s trader-ops/tests -v` |
+| Backtest del ORB | `python trader-ops/run/backtest.py --symbols NVDA,AMD --days 30` |
 | Tests del skill | `cd vendor/day-trader-skill; python -m unittest discover -s tests -v` |
 | Verificar repo del skill | `python trader-ops/run/verificar_skill.py --tests` |
 | Tarea de Windows | `trader-ops\run\instalar_tarea.ps1 -Instalar / -Estado / -Quitar` |
@@ -100,6 +105,7 @@ Pausar solo avisos: comando `/pausa` en Telegram (escribe `trader-ops/state/paus
 ## Donde esta cada cosa
 
 ```
+REFERENCIA.md  (limites, hoja de ruta, backtest y decisiones de arquitectura)
 trader-ops/
   NOTAS_LECTURA.md  MAPA_DE_CAPACIDADES.md  AUDITORIA.md  VERIFICACION.md
   CRITERIOS.md  MERCADOS.md  APERTURA.md  GUIA_USO.md  INICIO_RAPIDO.md
@@ -107,7 +113,7 @@ trader-ops/
   ESTADO.md  REVISION_INDEPENDIENTE.md
   lib/    cfg, zonatiempo, calendario, datos, skills, diario, texto, criterios,
           registro, posiciones, avisos, proceso, apertura, mercado, briefing,
-          informe, telegram
+          informe, telegram, backtest, estrategias
   run/    orquestador, telegram_bot, configurar_secretos, watchdog, ensayo, smoke
   tests/  test_ops.py, test_caos.py
   state/  heartbeat, agenda_done, registro, posiciones, avisos, artifacts

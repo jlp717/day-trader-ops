@@ -84,7 +84,7 @@ Stop-ScheduledTask -TaskName DayTraderOps-Bot
 ## Uso diario
 
 Por Telegram, con el bot propio: `/estado`, `/hoy`, `/briefing`, `/elegir TICKER`, `/precios TICKER`,
-`/posiciones`, `/ayuda`. Lista completa en [`trader-ops/GUIA_USO.md`](trader-ops/GUIA_USO.md) y en el
+`/posiciones`, `/guia`, `/chuleta`, `/ayuda`. Lista completa en [`trader-ops/GUIA_USO.md`](trader-ops/GUIA_USO.md) y en el
 manual.
 
 En el PC:
@@ -93,6 +93,7 @@ En el PC:
 python trader-ops\run\saludo.py      # 5 líneas: hora, mercado, estado, señales, próximo evento
 python trader-ops\run\smoke.py       # salud de las 11 herramientas
 python trader-ops\run\watchdog.py    # latido y huecos de datos
+python trader-ops\run\backtest.py --symbols NVDA,AMD --days 30   # mide el ORB bruto
 ```
 
 Paneles locales: `Abrir panel.cmd` (terminal) y `Abrir panel web.cmd` (<http://127.0.0.1:8765>,
@@ -102,13 +103,14 @@ solo lectura).
 
 ```
 AGENTS.md                 contrato permanente del proyecto (leer antes de tocar nada)
+REFERENCIA.md             referencia, límites y hoja de ruta (pre/post, Europa, ejecución)
 INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/
-  lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram
-  run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles
-  tests/                  92 tests propios (+ caos)
+  lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram, backtest
+  run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest
+  tests/                  123 tests propios (+ caos)
   manual/                 fuentes HTML del manual y script que genera el PDF
-  MANUAL_COMPLETO.pdf     manual de 90 páginas, para estudiar
+  MANUAL_COMPLETO.pdf     manual de 91 páginas, para estudiar
   ESTADO.md               estado real, decisiones y pendientes
   GUIA_USO.md             guía rápida de comandos y rutina
 trader/config.json        configuración de papel (presupuesto, límites, watchlist)
