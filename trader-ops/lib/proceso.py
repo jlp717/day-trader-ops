@@ -166,6 +166,24 @@ def construir_mensaje_senal(ctx, ev, *, etiqueta="SEÑAL A"):
     plan = ctx["plan"]
     b = texto.Builder()
     b.line("<b>%s · %s</b> · PAPEL" % (ctx["symbol"], etiqueta))
+    entry = float(plan["entry"])
+    risk = float(plan["risk_per_share"])
+    stop = float(plan["stop"])
+    target = float(plan["target"])
+    qty = int(ctx["budget"]["shares"])
+    maxp = round(entry + 0.5 * risk, 2)
+    limit = round(min(maxp, max(entry + 0.01, entry * 1.001)), 2)
+    qty_order = qty
+    try:
+        if limit > stop:
+            qty_order = min(qty, int(float(ctx["budget"]["max_loss"]) // (limit - stop)))
+            qty_order = max(1, qty_order)
+    except Exception:
+        qty_order = qty
+    b.line("<b>VEREDICTO: COMPRAR</b> si el precio está entre %s y %s." % (
+        b.num(stop, 2, "stop_veredicto"), b.num(maxp, 2, "max_compra")))
+    b.line("Si está por encima de %s o por debajo de %s, NO comprar: la señal caducó. Si ya tienes %s abierto, no abras otra." % (
+        b.num(maxp, 2, "max_compra_2"), b.num(stop, 2, "stop_veredicto_2"), ctx["symbol"]))
     b.line("Setup: %s · entrada %s" % (
         plan.get("setup", "orb"),
         ctx["entry_time_et"]))
@@ -217,8 +235,35 @@ def construir_mensaje_senal(ctx, ev, *, etiqueta="SEÑAL A"):
         b.num(nums["cost_r"] or 0, 3, "cost_r")))
     b.blank()
     b.line("Frecuencias de una simulacion y de un historico, no promesas.")
-    b.line("Salida: stop, objetivo o flat by close, lo que llegue antes. No se mantiene.")
-    b.line("Operar: compra limitada; /entre con el fill; stop-loss y venta limitada. /guia para el paso a paso.")
+    b.blank()
+    b.line("<b>ORDEN EN MYINVESTOR</b>")
+    b.line("Comprar %s %s · LIMITADA · %s · validez DÍA" % (
+        b.num(qty_order, 0, "qty_orden"), ctx["symbol"], b.num(limit, 2, "limite")))
+    if qty_order < qty:
+        b.line("Cantidad ajustada al límite: %s (plan %s) para no pasar de %s USD de riesgo." % (
+            b.num(qty_order, 0, "qty_ajustada"), b.num(qty, 0, "qty_plan"),
+            b.num(ctx["budget"]["max_loss"], 2, "max_loss_orden")))
+    b.line("No a mercado. Si no llena en 2 min, o el precio se va por encima de %s o por debajo de %s, cancela." % (
+        b.num(maxp, 2, "max_compra_3"), b.num(stop, 2, "stop_cancelar")))
+    b.blank()
+    b.line("<b>DESPUÉS DEL FILL</b>")
+    b.line("/entre %s [fill] %s %s %s" % (
+        ctx["symbol"], b.num(qty_order, 0, "qty_entre"), b.num(stop, 2, "stop_entre"),
+        b.num(target, 2, "target_entre")))
+    b.line("Si te llenan menos acciones, usa esa cantidad. Luego /posiciones y /alertas.")
+    b.line("Proteccion: stop-loss en MyInvestor %s %s a %s, validez DÍA." % (
+        b.num(qty_order, 0, "qty_stop_broker"), ctx["symbol"], b.num(stop, 2, "stop_broker")))
+    b.line("Opcional: venta limitada %s a %s. Si pones las dos, cancela la que sobre." % (
+        b.num(qty_order, 0, "qty_target_broker"), b.num(target, 2, "target_broker")))
+    b.blank()
+    b.line("<b>SALIDAS</b>")
+    b.line("Stop %s: vende %s, cancela órdenes y /sali %s [fill]" % (
+        b.num(stop, 2, "stop_salida"), b.num(qty_order, 0, "qty_stop"), ctx["symbol"]))
+    b.line("Objetivo %s: vende %s limitada %s, cancela el stop y /sali %s [fill]" % (
+        b.num(target, 2, "target_salida"), b.num(qty_order, 0, "qty_target"),
+        b.num(target, 2, "target_venta"), ctx["symbol"]))
+    b.line("21:55: flat; vende al bid, cancela todo y /sali %s [fill]" % ctx["symbol"])
+    b.line("<b>NO HACER</b>: mercado, perseguir, promediar, mantener de noche.")
     b.line("Re-entrada: este setup no se repite hoy. Maximo 2 SEÑAL A por valor y 3 al dia.")
     ana = ctx.get("analyst") or {}
     if ana.get("filed"):

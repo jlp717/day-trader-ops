@@ -156,7 +156,11 @@ día 7 de dos señales.
 - **Comando `/guia`** (también "qué hago ahora"): lee posición, precio, coste, break-even, neto en
   stop/objetivo y fase del día, y devuelve la orden exacta en cada escenario. Los avisos de
   stop/objetivo y el flat añaden la acción concreta y remiten a `/guia`.
-- **Tercer testigo opcional Finnhub** (18/11 21:53): `quote_finnhub` lee `secrets/finnhub.json`
+- **Mensaje de SEÑAL A operativo (19/11)**: incluye veredicto "COMPRAR" con rango válido
+  (stop–stop+0,5R), orden exacta en MyInvestor (limitada, cantidad ajustada al límite para no
+  pasar del riesgo máximo), `/entre` con `[fill]`, stop-loss y venta limitada opcionales, salidas
+  por stop/objetivo/21:55 y lista de lo que no hacer. Longitud ~2.000 caracteres; test que valida
+  HTML y trazabilidad. 113 tests propios OK.
   (`{"api_key": "..."}`) o `FINNHUB_KEY`; plan free con cotización US en tiempo real (feed IEX,
   60/min). `/precios` lo muestra si hay clave; `cross_check` compara Yahoo, CNBC y Finnhub y
   bloquea si el rango supera 0,5 %. Sin clave no se usa y no bloquea. 112 tests propios OK.

@@ -585,5 +585,42 @@ class Guia(unittest.TestCase):
         self.assertNotIn("&", txt)
 
 
+class MensajeSenal(unittest.TestCase):
+    """La señal debe traer veredicto y ordenes exactas, sin romper Telegram."""
+
+    def test_bloque_operativo(self):
+        from lib import proceso, texto
+        ctx = {
+            "symbol": "NVDA",
+            "plan": {"entry": 155.0, "stop": 154.0, "target": 157.0,
+                     "risk_per_share": 1.0, "target_r": 2.0, "flat_by": "15:55",
+                     "setup": "orb", "date": "2026-11-19"},
+            "quote": {"data_time": "2026-11-19T14:00:00Z", "age_seconds": 5},
+            "entry_time_et": "10:00", "trigger_delay_s": 60, "latency_s": 35,
+            "src": {"exit": None, "budget": None},
+            "budget": {"shares": 50, "max_loss": 50.0},
+            "costs": {"total_usd": 19.55}, "costs_alt": {"total_usd": 5.70},
+            "tm": {"mc": {"p_neither": 0.29, "replays": 10000, "seed": 7}},
+            "cross_check": "Yahoo 155.00 · CNBC 155.00 (rango 0.00%)",
+        }
+        ev = {"numbers": {"p_target_mc": 0.41, "p_stop_mc": 0.30,
+                          "hist_n": 33, "hist_target": 13, "hist_stop": 14,
+                          "wilson_low": 0.34, "wilson_high": 0.56,
+                          "break_even": 0.333, "ev": 0.121, "cost_r": 0.396}}
+        p = proceso.construir_mensaje_senal(ctx, ev)
+        t = p["texto"]
+        self.assertIn("VEREDICTO: COMPRAR", t)
+        self.assertIn("ORDEN EN MYINVESTOR", t)
+        self.assertIn("/entre NVDA [fill] 43 154.00 157.00", t)
+        self.assertIn("Cantidad ajustada al límite: 43", t)
+        self.assertIn("Stop 154.00", t)
+        self.assertIn("Objetivo 157.00", t)
+        self.assertIn("21:55", t)
+        self.assertNotIn("<fill>", t)
+        self.assertNotIn("&", t)
+        ok, problems = texto.validar(p, {})
+        self.assertTrue(ok, problems)
+
+
 if __name__ == "__main__":
     unittest.main()
