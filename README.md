@@ -108,7 +108,7 @@ INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/
   lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram, backtest
   run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest
-  tests/                  123 tests propios (+ caos)
+  tests/                  132 tests propios (+ caos)
   manual/                 fuentes HTML del manual y script que genera el PDF
   MANUAL_COMPLETO.pdf     manual de 91 páginas, para estudiar
   ESTADO.md               estado real, decisiones y pendientes

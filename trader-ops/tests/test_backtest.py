@@ -1,6 +1,8 @@
 """Tests del backtest: mecanica ORB con barras sinteticas, sin red."""
+import csv
 import datetime as dt
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -8,7 +10,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import backtest, estrategias  # noqa: E402
+from lib import backtest, brokers, estrategias, proveedores  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 
@@ -90,6 +92,22 @@ class Orb(unittest.TestCase):
         self.assertAlmostEqual(t["cost_usd"], 3.0)
         self.assertAlmostEqual(t["net_r"], 2.0 - 3.0 / (6 * 1.5), places=4)
 
+    def test_orb_low(self):
+        bars = base_dia() + [bar(9, 50, 102.5, 108, 102.5, 107.5)]
+        t = estrategias.ORBBajo().simular_dia("NVDA", dt.date(2026, 11, 19), bars)
+        self.assertEqual(t["stop"], 100.0)
+        self.assertEqual(t["target"], 107.5)
+        self.assertEqual(t["qty"], 20)          # 50 / 2.5
+        self.assertEqual(t["exit_reason"], "target")
+
+    def test_slippage(self):
+        bars = base_dia() + [bar(9, 50, 102.5, 106, 102.5, 105.5)]
+        t = estrategias.ORB().simular_dia(
+            "NVDA", dt.date(2026, 11, 19), bars, slippage_bps=10)
+        self.assertGreater(t["entry_fill"], t["entry"])
+        self.assertLess(t["exit_fill"], t["exit"])
+        self.assertLess(t["gross_r"], 2.0)
+
 
 class Resumen(unittest.TestCase):
     def test_metricas(self):
@@ -111,6 +129,65 @@ class Resumen(unittest.TestCase):
         self.assertAlmostEqual(r["profit_factor"], 125.0 / 50.0)
         self.assertAlmostEqual(r["avg_hold_min"], 10.0, places=3)
         self.assertEqual(r["by_symbol"]["AAA"]["n"], 2)
+
+
+class Utilidades(unittest.TestCase):
+    def test_partir_por_fechas(self):
+        trades = [{"date": "2026-11-17", "net_r": 1.0},
+                  {"date": "2026-11-18", "net_r": -1.0},
+                  {"date": "2026-11-19", "net_r": 2.0}]
+        is_t, oos_t = backtest.partir(trades, 0.7)
+        self.assertEqual(len(is_t), 2)
+        self.assertEqual(len(oos_t), 1)
+        self.assertEqual(oos_t[0]["date"], "2026-11-19")
+
+    def test_features_csv(self):
+        trades = [{"date": "2026-11-19", "entry_time": "09:50", "symbol": "NVDA",
+                   "or_high": 102, "or_low": 100, "or_mid": 101, "entry": 102.5,
+                   "entry_fill": 102.5, "stop": 101, "target": 105.5, "qty": 33,
+                   "risk": 1.5, "exit_fill": 105.5, "exit_reason": "target",
+                   "gross_r": 2.0, "net_r": 2.0, "cost_usd": 0, "pnl_usd": 99}]
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "features.csv"
+            backtest.guardar_features(p, trades)
+            with p.open(encoding="utf-8") as f:
+                rows = list(csv.DictReader(f))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["symbol"], "NVDA")
+        self.assertEqual(rows[0]["net_r"], "2.0")
+
+
+class Brokers(unittest.TestCase):
+    def test_null_no_envia(self):
+        with self.assertRaises(brokers.BrokerError):
+            brokers.get("null").comprar("NVDA", 1)
+
+    def test_paper_fill_e_idempotencia(self):
+        with tempfile.TemporaryDirectory() as td:
+            b = brokers.PaperBroker(quote_fn=lambda s: 100.0, path=Path(td) / "o.json")
+            o1 = b.comprar("NVDA", 10, limit=101, key="k1")
+            o2 = b.comprar("NVDA", 10, limit=101, key="k1")
+            self.assertEqual(o1["fill"], 100.0)
+            self.assertEqual(o1["id"], o2["id"])
+            self.assertFalse(o1["real"])
+            v = b.vender("NVDA", 5, limit=99, key="k2")
+            self.assertEqual(v["fill"], 100.0)
+
+    def test_paper_rechaza_limite_imposible(self):
+        with tempfile.TemporaryDirectory() as td:
+            b = brokers.PaperBroker(quote_fn=lambda s: 100.0, path=Path(td) / "o.json")
+            with self.assertRaises(brokers.BrokerError):
+                b.comprar("NVDA", 1, limit=99)
+
+
+class Nivel2(unittest.TestCase):
+    def test_sin_proveedor_falla(self):
+        with self.assertRaises(proveedores.ProveedorError):
+            proveedores.get("ninguno").libro("NVDA")
+
+    def test_polygon_sin_clave_falla(self):
+        with self.assertRaises(proveedores.ProveedorError):
+            proveedores.get("polygon").libro("NVDA")
 
 
 if __name__ == "__main__":

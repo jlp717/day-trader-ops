@@ -41,12 +41,12 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | 114 propios + 315 del skill |
-| Backtesting | **nuevo módulo** `run/backtest.py` (mecánica de precio + costes) |
-| Multi-estrategia | registro `lib/estrategias.py`; solo ORB implementado |
-| Ejecución real | **no**; requiere bróker con API y aprobación explícita |
-| Nivel 2 | **no**; requiere proveedor de pago |
-| Machine learning | **no**; con esta muestra sería overfitting |
+| Tests | 132 propios + 315 del skill |
+| Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
+| Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
+| Ejecución | **papel**: `lib/brokers.py` (Null/Paper); real **no** |
+| Nivel 2 | **interfaz**: `lib/proveedores.py`; sin datos |
+| Machine learning | **export de features**; sin modelo |
 
 ---
 
@@ -85,6 +85,17 @@ Si el dato tiene más de **300 s**, no hay señal (`frescura`).
 ### 5.1 Backtesting automático — **implementado**
 
 `python trader-ops/run/backtest.py --symbols NVDA,AMD --days 30`
+
+Parámetros disponibles:
+
+- `--or-minutes` 5–60: tamaño del rango de apertura.
+- `--target-r`: objetivo en múltiplos de R.
+- `--stop-rule mid|low`: stop en el punto medio o en el mínimo del rango.
+- `--slippage-bps`: deslizamiento por lado.
+- `--split 0.7`: separa in-sample / out-of-sample por fechas.
+- `--max-cost-r`: descarta trades con coste superior a ese múltiplo de R.
+- `--features`: exporta CSV de features/labels para un futuro modelo.
+- `--json` y `--csv`: guardan resultados.
 
 Mide la **mecánica de precio** del ORB:
 
@@ -125,21 +136,32 @@ bruto no es una ventaja por sí solo. Los filtros (calidad, EV, Time Machine, hi
 Conclusión operativa: **no escalar**. El backtest es una herramienta para medir, no una prueba
 de rentabilidad.
 
-### 5.2 Multi-estrategia — **esqueleto**
+### 5.2 Multi-estrategia — **interfaz + dos variantes**
 
-`lib/estrategias.py` define una interfaz común y un registro. Hoy solo hay `orb`.
-Añadir una estrategia significa:
+`lib/estrategias.py` define una interfaz común y un registro. Hoy hay dos:
+
+- `orb`: stop en el mid del rango.
+- `orb_low`: stop en el mínimo del rango (variante, no una estrategia nueva).
+
+Ambas se pueden backtestear con `--strategy orb|orb_low`. En la muestra del 19/11, **las dos
+pierden**; la variante no arregla el patrón bruto. Añadir una estrategia nueva significa:
 
 1. implementar `simular_dia(...)`;
 2. registrarla;
-3. backtestearla;
+3. backtestearla con split IS/OOS;
 4. pasarla a papel con estado separado.
 
 No se mezcla con el pipeline vivo hasta que pase su propia muestra.
 
-### 5.3 Ejecución real — **no ahora**
+### 5.3 Ejecución real — **interfaz y modo papel; real no**
 
-Requisitos mínimos si algún día se hace:
+`lib/brokers.py` implementa:
+
+- `Broker` (nulo): cualquier orden lanza error. Es el modo por defecto.
+- `PaperBroker`: rellena al precio actual, guarda la orden en `state/paper_orders.json`,
+  soporta clave de idempotencia y **nunca envía nada al mercado**.
+
+La ejecución real sigue cerrada. Requisitos si algún día se abre:
 
 - bróker con API de órdenes (no MyInvestor; no scraping);
 - cuenta separada, capital pequeño;
@@ -152,21 +174,40 @@ Requisitos mínimos si algún día se hace:
 
 Con 0 operaciones cerradas, automatizar sería escalar una hipótesis no validada.
 
-### 5.4 Datos de nivel 2 — **no ahora**
+### 5.4 Datos de nivel 2 — **interfaz; sin datos**
 
-El nivel 2 (libro de órdenes) es de pago y no está en Yahoo/CNBC/Finnhub free. Sin una razón
-medida (por ejemplo, medir el impacto del spread en el ORB), no compensa el coste.
+`lib/proveedores.py` define la interfaz y un proveedor `ninguno` que falla de forma explícita.
+No se inventan libros de órdenes. El nivel 2 es de pago (Polygon, Databento, etc.) y no está en
+Yahoo/CNBC/Finnhub free. Sin una razón medida (por ejemplo, medir el impacto del spread en el
+ORB), no compensa el coste.
 
-### 5.5 Machine learning — **no ahora**
+### 5.5 Machine learning — **features sí; modelo no**
 
-Con 33 disparos históricos y 0 propios, cualquier modelo aprendería ruido. Antes hacen falta:
+`run/backtest.py --features salida.csv` exporta features y etiquetas reproducibles:
 
-- 300–500 operaciones etiquetadas;
-- features reproducibles;
-- validación walk-forward;
-- costes y slippage modelados.
+- fecha, hora, símbolo;
+- rango de apertura y su porcentaje;
+- entrada, stop, objetivo, riesgo;
+- coste en R, motivo de salida, R neto.
 
-Un modelo con esta muestra sería overfitting, no ventaja.
+No se entrena ningún modelo. Con 33 disparos históricos y 0 propios, cualquier modelo aprendería
+ruido. Antes hacen falta 300–500 operaciones etiquetadas, validación walk-forward y costes
+modelados.
+
+### 5.6 Matriz de huecos (nada oculto)
+
+| Capacidad | Código | Tests | En vivo | Puerta |
+| --- | --- | --- | --- | --- |
+| Backtest | `lib/backtest.py`, `run/backtest.py` | sí | no aplica | ninguna |
+| Multi-estrategia | `lib/estrategias.py` | sí | solo ORB | backtest + papel |
+| Ejecución papel | `lib/brokers.py` | sí | no | integrar en el flujo |
+| Ejecución real | interfaz nula | sí | **no** | bróker API + aprobación |
+| Nivel 2 | `lib/proveedores.py` | sí | **no** | proveedor de pago |
+| ML | export de features | sí | **no** | 300–500 trades + walk-forward |
+| Pre/post | solo documento | no | **no** | proyecto separado |
+| Europa | solo documento | no | **no** | proyecto separado |
+
+Un hueco documentado y con puerta no es un fallo oculto: es una decisión de ingeniería.
 
 ---
 

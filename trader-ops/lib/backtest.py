@@ -49,13 +49,17 @@ def _coste(notional):
 
 
 def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
-           min_price=5.0, strategy="orb", con_costes=True, max_cost_r=None):
+           min_price=5.0, strategy="orb", con_costes=True, max_cost_r=None,
+           or_minutes=15, target_r=2.0, stop_rule="mid",
+           entry_cutoff=None, flat=None, slippage_bps=0.0):
     """Devuelve (trades, meta). No lanza por un simbolo roto: lo anota."""
     est = estrategias.get(strategy)
     trades = []
     meta = {"strategy": getattr(est, "nombre", strategy), "days": days,
             "max_loss": max_loss, "min_dv": min_dv, "min_price": min_price,
-            "max_cost_r": max_cost_r, "symbols": {}}
+            "max_cost_r": max_cost_r, "or_minutes": or_minutes,
+            "target_r": target_r, "stop_rule": stop_rule,
+            "slippage_bps": slippage_bps, "symbols": {}}
     for sym in symbols:
         sym = sym.strip().upper()
         if not sym:
@@ -71,10 +75,17 @@ def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
             groups = barras_por_dia(sym, days)
             info["dias"] = len(groups)
             for day, bars in groups.items():
+                kw = {}
+                if entry_cutoff is not None:
+                    kw["entry_cutoff"] = entry_cutoff
+                if flat is not None:
+                    kw["flat"] = flat
                 t = est.simular_dia(
                     sym, day, bars, max_loss=max_loss,
                     comision_fn=_coste if con_costes else None,
-                    min_price=min_price)
+                    min_price=min_price, or_minutes=or_minutes,
+                    target_r=target_r, stop_rule=stop_rule,
+                    slippage_bps=slippage_bps, **kw)
                 if not t:
                     continue
                 if max_cost_r is not None and t["qty"] and t["risk"]:
@@ -146,16 +157,42 @@ def resumen(trades):
     }
 
 
-def guardar_json(path, trades, meta, res):
-    doc = {"meta": meta, "resumen": res, "trades": trades}
+def partir(trades, frac=0.7):
+    """Divide por fechas: primeras `frac` in-sample, resto out-of-sample."""
+    fechas = sorted({t["date"] for t in trades})
+    if len(fechas) < 2:
+        return trades, []
+    cut = max(1, min(len(fechas) - 1, int(round(len(fechas) * float(frac)))))
+    is_days = set(fechas[:cut])
+    return ([t for t in trades if t["date"] in is_days],
+            [t for t in trades if t["date"] not in is_days])
+
+
+def guardar_json(path, trades, meta, res, extra=None):
+    doc = {"meta": meta, "resumen": res}
+    if extra:
+        doc.update(extra)
+    doc["trades"] = trades
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, indent=2)
 
 
 def guardar_csv(path, trades):
     campos = ["date", "entry_time", "exit_time", "symbol", "or_high", "or_low",
-              "or_mid", "entry", "stop", "target", "qty", "exit",
-              "exit_reason", "gross_r", "net_r", "cost_usd", "pnl_usd"]
+              "or_mid", "entry", "entry_fill", "stop", "target", "qty", "exit",
+              "exit_fill", "exit_reason", "gross_r", "net_r", "cost_usd", "pnl_usd"]
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
+        w.writeheader()
+        for t in trades:
+            w.writerow(t)
+
+
+def guardar_features(path, trades):
+    """CSV de features/labels para un futuro modelo. No entrena nada."""
+    campos = ["date", "entry_time", "symbol", "or_high", "or_low", "or_mid",
+              "entry", "stop", "target", "qty", "risk", "entry_fill",
+              "exit_fill", "exit_reason", "gross_r", "net_r", "cost_usd", "pnl_usd"]
     with open(path, "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
         w.writeheader()
