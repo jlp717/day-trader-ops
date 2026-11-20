@@ -9,8 +9,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 indicator('RAW PRO · nico66fx', shorttitle = 'RAW PRO', overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
-mercado  = input.string('EE. UU. (09:30 NY)', 'Mercado', options = ['EE. UU. (09:30 NY)', 'Xetra (09:00 CET)'])
-es_eu    = mercado == 'Xetra (09:00 CET)'
+modo     = input.string('Auto', 'Mercado', options = ['Auto', 'EE. UU. (09:30 NY)', 'Xetra (09:00 CET)'])
+es_eu    = modo == 'Xetra (09:00 CET)' or (modo == 'Auto' and str.startswith(syminfo.timezone, 'Europe/'))
 TZ       = es_eu ? 'Europe/Berlin' : 'America/New_York'
 hora     = 9
 minuto   = es_eu ? 0 : 30
@@ -144,7 +144,7 @@ if found and dayKey != ultimo
 var table tb = table.new(position.bottom_right, 2, 13, frame_width = 1, border_width = 4)
 
 if barstate.islast
-    table.cell(tb, 0, 0, 'RAW PRO · ' + mercado, text_size = size.small)
+    table.cell(tb, 0, 0, 'RAW PRO · ' + (es_eu ? 'Xetra' : 'EE. UU.'), text_size = size.small)
     table.cell(tb, 1, 0, pEstado, text_size = size.small, text_color = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu)
     table.cell(tb, 0, 1, 'Entrada')
     table.cell(tb, 1, 1, na(pEntry) ? '-' : str.tostring(pEntry, '#.##'))
