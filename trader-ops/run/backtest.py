@@ -38,6 +38,12 @@ def main(argv=None):
     ap.add_argument("--entry-cutoff", default="15:30", help="ultima entrada ET HH:MM")
     ap.add_argument("--flat", default="15:50", help="barra de cierre ET HH:MM")
     ap.add_argument("--slippage-bps", type=float, default=0.0, help="deslizamiento por lado en bps")
+    ap.add_argument("--exit", choices=("fixed", "be_trail", "trail"), default="fixed",
+                    help="fixed = stop y objetivo; be_trail = breakeven + trailing; trail = trailing")
+    ap.add_argument("--be-at-r", type=float, default=1.0,
+                    help="R a partir del cual el stop pasa a la entrada o empieza a perseguir")
+    ap.add_argument("--trail-r", type=float, default=1.0,
+                    help="distancia del trailing por debajo del maximo, en R")
     ap.add_argument("--split", type=float, default=0.0,
                     help="0 = sin split; 0.7 = 70%% in-sample / 30%% out-of-sample")
     ap.add_argument("--features", help="CSV de features/labels para un futuro modelo")
@@ -82,7 +88,8 @@ def main(argv=None):
         min_price=float(a.min_price), strategy=a.strategy, con_costes=not a.no_costs,
         max_cost_r=a.max_cost_r, or_minutes=a.or_minutes, target_r=a.target_r,
         stop_rule=a.stop_rule, entry_cutoff=corte, flat=flat,
-        slippage_bps=a.slippage_bps)
+        slippage_bps=a.slippage_bps, exit_mode=a.exit, be_at_r=a.be_at_r,
+        trail_r=a.trail_r)
     res = backtest.resumen(trades)
     backtest.imprimir(trades, meta, res)
     extra = {}

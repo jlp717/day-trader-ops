@@ -170,5 +170,45 @@ class BotNivel(unittest.TestCase):
             self.assertIn("Uso:", self.bot.c_nivel(None, ["TLK"]))
 
 
+class Salidas(unittest.TestCase):
+    def _b(self, m, o, h, l, c):
+        t = int(dt.datetime(2026, 11, 19, 10, m, tzinfo=NY).timestamp())
+        return {"t": t, "o": o, "h": h, "l": l, "c": c, "v": 100}
+
+    def test_fixed_no_toca_nada(self):
+        bars = [self._b(0, 100, 100, 100, 100),
+                self._b(5, 100, 101.2, 100.1, 100.5),
+                self._b(10, 100.5, 100.8, 100.0, 100.2)]
+        px, motivo, _ = estrategias.ORB()._salida(
+            bars, 0, 99.0, 102.0, dt.time(15, 50), entry=100.0, mode="fixed")
+        self.assertEqual(motivo, "eod")
+        self.assertEqual(px, 100.2)
+
+    def test_be_trail_saca_breakeven_mas(self):
+        bars = [self._b(0, 100, 100, 100, 100),
+                self._b(5, 100, 101.2, 100.1, 100.5),
+                self._b(10, 100.5, 100.8, 100.0, 100.2)]
+        px, motivo, _ = estrategias.ORB()._salida(
+            bars, 0, 99.0, 102.0, dt.time(15, 50), entry=100.0,
+            mode="be_trail", be_at_r=1.0, trail_r=1.0)
+        self.assertEqual(motivo, "stop")
+        self.assertGreater(px, 100.0)
+        self.assertLess(px, 101.2)
+
+    def test_trailing_no_dispara_antes_de_activarse(self):
+        bars = [self._b(0, 100, 100, 100, 100),
+                self._b(5, 100, 100.4, 99.6, 99.8),
+                self._b(10, 99.8, 99.9, 99.1, 99.2)]
+        px, motivo, _ = estrategias.ORB()._salida(
+            bars, 0, 99.0, 102.0, dt.time(15, 50), entry=100.0,
+            mode="be_trail", be_at_r=1.0, trail_r=1.0)
+        self.assertEqual(motivo, "eod")
+
+    def test_backtest_pasa_el_modo(self):
+        import inspect
+        from lib import backtest
+        self.assertIn("exit_mode", inspect.signature(backtest.correr).parameters)
+
+
 if __name__ == "__main__":
     unittest.main()

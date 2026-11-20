@@ -63,7 +63,8 @@ def _cierres(groups):
 def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
            min_price=5.0, strategy="orb", con_costes=True, max_cost_r=None,
            or_minutes=15, target_r=2.0, stop_rule="mid",
-           entry_cutoff=None, flat=None, slippage_bps=0.0):
+           entry_cutoff=None, flat=None, slippage_bps=0.0,
+           exit_mode="fixed", be_at_r=1.0, trail_r=1.0):
     """Devuelve (trades, meta). No lanza por un simbolo roto: lo anota."""
     est = estrategias.get(strategy)
     trades = []
@@ -71,7 +72,8 @@ def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
             "max_loss": max_loss, "min_dv": min_dv, "min_price": min_price,
             "max_cost_r": max_cost_r, "or_minutes": or_minutes,
             "target_r": target_r, "stop_rule": stop_rule,
-            "slippage_bps": slippage_bps, "symbols": {}}
+            "slippage_bps": slippage_bps, "exit_mode": exit_mode,
+            "be_at_r": be_at_r, "trail_r": trail_r, "symbols": {}}
     for sym in symbols:
         sym = sym.strip().upper()
         if not sym:
@@ -102,7 +104,8 @@ def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
                     comision_fn=_coste if con_costes else None,
                     min_price=min_price, or_minutes=or_minutes,
                     target_r=target_r, stop_rule=stop_rule,
-                    slippage_bps=slippage_bps, **kw)
+                    slippage_bps=slippage_bps, exit_mode=exit_mode,
+                    be_at_r=be_at_r, trail_r=trail_r, **kw)
                 if not t:
                     continue
                 if max_cost_r is not None and t["qty"] and t["risk"]:

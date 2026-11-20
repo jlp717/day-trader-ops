@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **148 propios** + 315 del skill |
+| Tests | **174 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -428,6 +428,32 @@ Conclusión de las tres: **ninguna hipótesis medida con datos gratis y ejecuci�
 los costes con ventaja sostenida**. El cuello de botella no es el código; es la ventaja y el
 coste por operación.
 
+### 9d. Las salidas: fijo, breakeven y trailing (20/11/2026)
+
+La pregunta era: si llegamos al objetivo y sigue subiendo, ¿no deberíamos perseguir el precio?
+Se implementaron tres políticas de salida y se midieron sobre los mismos 1.264 trades del ORB
+(40 valores, 60 sesiones, **sin costes** para aislar el efecto de la salida):
+
+| Salida | Acierto | R neto | Drawdown máx. | Duración media |
+| --- | ---: | ---: | ---: | ---: |
+| Objetivo fijo 1R | 46,4 % | −78,9R | −85,8R | 125 min |
+| Objetivo fijo 2R | 40,0 % | −90,8R | −93,6R | 177 min |
+| Breakeven a 1R + trailing 1R | 45,9 % | −78,4R | −80,2R | 160 min |
+| Trailing desde 0,5R | 32,0 % | −67,2R | −67,6R | 116 min |
+
+Lectura: el trailing **mejora la forma** (menos drawdown, menos pérdida, operaciones más cortas)
+pero **no cambia el signo**. Con una entrada sin ventaja, ninguna salida gana dinero; con una
+entrada con ventaja, la salida amplifica o recorta esa ventaja, no la crea.
+
+Esto responde también a la otra duda: sí, un stop te saca y a veces el precio se da la vuelta.
+El stop no está para acertar, está para que una operación mala no se convierta en una ruina. Si
+se quiere participar de la continuación, la herramienta correcta es el trailing, y su coste es
+más operaciones pequeñas y menos aciertos.
+
+El skill original usa **objetivo 1R** en su propio ejemplo y su Time Machine concluye "close to
+a coin flip". Su README lo dice sin rodeos: "Most people who day trade lose money". No vende
+ventaja: vende proceso.
+
 ---
 
 ## 10. Veredicto (20/11/2026)
@@ -439,7 +465,7 @@ Lo que está **terminado y probado**, y no depende de dinero:
 - backtest configurable con costes, slippage y split IS/OOS;
 - dos estrategias registradas, tres ejecuciones de papel (local, Alpaca, piloto bracket);
 - radar pre/post automático, con estado **separado** del P&L intradía;
-- IEX top-of-book, ML baseline walk-forward, 148 tests propios.
+- IEX top-of-book, ML baseline walk-forward, 174 tests propios.
 
 Lo que **no** está demostrado, y es lo único que importa para ganar:
 
@@ -501,3 +527,51 @@ La frase que resume el proyecto: **la ingeniería está terminada; la ventaja es
 | 22:05 | radar postmarket | `DayTraderOps-PostRadar` → Telegram |
 
 Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una decisión, no un fallo.
+
+---
+
+## 13. Estado por fases: listo, en desarrollo y pendiente de mercado real
+
+### Listo (código, tests y documentación)
+
+| Pieza | Evidencia |
+| --- | --- |
+| Motor intradía determinista y trazable | 174 tests propios |
+| Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
+| Backtest con costes, slippage, IS/OOS y tres tipos de salida | `lib/backtest.py`, `lib/estrategias.py` |
+| Tres hipótesis medidas y documentadas | ORB, `gap_reclaim`, swing RSI-2 (§9b–9d) |
+| Radar pre/post automático y separado | tareas 13:10 y 22:05 |
+| Vigilante de niveles cada 30 s | `run/vigia.py`, tarea 15:25 |
+| Niveles manuales persistentes | `lib/niveles.py`, `/nivel` |
+| Ejecución de papel (local y Alpaca) | `lib/brokers.py`, `run/orden.py`, `run/piloto.py` |
+| ML baseline walk-forward | `lib/ml.py` (sin señal: AUC 0,269) |
+
+### En desarrollo
+
+Nada de código. La fase abierta es la **validación**, y no avanza escribiendo: avanza operando.
+
+### Pendiente de mercado real (no se puede simular)
+
+| Pendiente | Por qué no está hecho |
+| --- | --- |
+| 30–50 operaciones cerradas propias | hoy hay 0; requiere sesiones reales |
+| R neto, acierto y drawdown reales | dependen de los fills de MyInvestor |
+| Deslizamiento real vs plan | solo se mide con ejecuciones reales |
+| Vigilante probado en vivo | hoy solo pruebas offline y mercado cerrado |
+| Decidir si el trailing ayuda **a tu operativa** | el backtest dice que mejora la forma, no el signo |
+
+### Pendiente de dinero o de una decisión tuya
+
+| Pendiente | Qué necesita |
+| --- | --- |
+| Nivel 2 completo | suscripción Polygon/Databento |
+| Automatización de ejecución | IBKR (API) + cuenta de papel + límites |
+| Europa | proyecto separado: horario, bróker, datos, fiscalidad |
+| Ejecución real | bróker fondeado + 30–50 trades + aprobación explícita |
+
+### Bloqueado por el bróker
+
+- **Automatizar con MyInvestor**: no hay API de órdenes.
+- **Operar pre/post**: MyInvestor no permite órdenes extendidas.
+
+Un pendiente con motivo no es un fallo oculto: es una decisión de ingeniería.

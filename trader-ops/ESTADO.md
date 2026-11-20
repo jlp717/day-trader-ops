@@ -190,6 +190,9 @@ día 7 de dos señales.
 - **Radar pre/post automático (20/11)**: tareas `DayTraderOps-PreRadar` (13:10) y
   `DayTraderOps-PostRadar` (22:05), con envío a Telegram; estado en `state/pre|post`. Separado
   del P&L intradía. **144 tests propios OK**.
+- **Salidas medidas (20/11)**: se añadieron `fixed`, `be_trail` y `trail` al backtest. Sobre 1.264
+  trades del ORB: fijo 1R −78,9R; fijo 2R −90,8R; breakeven+trailing −78,4R (DD −80R); trailing
+  desde 0,5R −67,2R (DD −68R). **El trailing mejora la forma, no el signo.** 174 tests propios OK.
 - **Tres hipótesis medidas (20/11)**: ORB en 40 valores y 1.264 trades → −1.650R (y negativo
   sin costes); `gap_reclaim` → −59R (bruto +3,8R, sin ventaja); swing RSI-2 → bruto +0,30 %/trade
   pero −0,25 % neto por el coste de MyInvestor y bruto negativo fuera de muestra. **Ninguna

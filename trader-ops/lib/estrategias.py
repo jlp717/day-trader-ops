@@ -42,7 +42,8 @@ class ORB:
 
     def simular_dia(self, symbol, day, bars, *, max_loss=50.0, comision_fn=None,
                     min_price=5.0, or_minutes=15, target_r=2.0, stop_rule="mid",
-                    entry_cutoff=ENTRADA_FIN, flat=FLAT, slippage_bps=0.0):
+                    entry_cutoff=ENTRADA_FIN, flat=FLAT, slippage_bps=0.0,
+                    exit_mode="fixed", be_at_r=1.0, trail_r=1.0):
         """Devuelve un trade (dict) o None. `bars` = barras ordenadas de ese dia NY."""
         minutos = max(5, int(or_minutes))
         n_or = max(1, minutos // 5)
@@ -82,15 +83,32 @@ class ORB:
         if qty <= 0:
             return None
 
-        exit_px, exit_reason, exit_bar = self._salida(bars, idx, stop, target, flat)
+        exit_px, exit_reason, exit_bar = self._salida(
+            bars, idx, stop, target, flat, entry=entry, mode=exit_mode,
+            be_at_r=be_at_r, trail_r=trail_r)
         if exit_px is None:
             return None
         return self._ficha(symbol, day, high, low, mid, entry, stop, target, qty,
                            bars[idx], exit_px, exit_reason, exit_bar,
                            comision_fn=comision_fn, slippage_bps=slippage_bps)
 
-    def _salida(self, bars, idx, stop, target, flat):
-        """(precio, motivo, barra) de salida, o (None, None, None) si no hay datos."""
+    def _salida(self, bars, idx, stop, target, flat, *, entry=None,
+                mode="fixed", be_at_r=1.0, trail_r=1.0):
+        """(precio, motivo, barra) de salida, o (None, None, None) si no hay datos.
+
+        mode="fixed": stop y objetivo fijos (comportamiento original).
+        mode="be_trail": al llegar a `be_at_r` R mueve el stop a la entrada y luego
+        lo persigue a `trail_r` R por debajo del maximo alcanzado.
+        mode="trail": persigue desde el primer momento (sin objetivo fijo).
+
+        El stop se actualiza con el maximo de la barra anterior y se comprueba con
+        el minimo de la siguiente: conservador, nunca asume el mejor orden posible.
+        """
+        modo = str(mode or "fixed").lower()
+        usar_trailing = modo in ("be_trail", "trail") and entry is not None
+        cur = float(stop)
+        hw = float(entry) if entry is not None else None
+        risk = (float(entry) - float(stop)) if entry is not None else None
         exit_px = exit_reason = exit_bar = None
         for b in bars[idx + 1:]:
             o = b.get("o")
@@ -101,24 +119,30 @@ class ORB:
                 continue
             t = ny(b["t"]).time()
             # Hueco: el open ya esta fuera del stop o del objetivo.
-            if o is not None and float(o) <= stop:
+            if o is not None and float(o) <= cur:
                 exit_px, exit_reason, exit_bar = float(o), "stop_gap", b
                 break
-            if o is not None and float(o) >= target:
+            if not usar_trailing and o is not None and float(o) >= target:
                 exit_px, exit_reason, exit_bar = float(o), "target_gap", b
                 break
-            hit_stop = float(l) <= stop
-            hit_target = float(h) >= target
+            hit_stop = float(l) <= cur
+            hit_target = (not usar_trailing) and float(h) >= target
             if hit_stop and hit_target:
                 # Conservador: si en la misma barra toca los dos, asumimos stop.
-                exit_px, exit_reason, exit_bar = stop, "stop_mismo_bar", b
+                exit_px, exit_reason, exit_bar = cur, "stop_mismo_bar", b
                 break
             if hit_stop:
-                exit_px, exit_reason, exit_bar = stop, "stop", b
+                exit_px, exit_reason, exit_bar = cur, "stop", b
                 break
             if hit_target:
                 exit_px, exit_reason, exit_bar = target, "target", b
                 break
+            if usar_trailing and risk and risk > 0:
+                hw = max(hw, float(h))
+                avance = (hw - float(entry)) / risk
+                if avance >= float(be_at_r):
+                    cur = max(cur, float(entry))
+                    cur = max(cur, hw - float(trail_r) * risk)
             if t >= flat:
                 exit_px, exit_reason, exit_bar = float(c), "flat", b
                 break
@@ -193,7 +217,8 @@ class GapReclaim(ORB):
     def simular_dia(self, symbol, day, bars, *, max_loss=50.0, comision_fn=None,
                     min_price=5.0, or_minutes=15, target_r=2.0, stop_rule="mid",
                     entry_cutoff=ENTRADA_FIN, flat=FLAT, slippage_bps=0.0,
-                    prev_close=None, gap_min_pct=None, min_room_r=None):
+                    prev_close=None, gap_min_pct=None, min_room_r=None,
+                    exit_mode="fixed", be_at_r=1.0, trail_r=1.0):
         if prev_close is None or len(bars) < 3:
             return None
         prev_close = float(prev_close)
@@ -240,7 +265,9 @@ class GapReclaim(ORB):
         if qty <= 0:
             return None
 
-        exit_px, exit_reason, exit_bar = self._salida(bars, idx, stop, target, flat)
+        exit_px, exit_reason, exit_bar = self._salida(
+            bars, idx, stop, target, flat, entry=entry, mode=exit_mode,
+            be_at_r=be_at_r, trail_r=trail_r)
         if exit_px is None:
             return None
         return self._ficha(symbol, day, trigger, stop, prev_close, entry, stop, target,
