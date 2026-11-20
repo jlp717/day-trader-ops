@@ -17,14 +17,18 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import alertas, avisos, calendario, datos, posiciones, telegram, zonatiempo as zt  # noqa: E402
+from lib import alertas, avisos, calendario, datos, niveles, posiciones, telegram, zonatiempo as zt  # noqa: E402
 
 
 def simbolos():
-    """Solo lo que tiene un nivel armado: reglas US y posiciones abiertas."""
+    """Solo lo que tiene un nivel armado: reglas US, niveles manuales y posiciones."""
     out = []
     for r in alertas.reglas_skill():
         s = str(r.get("symbol") or "").upper()
+        if s and s not in out:
+            out.append(s)
+    for f in niveles.todos():
+        s = str(f.get("symbol") or "").upper()
         if s and s not in out:
             out.append(s)
     for p in posiciones.abiertas():
@@ -46,17 +50,26 @@ def precios(syms, pausa=0.4):
 
 
 def revisar(syms=None):
+    """Lista de avisos en texto: reglas del skill y niveles manuales."""
     syms = syms if syms is not None else simbolos()
     if not syms:
         return []
     px = precios(syms)
-    return alertas.comprobar(px)
+    eventos = []
+    for r, p in alertas.comprobar(px):
+        eventos.append("%s  %s" % (r.get("symbol"),
+                                   r.get("message") or ("%.2f" % p)))
+    for fila, tipo, p, nivel in niveles.comprobar(px):
+        etiqueta = "stop" if tipo == "stop" else "objetivo"
+        eventos.append("%s a %.2f (nivel %s de %.2f)" % (
+            fila.get("symbol"), p, etiqueta, nivel))
+    return eventos
 
 
-def texto(rings):
+def texto(eventos):
     lineas = ["<b>Nivel tocado</b>"]
-    for r, px in rings:
-        lineas.append("  %s  %s" % (r.get("symbol"), r.get("message") or ("%.2f" % px)))
+    for e in eventos:
+        lineas.append("  " + e)
     lineas.append("Revisa /guia y decide. El sistema no envia ordenes.")
     return "\n".join(lineas)
 
@@ -85,13 +98,12 @@ def main(argv=None):
 
     tg = telegram.Telegram() if a.send else None
     while True:
-        rings = revisar()
-        if rings:
-            msg = texto(rings)
+        eventos = revisar()
+        if eventos:
+            msg = texto(eventos)
             print(msg.replace("<b>", "").replace("</b>", ""))
             if tg:
-                clave = "vigia:%s" % ",".join(str(r.get("id")) for r, _px in rings)
-                avisos.send_once(tg, clave[:180], msg)
+                avisos.send_once(tg, ("vigia:" + "|".join(eventos))[:180], msg)
         if a.once:
             return 0
         if limite and time.time() >= limite:

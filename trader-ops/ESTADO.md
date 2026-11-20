@@ -190,6 +190,13 @@ día 7 de dos señales.
 - **Radar pre/post automático (20/11)**: tareas `DayTraderOps-PreRadar` (13:10) y
   `DayTraderOps-PostRadar` (22:05), con envío a Telegram; estado en `state/pre|post`. Separado
   del P&L intradía. **144 tests propios OK**.
+- **Tres hipótesis medidas (20/11)**: ORB en 40 valores y 1.264 trades → −1.650R (y negativo
+  sin costes); `gap_reclaim` → −59R (bruto +3,8R, sin ventaja); swing RSI-2 → bruto +0,30 %/trade
+  pero −0,25 % neto por el coste de MyInvestor y bruto negativo fuera de muestra. **Ninguna
+  supera costes con ventaja sostenida.**
+- **Niveles manuales (20/11)**: `lib/niveles.py`, `/nivel T <stop> <objetivo>`, `/nivel_quitar T`.
+  Persisten sin depender del skill y el vigilante los revisa cada 30 s. Armados TLK 11,20/12,38
+  y SIRI 31,80/33,76.
 - **Vigilante rápido (20/11)**: `run/vigia.py` revisa cada 30 s solo los símbolos con nivel
   armado (posiciones y `/alerta`), marca el timbre en `trader/state/alerts.json` (el mismo del
   skill, sin doble aviso) y termina solo al cierre. Tarea `DayTraderOps-Vigia` a las 15:25.

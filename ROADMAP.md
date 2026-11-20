@@ -19,7 +19,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 | **0. Base de papel** | **DONE** | motor, Telegram, paneles, manual, 144 tests | nada |
 | **1. Datos y contraste** | **DONE** | Yahoo + CNBC + Finnhub; cross-check 0,5 % | nada crítico |
 | **2. Medición / backtest** | **DONE** como herramienta | ORB configurable, costes, slippage, IS/OOS, features | validar la estrategia con 30–50 trades |
-| **3. Multi-estrategia** | **IN PROGRESS** | registro, `orb`, `orb_low` (variante) | una segunda estrategia con hipótesis y muestra |
+| **3. Multi-estrategia** | **DONE (medida)** | `orb`, `orb_low`, `gap_reclaim`, swing RSI-2 | las tres hipótesis nuevas pierden con costes; falta una con ventaja |
 | **4. Ejecución de papel** | **IN PROGRESS** | `PaperBroker` local; `AlpacaPaperBroker` disponible pero no se usa (broker: MyInvestor) | integrarla en el flujo o dejarla manual |
 | **5. Nivel 2 / microestructura** | **PARTIAL** | IEX top-of-book gratis (bid/ask/tamaño) | L2 completo: proveedor de pago |
 | **6. Machine learning** | **BASELINE DONE** | logística walk-forward, features, AUC 0,269 | 300–500 trades; hoy no hay señal |

@@ -108,6 +108,8 @@ solo lectura).
 ```
 AGENTS.md                 contrato permanente del proyecto (leer antes de tocar nada)
 REFERENCIA.md             referencia, límites y hoja de ruta (pre/post, Europa, ejecución)
+trader-ops/run/swing.py    backtest y radar de la hipótesis swing RSI-2
+trader-ops/run/vigia.py    vigilante de niveles cada 30 s (stops y objetivos)
 ROADMAP.md                fases: qué está hecho, qué se está haciendo y qué queda
 INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/

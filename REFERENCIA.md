@@ -407,6 +407,27 @@ Conclusión: la hipótesis "ruptura del rango de apertura, largo, objetivo 2R" *
 en este periodo. No se escala, no se automatiza y no se le añaden filtros para maquillarla: se
 sustituye por otra hipótesis con su propio backtest.
 
+### 9c. Otras dos hipótesis, medias con las mismas reglas
+
+Mismo universo (40 valores), mismas 60 sesiones, mismo split 70/30, mismos costes:
+
+| Hipótesis | Trades | Acierto | Neto con costes | Bruto | Out-of-sample |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Hueco a la baja + recuperación (`gap_reclaim`) | 112 | 30,4 % | **−59,1R** | +3,8R | −3,8R |
+| Swing RSI-2 sobre acciones (`swing.py`) | 384 | 55,2 % | **−0,247 %/trade** | +0,303 %/trade | bruto −0,106 %/trade |
+
+Lectura:
+
+- **`gap_reclaim`**: el bruto es cero estadístico (+0,03R por trade). El hueco no se cierra
+  intradía: 57 de 112 salidas son por cierre de sesión. Sin ventaja.
+- **RSI-2**: el efecto existe en bruto (+0,303 % por trade, 55 % de acierto) pero **el coste de
+  MyInvestor (≈0,52-0,55 % ida y vuelta) se lo come entero**, y fuera de muestra el bruto ya es
+  negativo. Con un bróker de 0,07 % seguiría sin ventaja fuera de muestra.
+
+Conclusión de las tres: **ninguna hipótesis medida con datos gratis y ejecución manual supera
+los costes con ventaja sostenida**. El cuello de botella no es el código; es la ventaja y el
+coste por operación.
+
 ---
 
 ## 10. Veredicto (20/11/2026)

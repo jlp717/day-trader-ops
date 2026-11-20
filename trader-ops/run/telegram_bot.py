@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
 from lib import apertura, briefing, calendario, cfg, criterios, datos, diario, ganadores, mercado  # noqa: E402
-from lib import ahora, alertas, estado_vivo, referencias, prepost  # noqa: E402
+from lib import ahora, alertas, estado_vivo, niveles, referencias, prepost  # noqa: E402
 from lib import posiciones, proceso, registro, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
@@ -792,6 +792,7 @@ def c_ayuda(bot, args):
             "/vender T precio · /stop T precio · /posiciones · /pnl\n"
             "<b>Guia:</b> /chuleta · comandos, stops y objetivos · /guia · qué hacer ahora, paso a paso, con la posición real\n"
             "<b>Pre/post:</b> /pre T · /post T · radar con run/prepost.py --radar\n"
+            "<b>Niveles:</b> /nivel · /nivel T <stop> <objetivo> · /nivel_quitar T\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -925,6 +926,46 @@ def c_pre(bot, args):
 
 def c_post(bot, args):
     return _prepost_cmd("post", args)
+
+
+def c_nivel(bot, args):
+    """Niveles manuales: /nivel, /nivel TLK, /nivel TLK 11.20 12.38."""
+    if not args:
+        return niveles.texto()
+    sym = _ticker(args[0])
+    if not sym:
+        return "Uso: /nivel TLK 11.20 12.38 (stop y objetivo)"
+    if len(args) == 1:
+        filas = [f for f in niveles.todos() if f.get("symbol") == sym]
+        if not filas:
+            return "Sin nivel para %s. Uso: /nivel %s <stop> <objetivo>" % (sym, sym)
+        return niveles.texto().replace("Niveles manuales", "Nivel %s" % sym)
+    try:
+        stop = float(str(args[1]).replace(",", "."))
+    except ValueError:
+        return "El stop debe ser un numero. Uso: /nivel %s <stop> <objetivo>" % sym
+    target = None
+    if len(args) > 2:
+        try:
+            target = float(str(args[2]).replace(",", "."))
+        except ValueError:
+            return "El objetivo debe ser un numero."
+    try:
+        fila = niveles.poner(sym, stop=stop, target=target)
+    except ValueError as exc:
+        return "No se pudo guardar: %s" % exc
+    return "Nivel guardado: %s stop %.2f%s. El vigilante lo revisa cada 30 s." % (
+        sym, fila["stop"],
+        (" · objetivo %.2f" % fila["target"]) if fila.get("target") else "")
+
+
+def c_salir_nivel(bot, args):
+    if not args:
+        return "Uso: /nivel_quitar TLK"
+    sym = _ticker(args[0])
+    if not sym:
+        return "Uso: /nivel_quitar TLK"
+    return ("Nivel de %s borrado." % sym) if niveles.quitar(sym) else ("No habia nivel de %s." % sym)
 
 
 def c_guia(bot, args):
@@ -1728,7 +1769,7 @@ COMANDOS = {
     "ganadores": c_ganadores, "ganadoras": c_ganadores, "suben": c_ganadores,
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
     "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
-    "pre": c_pre, "post": c_post,
+    "pre": c_pre, "post": c_post, "nivel": c_nivel, "nivel_quitar": c_salir_nivel,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

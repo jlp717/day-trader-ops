@@ -82,9 +82,16 @@ class ORB:
         if qty <= 0:
             return None
 
-        exit_px = None
-        exit_reason = None
-        exit_bar = None
+        exit_px, exit_reason, exit_bar = self._salida(bars, idx, stop, target, flat)
+        if exit_px is None:
+            return None
+        return self._ficha(symbol, day, high, low, mid, entry, stop, target, qty,
+                           bars[idx], exit_px, exit_reason, exit_bar,
+                           comision_fn=comision_fn, slippage_bps=slippage_bps)
+
+    def _salida(self, bars, idx, stop, target, flat):
+        """(precio, motivo, barra) de salida, o (None, None, None) si no hay datos."""
+        exit_px = exit_reason = exit_bar = None
         for b in bars[idx + 1:]:
             o = b.get("o")
             h = b.get("h")
@@ -118,21 +125,27 @@ class ORB:
         if exit_px is None:
             last = bars[-1]
             if last.get("c") is None:
-                return None
+                return None, None, None
             exit_px, exit_reason, exit_bar = float(last["c"]), "eod", last
+        return exit_px, exit_reason, exit_bar
 
+    def _ficha(self, symbol, day, ref_high, ref_low, ref_mid, entry, stop, target,
+               qty, entry_bar, exit_px, exit_reason, exit_bar, *,
+               comision_fn=None, slippage_bps=0.0, extra=None):
+        """Trade con el mismo esquema para todas las estrategias."""
+        risk = entry - stop
         bps = max(0.0, float(slippage_bps or 0.0))
         entry_fill = entry * (1.0 + bps / 10000.0)
         exit_fill = exit_px * (1.0 - bps / 10000.0)
         gross_r = (exit_fill - entry_fill) / risk
         cost = float(comision_fn(entry_fill * qty)) if comision_fn else 0.0
         cost_r = cost / (qty * risk) if qty and risk else 0.0
-        return {
+        out = {
             "symbol": symbol.upper(),
             "date": day.isoformat(),
-            "or_high": round(high, 2),
-            "or_low": round(low, 2),
-            "or_mid": round(mid, 2),
+            "or_high": round(ref_high, 2),
+            "or_low": round(ref_low, 2),
+            "or_mid": round(ref_mid, 2),
             "entry": round(entry, 2),
             "entry_fill": round(entry_fill, 4),
             "stop": round(stop, 2),
@@ -142,13 +155,16 @@ class ORB:
             "exit": round(exit_px, 2),
             "exit_fill": round(exit_fill, 4),
             "exit_reason": exit_reason,
-            "entry_time": _hora(bars[idx], True),
+            "entry_time": _hora(entry_bar, True),
             "exit_time": _hora(exit_bar, exit_reason not in ("stop_gap", "target_gap")),
             "gross_r": round(gross_r, 4),
             "net_r": round(gross_r - cost_r, 4),
             "cost_usd": round(cost, 2),
             "pnl_usd": round(qty * (exit_fill - entry_fill) - cost, 2),
         }
+        if extra:
+            out.update(extra)
+        return out
 
 
 class ORBBajo(ORB):
@@ -161,7 +177,81 @@ class ORBBajo(ORB):
         return super().simular_dia(*args, **kwargs)
 
 
-REGISTRO = {"orb": ORB(), "orb_low": ORBBajo()}
+class GapReclaim(ORB):
+    """Hueco a la baja + recuperacion: compra el cierre que supera la primera barra.
+
+    Tesis: quien vendio en el hueco de apertura queda atrapado si el precio recupera el
+    maximo de la primera barra; el objetivo natural es cerrar el hueco (cierre previo).
+    Solo largo, una entrada por dia, stop en el minimo del dia hasta la entrada.
+    """
+
+    nombre = "gap_reclaim"
+    necesita_prev_close = True
+    GAP_MIN_PCT = 1.5
+    MIN_ROOM_R = 0.8
+
+    def simular_dia(self, symbol, day, bars, *, max_loss=50.0, comision_fn=None,
+                    min_price=5.0, or_minutes=15, target_r=2.0, stop_rule="mid",
+                    entry_cutoff=ENTRADA_FIN, flat=FLAT, slippage_bps=0.0,
+                    prev_close=None, gap_min_pct=None, min_room_r=None):
+        if prev_close is None or len(bars) < 3:
+            return None
+        prev_close = float(prev_close)
+        if prev_close <= 0:
+            return None
+        first = bars[0]
+        o, h = first.get("o"), first.get("h")
+        if o is None or h is None:
+            return None
+        o, h = float(o), float(h)
+        if o < float(min_price):
+            return None
+        gap_pct = (o - prev_close) / prev_close * 100.0
+        gmin = self.GAP_MIN_PCT if gap_min_pct is None else abs(float(gap_min_pct))
+        if gap_pct > -gmin:
+            return None
+
+        trigger = h
+        entry = idx = stop = None
+        for i, b in enumerate(bars[1:], start=1):
+            if ny(b["t"]).time() >= entry_cutoff:
+                break
+            c = b.get("c")
+            if c is not None and float(c) > trigger:
+                lows = [float(x["l"]) for x in bars[:i + 1] if x.get("l") is not None]
+                if not lows:
+                    return None
+                entry, idx, stop = float(c), i, cent_down(min(lows))
+                break
+        if entry is None or stop is None or stop >= entry:
+            return None
+        if entry < float(min_price):
+            return None
+        risk = entry - stop
+        if risk <= 0 or risk / entry < 0.0005:
+            return None
+
+        target = cent_down(prev_close)
+        room = (target - entry) / risk
+        umbral = self.MIN_ROOM_R if min_room_r is None else float(min_room_r)
+        if room < umbral:
+            return None
+        qty = int(float(max_loss) // risk)
+        if qty <= 0:
+            return None
+
+        exit_px, exit_reason, exit_bar = self._salida(bars, idx, stop, target, flat)
+        if exit_px is None:
+            return None
+        return self._ficha(symbol, day, trigger, stop, prev_close, entry, stop, target,
+                           qty, bars[idx], exit_px, exit_reason, exit_bar,
+                           comision_fn=comision_fn, slippage_bps=slippage_bps,
+                           extra={"prev_close": round(prev_close, 2),
+                                  "gap_pct": round(gap_pct, 2),
+                                  "room_r": round(room, 2)})
+
+
+REGISTRO = {"orb": ORB(), "orb_low": ORBBajo(), "gap_reclaim": GapReclaim()}
 
 
 def get(nombre="orb"):

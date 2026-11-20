@@ -48,6 +48,18 @@ def _coste(notional):
     return datos.coste_ida_vuelta_usd(notional)["total_usd"]
 
 
+def _cierres(groups):
+    """{dia: cierre de la sesion anterior} a partir de las barras de 5 minutos."""
+    out = {}
+    prev = None
+    for day in sorted(groups):
+        out[day] = prev
+        bars = groups[day]
+        if bars and bars[-1].get("c") is not None:
+            prev = float(bars[-1]["c"])
+    return out
+
+
 def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
            min_price=5.0, strategy="orb", con_costes=True, max_cost_r=None,
            or_minutes=15, target_r=2.0, stop_rule="mid",
@@ -74,12 +86,17 @@ def correr(symbols, days=30, max_loss=50.0, min_dv=20_000_000.0,
                     continue
             groups = barras_por_dia(sym, days)
             info["dias"] = len(groups)
+            cierres = _cierres(groups)
             for day, bars in groups.items():
                 kw = {}
                 if entry_cutoff is not None:
                     kw["entry_cutoff"] = entry_cutoff
                 if flat is not None:
                     kw["flat"] = flat
+                if getattr(est, "necesita_prev_close", False):
+                    kw["prev_close"] = cierres.get(day)
+                    if kw["prev_close"] is None:
+                        continue
                 t = est.simular_dia(
                     sym, day, bars, max_loss=max_loss,
                     comision_fn=_coste if con_costes else None,

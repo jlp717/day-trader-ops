@@ -207,6 +207,7 @@ class VigilanteRapido(unittest.TestCase):
         spec.loader.exec_module(vigia)
         with mock.patch.object(vigia.alertas, "reglas_skill",
                                return_value=[{"symbol": "NVDA"}, {"symbol": "NVDA"}]), \
+                mock.patch.object(vigia.niveles, "todos", return_value=[]), \
                 mock.patch.object(vigia.posiciones, "abiertas",
                                   return_value=[{"symbol": "AMD"}]), \
                 mock.patch.object(vigia, "revisar", return_value=[]):
