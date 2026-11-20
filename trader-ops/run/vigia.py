@@ -90,8 +90,8 @@ def main(argv=None):
             msg = texto(rings)
             print(msg.replace("<b>", "").replace("</b>", ""))
             if tg:
-                for r, _px in rings:
-                    avisos.send_once(tg, "vigia:%s" % r.get("id"), msg)
+                clave = "vigia:%s" % ",".join(str(r.get("id")) for r, _px in rings)
+                avisos.send_once(tg, clave[:180], msg)
         if a.once:
             return 0
         if limite and time.time() >= limite:
