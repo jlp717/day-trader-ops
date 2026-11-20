@@ -255,7 +255,7 @@ powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Inst
 powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Estado
 ```
 
-Esperado: `OK DayTraderOps`, `OK DayTraderOps-Watchdog`, `OK DayTraderOps-Bot`, todas en `Running`.
+Esperado: `OK DayTraderOps`, `OK DayTraderOps-Watchdog`, `OK DayTraderOps-Bot`, `OK DayTraderOps-PreRadar`, `OK DayTraderOps-PostRadar` y `OK DayTraderOps-Vigia`. Las tres primeras en `Running`; los radares y el vigilante en `Ready` hasta su hora.
 
 Arrancarlas ahora sin reiniciar:
 

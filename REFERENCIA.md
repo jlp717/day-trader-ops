@@ -32,7 +32,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 
 ---
 
-## 2. Estado actual (19/11/2026)
+## 2. Estado actual (20/11/2026)
 
 | Pieza | Estado |
 | --- | --- |
@@ -41,13 +41,14 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | 141 propios + 315 del skill |
+| Tests | **148 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
-| Ejecución | **Alpaca paper** (`lib/brokers.py`); real **no** |
+| Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
+| Piloto de papel | `run/piloto.py`: convierte una SEÑAL A en bracket **paper** (dry-run por defecto) |
 | Nivel 2 | **IEX top-of-book** (`lib/proveedores.py`); profundidad completa **no** |
 | Machine learning | **baseline logístico** (`lib/ml.py`); sin señal en la muestra |
-| Pre/post | **análisis** (`run/prepost.py`); ejecución **no** |
+| Pre/post | **análisis** (`run/prepost.py`, radar automático); ejecución **no** |
 
 ---
 
@@ -62,6 +63,7 @@ Medido en vivo el 19/11/2026, mercado abierto:
 | Finnhub | 9–23 s | tercer testigo; feed IEX, puede diferir unos céntimos |
 | Ficha MyInvestor | variable, a veces >10 min | no usar para decidir |
 | Ticket MyInvestor | el precio executable | la verdad para el fill |
+| Vigilante rapido (`run/vigia.py`) | 15-30 s | solo niveles armados, no el universo |
 
 Regla: si las fuentes difieren más de **0,5 %**, no se envía señal y se avisa con los valores.
 Si el dato tiene más de **300 s**, no hay señal (`frescura`).
@@ -275,6 +277,37 @@ Estado separado en `state/pre/` y `state/post/`; **no se suma al P&L intradía**
 
 Un hueco documentado y con puerta no es un fallo oculto: es una decisión de ingeniería.
 
+### 5.7 Broker: qué hace falta para automatizar
+
+Javier opera en **MyInvestor** y ahí se queda la ejecución mientras no haya una razón medida para
+cambiar. Esta tabla responde a la pregunta "¿y si cambio de bróker?" sin humo:
+
+| Bróker | API de órdenes | Cuenta de papel | Datos | Veredicto |
+| --- | --- | --- | --- | --- |
+| **MyInvestor** | **no** (app/web; el MCP es solo lectura) | no | ficha con retraso; el ticket manda | válido para validar a mano; **insuficiente** para latencia |
+| **Interactive Brokers** | sí (TWS API y Client Portal Web API) | **sí** | L1 incluido; L2 por suscripción | **candidato nº1** si se automatiza |
+| **Saxo Bank** | sí (OpenAPI) | sí | según cuenta | candidato europeo |
+| **Alpaca** | sí | **sí, gratis** | IEX en tiempo real, gratis | solo **medición**; cuenta real según país (no verificado para España) |
+| **DEGIRO** | no hay API pública oficial | no | — | descartado |
+| **Tradier / TradeStation** | sí | sí | — | orientados a EE. UU. | descartado para residencia española |
+
+Lo que la automatización **sí** resuelve: latencia de ejecución, disciplina (no se salta el plan),
+registro automático del fill y del R, y límites duros que el humano incumple cuando está delante
+de la pantalla.
+
+Lo que la automatización **no** resuelve: **la ventaja**. Un bróker con API sobre una estrategia con
+expectativa negativa pierde dinero más rápido y con mejor latencia. El orden correcto es
+**medir → validar → automatizar**, nunca al revés.
+
+Regla de decisión, ya escrita en el contrato:
+
+1. No se cambia de bróker ni se abre cuenta real hasta tener **30–50 operaciones cerradas** con
+   **R neto positivo** y drawdown conocido.
+2. Si se decide automatizar, el primer paso es **IBKR en papel** con el mismo adaptador
+   (`lib/brokers.py`), sin dinero y sin cambiar el flujo.
+3. El código actual **no tiene endpoint real** de ningún bróker: no hay forma de enviar una orden
+   real ni por error. Eso se mantiene hasta que Javier lo autorice por escrito.
+
 ---
 
 ## 6. Flujos de premarket y postmarket
@@ -355,23 +388,95 @@ Antes de considerar un flujo "vivo":
 El freno por evidencia del sistema ya exige 12 cerradas; para dinero real, 30–50 es el mínimo
 razonable.
 
+### 9b. El ORB, medido en un universo amplio (20/11/2026)
+
+Para descartar que el resultado negativo fuera de la muestra pequeña (2 valores, 60 días), se
+repitió con **40 valores líquidos de 10 sectores, 60 sesiones, 1.264 operaciones**:
+
+| Configuración | Trades | Acierto | R neto | In-sample | Out-of-sample |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| ORB, con costes, objetivo 2R | 1.264 | 16,1 % | **−1.650R** | −1.176R | −474R |
+| ORB, **sin costes**, objetivo 2R | 1.264 | 40,0 % | **−91R** | −47R | −44R |
+| ORB, **sin costes**, objetivo 1R | 1.264 | 46,4 % | **−79R** | −40R | −39R |
+
+Lectura: con objetivo 1R el punto de equilibrio está en el 50 % de acierto; el patrón da 46,4 %.
+**El problema no son las comisiones: el patrón bruto ya pierde.** Un coste medio de 1,23R solo
+convierte una pérdida pequeña en una pérdida enorme (59,4 % de los trades cuestan más de 1R).
+
+Conclusión: la hipótesis "ruptura del rango de apertura, largo, objetivo 2R" **queda falsificada**
+en este periodo. No se escala, no se automatiza y no se le añaden filtros para maquillarla: se
+sustituye por otra hipótesis con su propio backtest.
+
 ---
 
-## 10. Veredicto
+## 10. Veredicto (20/11/2026)
 
-- El sistema actual es **bueno en disciplina y trazabilidad**, no en alpha.
-- El backtesting es el siguiente paso correcto: mide el patrón antes de añadir capas.
-- Multi-estrategia es arquitectura; no crea ventaja por sí sola.
-- Ejecución real, nivel 2 y ML **no** son el siguiente paso; serían saltarse la validación.
-- Pre/post y Europa son **posibles**, pero son proyectos separados y con limitaciones de ejecución.
-- La prioridad es una: **cerrar 30–50 operaciones, medir R neto y decidir con datos**.
+Lo que está **terminado y probado**, y no depende de dinero:
+
+- motor intradía determinista, sin LLM, con trazabilidad de cada cifra;
+- datos con contraste a tres fuentes y bloqueo si difieren >0,5 %;
+- backtest configurable con costes, slippage y split IS/OOS;
+- dos estrategias registradas, tres ejecuciones de papel (local, Alpaca, piloto bracket);
+- radar pre/post automático, con estado **separado** del P&L intradía;
+- IEX top-of-book, ML baseline walk-forward, 148 tests propios.
+
+Lo que **no** está demostrado, y es lo único que importa para ganar:
+
+- **La ventaja.** El ORB bruto pierde −310R en la muestra pequeña y **−1.650R en 1.264 trades de
+  40 valores**; incluso **sin costes** pierde (−79R a 1R, −91R a 2R) con 46,4 % de acierto frente al
+  50 % que necesita. La hipótesis está **falsificada**, no "pendiente de muestra". El ML da AUC
+  0,269, que es ruido.
+- Por tanto, **no** es una terminal Bloomberg ni una máquina de ventaja. Es una herramienta de
+  disciplina, medición y alertas construida con estándar profesional.
+
+Lo que **no se puede comprar con código** (y hay que decirlo):
+
+| Carencia | Por qué | Qué la resuelve |
+| --- | --- | --- |
+| Profundidad L2 real | no existe gratis para acciones US | suscripción Polygon/Databento |
+| Ejecución en segundos | MyInvestor no tiene API de órdenes | bróker con API (IBKR/Saxo) |
+| Ventaja estadística | muestra de 60 días y 0 trades propios | 30–50 trades cerrados y más historia |
+| Datos institucionales | free tiene retraso y sin SLA | proveedor de pago |
+
+La frase que resume el proyecto: **la ingeniería está terminada; la ventaja está en evaluación.**
 
 ---
 
-## 11. Próximos pasos
+## 11. Próximos pasos (ordenados, sin humo)
 
-1. Ejecutar el backtest del ORB en un universo amplio y revisar los resultados.
-2. Comparar el backtest bruto con la señal filtrada.
-3. Si el patrón no tiene ventaja ni bruto, no añadir capas: replantear.
-4. Si la tiene, medir el efecto de cada filtro por separado.
-5. Solo después: premarket, postmarket y Europa, cada uno con su estado y su muestra.
+**Ahora, gratis, sin cambiar de bróker:**
+
+1. **Usar el sistema a diario** con la rutina de §12 y registrar **cada** operación con `/entre` y
+   `/sali`. Sin registro no hay muestra y sin muestra no hay decisión.
+2. **Cerrar 30–50 operaciones.** Es el único gate que desbloquea todo lo demás.
+3. **Medir** R neto, acierto, expectancy, profit factor y drawdown máximo (§9).
+4. **Piloto de papel** (`run/piloto.py`) para generar muestra sin riesgo y comparar el plan teórico
+   con el fill real.
+
+**Después, solo si la muestra es positiva:**
+
+5. Segunda estrategia **con hipótesis propia** (no una variante del ORB), con su backtest y su papel.
+6. Automatización de ejecución: IBKR en papel primero, con límites duros, idempotencia y kill switch.
+7. L2 de pago **solo si se mide** que el spread es lo que mata las entradas.
+8. ML con 300–500 trades; hoy no hay señal y no se usa.
+9. Europa como proyecto separado: otro horario, otro bróker, otros datos y otra fiscalidad.
+
+**Nunca:** ejecución real sin muestra, sin límites y sin aprobación explícita de Javier.
+
+---
+
+## 12. Rutina diaria (la que se usa de verdad)
+
+| Hora (Madrid) | Acción | Comando |
+| --- | --- | --- |
+| 12:50 | encender y comprobar salud | `saludo.py`, `/estado` |
+| 13:10 | radar premarket automático | tarea `DayTraderOps-PreRadar` → Telegram |
+| 15:00 | briefing y candidatos | `/briefing`, `/scan` |
+| 15:25 | vigilante rapido de niveles | tarea `DayTraderOps-Vigia` (30 s) |
+| 15:30 | apertura; niveles del ORB | `/apertura`, `/guia` |
+| 15:50–21:30 | señales y gestión | SEÑAL A, `/posiciones`, `/alertas` |
+| 21:55 | cerrar antes del cierre | `/guia`, `/vender` |
+| 22:00 | informe automático | tarea `DayTraderOps` |
+| 22:05 | radar postmarket | `DayTraderOps-PostRadar` → Telegram |
+
+Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una decisión, no un fallo.

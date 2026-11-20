@@ -21,7 +21,7 @@ $dog = Join-Path $root "trader-ops\run\watchdog.py"
 function Get-Task($name) { Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue }
 
 if ($Estado) {
-    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar")) {
+    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar", "DayTraderOps-Vigia")) {
         $t = Get-Task $n
         if ($t) {
             $i = Get-ScheduledTaskInfo -TaskName $n
@@ -32,7 +32,7 @@ if ($Estado) {
 }
 
 if ($Quitar) {
-    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar")) {
+    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar", "DayTraderOps-Vigia")) {
         if (Get-Task $n) { Unregister-ScheduledTask -TaskName $n -Confirm:$false; "Borrada $n" }
     }
     exit 0
@@ -78,6 +78,13 @@ $trigger5 = New-ScheduledTaskTrigger -Daily -At "22:05"
 Register-ScheduledTask -TaskName "DayTraderOps-PostRadar" -Action $action5 -Trigger $trigger5 `
     -Settings $settings -Description "Radar postmarket (solo analisis)" -Force | Out-Null
 "Registrado DayTraderOps-PostRadar (22:05 diario)"
+
+$vigia = Join-Path $root "trader-ops\run\vigia.py"
+$action6 = New-ScheduledTaskAction -Execute $pyw -Argument "`"$vigia`" --cada 30 --send" -WorkingDirectory $root
+$trigger6 = New-ScheduledTaskTrigger -Daily -At "15:25"
+Register-ScheduledTask -TaskName "DayTraderOps-Vigia" -Action $action6 -Trigger $trigger6 `
+    -Settings $settings -Description "Vigilante rapido de niveles (30 s, hasta el cierre)" -Force | Out-Null
+"Registrado DayTraderOps-Vigia (15:25 diario, se cierra solo al cierre)"
 
 "Para arrancarlo ahora sin reiniciar:"
 "  Start-ScheduledTask -TaskName DayTraderOps"

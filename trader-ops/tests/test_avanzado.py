@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import alpaca, brokers, ml, prepost, proveedores  # noqa: E402
+from lib import alertas, alpaca, brokers, ml, piloto, prepost, proveedores  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 
@@ -32,6 +32,44 @@ class AlpacaPaper(unittest.TestCase):
         with mock.patch.object(alpaca, "paper_request",
                                return_value={"status": "ACTIVE", "currency": "USD"}):
             self.assertEqual(brokers.AlpacaPaperBroker().cuenta()["status"], "ACTIVE")
+
+    def test_bracket(self):
+        with mock.patch.object(alpaca, "paper_request",
+                               return_value={"id": "b1", "order_class": "bracket"}) as m:
+            r = brokers.AlpacaPaperBroker().bracket(
+                "NVDA", 10, limit=100, stop=99, target=102, key="k1")
+        self.assertEqual(r["id"], "b1")
+        body = m.call_args.kwargs["body"]
+        self.assertEqual(body["order_class"], "bracket")
+        self.assertEqual(body["take_profit"]["limit_price"], "102.00")
+        self.assertEqual(body["stop_loss"]["stop_price"], "99.00")
+        self.assertEqual(body["client_order_id"], "k1")
+
+    def test_bracket_invalido(self):
+        with self.assertRaises(brokers.BrokerError):
+            brokers.AlpacaPaperBroker().bracket("NVDA", 1, limit=100, stop=101, target=102)
+
+
+class Piloto(unittest.TestCase):
+    class Fake:
+        nombre = "fake"
+
+        def bracket(self, symbol, qty, limit, stop, target, key=None):
+            return {"symbol": symbol, "qty": qty, "key": key}
+
+    def test_propuesta_y_dry(self):
+        senal = {"id": "s1", "symbol": "NVDA", "shares": 10,
+                 "plan": {"entry": 100, "stop": 99, "target": 102}}
+        p = piloto.propuesta(senal)
+        self.assertEqual(p["qty"], 10)
+        self.assertTrue(piloto.ejecutar(senal, broker=self.Fake(), confirm=False)["dry"])
+
+    def test_bracket_papel(self):
+        senal = {"id": "s1", "symbol": "NVDA", "shares": 10,
+                 "plan": {"entry": 100, "stop": 99, "target": 102}}
+        res = piloto.ejecutar(senal, broker=self.Fake(), confirm=True)
+        self.assertFalse(res["dry"])
+        self.assertEqual(res["orden"]["key"], "piloto:s1")
 
 
 class IEX(unittest.TestCase):
@@ -127,6 +165,52 @@ class BotPrePost(unittest.TestCase):
             txt = self.bot.c_pre(None, ["NVDA"])
         self.assertIn("Radar pre", txt)
         self.assertIn("NVDA", txt)
+
+
+class VigilanteRapido(unittest.TestCase):
+    def _doc(self, rules, rung=None):
+        return {"rules": rules, "rung": rung or {}}
+
+    def test_comprobar_stop_y_target(self):
+        doc = self._doc([
+            {"id": "r1", "symbol": "NVDA", "type": "stop", "price": 100},
+            {"id": "r2", "symbol": "AMD", "type": "target", "price": 200},
+        ])
+        with mock.patch.object(alertas, "_load", return_value=doc), \
+                mock.patch.object(alertas.cfg, "read_json", return_value={}), \
+                mock.patch.object(alertas.cfg, "write_json"):
+            rings = alertas.comprobar({"NVDA": 99.5, "AMD": 201.0})
+        self.assertEqual(len(rings), 2)
+        self.assertIn("stop", rings[0][0]["message"])
+        self.assertIn("objetivo", rings[1][0]["message"])
+
+    def test_no_repite_si_ya_sono(self):
+        doc = self._doc([{"id": "r1", "symbol": "NVDA", "type": "stop", "price": 100}])
+        with mock.patch.object(alertas, "_load", return_value=doc), \
+                mock.patch.object(alertas.cfg, "read_json",
+                                  return_value={"rung": {"r1": "2026-11-20T15:00:00Z"}}), \
+                mock.patch.object(alertas.cfg, "write_json"):
+            self.assertEqual(alertas.comprobar({"NVDA": 90.0}), [])
+
+    def test_precio_ausente_no_rompe(self):
+        doc = self._doc([{"id": "r1", "symbol": "NVDA", "type": "stop", "price": 100}])
+        with mock.patch.object(alertas, "_load", return_value=doc), \
+                mock.patch.object(alertas.cfg, "read_json", return_value={}), \
+                mock.patch.object(alertas.cfg, "write_json"):
+            self.assertEqual(alertas.comprobar({"AMD": 1.0}), [])
+
+    def test_simbolos_une_reglas_y_posiciones(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "vigia_mod", ROOT / "trader-ops" / "run" / "vigia.py")
+        vigia = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(vigia)
+        with mock.patch.object(vigia.alertas, "reglas_skill",
+                               return_value=[{"symbol": "NVDA"}, {"symbol": "NVDA"}]), \
+                mock.patch.object(vigia.posiciones, "abiertas",
+                                  return_value=[{"symbol": "AMD"}]), \
+                mock.patch.object(vigia, "revisar", return_value=[]):
+            self.assertEqual(vigia.simbolos(), ["NVDA", "AMD"])
 
 
 if __name__ == "__main__":

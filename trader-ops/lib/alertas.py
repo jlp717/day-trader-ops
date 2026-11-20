@@ -168,6 +168,45 @@ def comprobar_xetra(now=None):
     return rings
 
 
+def comprobar(precios, now=None, day=None):
+    """[(regla, precio)] de las reglas US (skill) que tocan con {SYM: precio}.
+
+    No consulta la red: el vigilante rapido pasa los precios ya obtenidos.
+    Marca el timbre en `trader/state/alerts.json`, el mismo que usa el skill, para
+    que la pasada de 5 minutos no repita el aviso.
+    """
+    now = now or zt.now_utc()
+    day = day or zt.ny(now).date().isoformat()
+    est = cfg.read_json(ESTADO, {}) or {}
+    rung = est.get("rung") or {}
+    rings = []
+    for r in _vigentes(REGLAS, day):
+        rid = r.get("id")
+        if rid in rung:
+            continue
+        if r.get("type") not in ("stop", "target", "above", "below"):
+            continue
+        px = precios.get(str(r.get("symbol") or "").upper())
+        if px is None:
+            continue
+        try:
+            px = float(px)
+            p = float(r["price"])
+        except (TypeError, ValueError):
+            continue
+        hit = (px <= p) if r["type"] in ("stop", "below") else (px >= p)
+        if hit:
+            rung[rid] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            rings.append((r, px))
+            etiqueta = {"stop": "stop", "target": "objetivo"}.get(r["type"], r["type"])
+            r["message"] = "%s esta a %.2f USD (nivel %s de %s)." % (
+                r["symbol"], px, etiqueta, p)
+    if rings:
+        est["rung"] = rung
+        cfg.write_json(ESTADO, est)
+    return rings
+
+
 def de_posicion(pos):
     """Ids de alerta de una posicion, aunque sea antigua y no los tenga guardados."""
     ids = list((pos or {}).get("alert_ids") or [])

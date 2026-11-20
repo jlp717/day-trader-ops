@@ -25,6 +25,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 | **6. Machine learning** | **BASELINE DONE** | logística walk-forward, features, AUC 0,269 | 300–500 trades; hoy no hay señal |
 | **7. Pre/post market** | **ANÁLISIS DONE** | `run/prepost.py`, radar, `/pre`, `/post`, estado separado | ejecución: MyInvestor no la permite |
 | **7c. Radar automático** | **DONE** | tareas `DayTraderOps-PreRadar` (13:10) y `-PostRadar` (22:05), envío Telegram | nada |
+| **7d. Vigilante rápido** | **DONE** | `run/vigia.py`: niveles cada 30 s, tarea `DayTraderOps-Vigia` (15:25), se cierra solo | nada |
 | **8. Europa** | **SEPARATE** | documentado | otro horario, bróker, datos y fiscalidad |
 | **9. Ejecución real** | **BLOCKED** | interfaz y modo papel | bróker fondeado + límites + aprobación |
 | **10. Ops y documentación** | **DONE** | README, REFERENCIA, manual 91 pág., tareas | nada |
@@ -53,6 +54,9 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
   CSV/JSON y features.
 - Resultado inicial: **el ORB bruto pierde** (292 trades, 18,8 %, −310R). El subconjunto con
   coste ≤0,5R también pierde (42 trades, 33,3 %, −17R).
+- **Prueba de robustez (20/11)**: 40 valores, 60 sesiones, **1.264 trades → −1.650R**. **Sin costes
+  también pierde** (−79R a 1R y −91R a 2R) con 46,4 % de acierto frente al 50 % necesario.
+  **Hipótesis falsificada**: el problema no son las comisiones, es el patrón.
 - Conclusión: el patrón bruto no es una ventaja; los filtros son la única esperanza y no están
   validados.
 

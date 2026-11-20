@@ -124,6 +124,31 @@ class AlpacaPaperBroker(Broker):
     def vender(self, symbol, qty, limit=None, key=None):
         return self._orden("sell", symbol, qty, limit=limit, key=key)
 
+    def bracket(self, symbol, qty, limit, stop, target, key=None):
+        """Orden bracket PAPEL: entrada limitada + stop + objetivo."""
+        qty = float(qty)
+        if qty <= 0:
+            raise BrokerError("cantidad invalida")
+        if not (float(stop) < float(limit) < float(target)):
+            raise BrokerError("el bracket exige stop < entrada < objetivo")
+        body = {
+            "symbol": str(symbol).upper(),
+            "qty": ("%g" % qty),
+            "side": "buy",
+            "type": "limit",
+            "limit_price": "%.2f" % float(limit),
+            "time_in_force": "day",
+            "order_class": "bracket",
+            "take_profit": {"limit_price": "%.2f" % float(target)},
+            "stop_loss": {"stop_price": "%.2f" % float(stop)},
+        }
+        if key:
+            body["client_order_id"] = str(key)[:48]
+        try:
+            return alpaca.paper_request("POST", "/v2/orders", body=body)
+        except alpaca.AlpacaError as exc:
+            raise BrokerError(str(exc))
+
     def cuenta(self):
         try:
             return alpaca.paper_request("GET", "/v2/account")
