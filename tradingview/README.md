@@ -8,6 +8,8 @@ Cuatro archivos, dos mercados y dos niveles:
 | `RAW_XETRA_LITE.pine` | Xetra (09:00 CET) | misma regla adaptada: solo COMPRA/VENTA |
 | `RAW_PRO_US.pine` | EE. UU. | completa: stop, objetivo, tamaño por riesgo, multiplicador y filtro diario |
 | `RAW_PRO_XETRA.pine` | Xetra | la completa adaptada a las 09:00 |
+| `RAW_STRATEGY_US.pine` | EE. UU. | **Strategy Tester**: mide P&L, drawdown y operaciones con comisiones |
+| `RAW_STRATEGY_XETRA.pine` | Xetra | igual, adaptada a las 09:00 |
 
 ## Cómo cargar uno
 
@@ -33,6 +35,18 @@ Cuatro archivos, dos mercados y dos niveles:
   variante es positiva después de costes.
 - No replica el "modo fondeo" del autor original: eso exige conocer tu P&L diario,
   y aquí no se inventa.
+
+## Versión strategy (para medir en TradingView)
+
+Copia `RAW_STRATEGY_US.pine` o `RAW_STRATEGY_XETRA.pine` en el Pine Editor, añádelo
+al gráfico y abre la pestaña **Strategy Tester**. Ahí ves el P&L, el drawdown, el
+número de operaciones y la lista de trades, con la comisión ya incluida.
+
+- Comisión por lado: 0,26 % en EE. UU. (equivale a 0,52 % ida y vuelta) y 0,15 % en
+  Xetra (0,30 %). Cámbiala en los ajustes del script si tu bróker cobra otra cosa.
+- El cierre forzado es 15:50 en EE. UU. y 17:25 en Xetra.
+- Si el resultado es negativo, es el resultado. No se ajusta el script para que
+  salga bonito.
 
 ## Aviso
 

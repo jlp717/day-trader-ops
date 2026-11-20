@@ -195,7 +195,7 @@ día 7 de dos señales.
   recomposición. 
 - **RAW NASDAQ LITE (20/11)**: Pine original en `tradingview/RAW_NASDAQ_LITE.pine`, versión
   Python `lib/raw.py` y `/raw T`. Medido en 40 valores y 60 sesiones: la señal COMPRA no bate
-  a la base (−0,18 % vs −0,14 % bruto; −0,70 % con coste). Es timing, no ventaja. **198 tests OK**.
+  a la base (−0,18 % vs −0,14 % bruto; −0,70 % con coste). Es timing, no ventaja. **201 tests OK**.
 - **Tesis de aguante e IBKR papel (20/11)**: `lib/tesis.py` (SMA50/200, caída desde
   máximo de 52 semanas, RSI14, ATR y fundamentos Finnhub) con veredicto intacta /
   observación / rota y zona de venta; comandos `/tesis T` y `/tesis T aguantar`. El vigilante

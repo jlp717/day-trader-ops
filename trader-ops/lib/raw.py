@@ -58,8 +58,28 @@ def _por_dia(bars, tz):
     return dias
 
 
+def filtrar_sesion(bars, mercado="us"):
+    """Deja solo las barras de la sesion regular (sin pre/post).
+
+    Alpaca devuelve horario extendido; la EMA tiene que calcularse con las mismas
+    barras que veria el grafico de TradingView con el premarket oculto.
+    """
+    cfg = _cfg(mercado)
+    tz = cfg["tz"]
+    inicio = cfg["apertura"]
+    fin = dt.time(17, 30) if str(mercado).lower() == "eu" else dt.time(16, 0)
+    out = []
+    for b in bars:
+        if b.get("t") is None:
+            continue
+        if inicio <= _local(b["t"], tz).time() < fin:
+            out.append(b)
+    return out
+
+
 def senales(bars, mercado="us"):
     """[{date, dir, close, ema, high, low, entry, exit, pct}] por sesion."""
+    bars = filtrar_sesion(bars, mercado)
     cfg = _cfg(mercado)
     tz = cfg["tz"]
     apertura = cfg["apertura"]
@@ -114,6 +134,56 @@ def barras(symbol, rango="60d"):
     return [b for b in (doc.get("bars") or []) if b.get("c") is not None]
 
 
+def barras_alpaca(symbol, desde="2016-01-01", hasta=None, feed="sip", ttl=24 * 3600):
+    """Velas de 5 min consolidadas (SIP) desde Alpaca, con cache en disco.
+
+    Yahoo solo da 60 sesiones de 5 min; Alpaca da años. Es la unica forma de
+    medir la regla con una muestra de verdad.
+    """
+    import datetime as dt
+    import json
+    import os
+    import time
+    from . import alpaca
+    from . import cfg
+
+    sym = str(symbol).upper().strip()
+    fin = hasta or (dt.date.today() - dt.timedelta(days=1)).isoformat()
+    cache = cfg.CACHE / ("alpaca_v3_%s_%s_%s.json" % (sym, desde, fin))
+    if cache.exists() and (time.time() - cache.stat().st_mtime) < ttl:
+        try:
+            with open(cache, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    out = []
+    token = None
+    while True:
+        params = {"symbols": sym, "timeframe": "5Min",
+                  "start": desde + "T00:00:00Z", "end": fin + "T23:59:59Z",
+                  "feed": feed, "limit": 10000, "adjustment": "raw"}
+        if token:
+            params["page_token"] = token
+        doc = alpaca.data_request("/v2/stocks/bars", params)
+        for b in ((doc.get("bars") or {}).get(sym) or []):
+            out.append({"t": int(dt.datetime.fromisoformat(
+                b["t"].replace("Z", "+00:00")).timestamp()),
+                "o": b.get("o"), "h": b.get("h"), "l": b.get("l"),
+                "c": b.get("c"), "v": b.get("v")})
+        token = doc.get("next_page_token")
+        if not token:
+            break
+    out.sort(key=lambda x: x["t"])
+    try:
+        os.makedirs(cfg.CACHE, exist_ok=True)
+        with open(cache, "w", encoding="utf-8") as f:
+            json.dump(out, f)
+    except Exception:
+        pass
+    return out
+
+
 def plan(fila, max_loss=50.0, target_r=2.0, buffer_pct=0.0,
          min_risk_pct=0.20, max_notional=None):
     """Stop, objetivo y tamaño para una señal larga. Solo si dir == 1."""
@@ -137,6 +207,51 @@ def plan(fila, max_loss=50.0, target_r=2.0, buffer_pct=0.0,
             "target": round(entry + float(target_r) * riesgo, 2),
             "riesgo": round(riesgo, 3), "qty": qty,
             "riesgo_usd": round(qty * riesgo, 2)}
+
+
+def diarias_alpaca(symbol, desde="2015-01-01", hasta=None, feed="sip", ttl=24 * 3600):
+    """Velas diarias consolidadas desde Alpaca, para la tendencia de fondo."""
+    import datetime as dt
+    import json
+    import os
+    import time
+    from . import alpaca
+    from . import cfg
+
+    sym = str(symbol).upper().strip()
+    fin = hasta or (dt.date.today() - dt.timedelta(days=1)).isoformat()
+    cache = cfg.CACHE / ("alpaca_d_v3_%s_%s_%s.json" % (sym, desde, fin))
+    if cache.exists() and (time.time() - cache.stat().st_mtime) < ttl:
+        try:
+            with open(cache, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    out = []
+    token = None
+    while True:
+        params = {"symbols": sym, "timeframe": "1Day",
+                  "start": desde + "T00:00:00Z", "end": fin + "T23:59:59Z",
+                  "feed": feed, "limit": 10000, "adjustment": "raw"}
+        if token:
+            params["page_token"] = token
+        doc = alpaca.data_request("/v2/stocks/bars", params)
+        for b in ((doc.get("bars") or {}).get(sym) or []):
+            out.append({"t": int(dt.datetime.fromisoformat(
+                b["t"].replace("Z", "+00:00")).timestamp()),
+                "o": b.get("o"), "h": b.get("h"), "l": b.get("l"),
+                "c": b.get("c"), "v": b.get("v")})
+        token = doc.get("next_page_token")
+        if not token:
+            break
+    out.sort(key=lambda x: x["t"])
+    try:
+        os.makedirs(cfg.CACHE, exist_ok=True)
+        with open(cache, "w", encoding="utf-8") as f:
+            json.dump(out, f)
+    except Exception:
+        pass
+    return out
 
 
 def texto_senal(fila, symbol, mercado="us", plan_=None):

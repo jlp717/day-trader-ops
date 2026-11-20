@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **198 propios** + 315 del skill |
+| Tests | **201 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 198 tests propios |
+| Motor intradía determinista y trazable | 201 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -814,7 +814,35 @@ significativo**, es un dato descriptivo, no una ventaja.
 - **Stop mínimo del 0,20 %** y **tope de capital**: evitan tamaños imposibles (el caso NVD.DE daba
   499 acciones con 50 USD de riesgo; ahora da 71, limitado por la cuenta).
 - **Coste por mercado**: 0,52 % en EE. UU. (FX incluido), 0,30 % en Xetra.
-- **198 tests propios OK**, IS/OOS en todas las variantes.
+- **201 tests propios OK**, IS/OOS en todas las variantes.
+
+---
+### Muestra larga: 7 años de datos SIP (20/11/2026)
+
+Yahoo solo entrega 60 sesiones de 5 minutos. Para medir de verdad, la regla se ejecutó con
+**barras consolidadas SIP de Alpaca desde 2020** (10 valores líquidos, 1,1 millones de barras,
+9.322 operaciones). Validación cruzada: para NVDA el 19/11, Yahoo y Alpaca dan el mismo cierre de
+la primera vela (156,91) y la misma EMA (151,86).
+
+| Variante | Operaciones | Acierto | Media/op | Intervalo bootstrap 95 % |
+| --- | ---: | ---: | ---: | --- |
+| stop 2R | 9.322 | 26,3 % | −0,521 % | [−0,539, −0,501] |
+| 2R + tendencia SMA200 | 5.598 | 25,2 % | −0,520 % | [−0,542, −0,496] |
+| 2R + volumen | 1.921 | 30,0 % | −0,527 % | [−0,582, −0,468] |
+
+Lectura, y es la conclusión más importante de todo el proyecto:
+
+- **En bruto, la regla es cero**: −0,521 % neto + 0,52 % de coste = **−0,001 % por operación**.
+  Es una moneda al aire, ni más ni menos.
+- **El coste es todo el resultado**: con 0,52 % de ida y vuelta, una moneda al aire se convierte
+  en una pérdida segura. Los filtros cambian *qué* operaciones se hacen, no la expectativa.
+- Los intervalos bootstrap no cruzan cero: la pérdida está medida con precisión, no es mala suerte
+  de una muestra corta.
+- Conclusión operativa: **no se opera con esta regla como sistema de ventaja**. Sirve como
+  temporizador y para tener un plan escrito (entrada, stop, tamaño), no como máquina de ganar.
+
+Las versiones `strategy` (`tradingview/RAW_STRATEGY_US.pine` y `RAW_STRATEGY_XETRA.pine`) permiten
+reproducir esto en el Strategy Tester de TradingView, con comisiones incluidas.
 
 ---
 

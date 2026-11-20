@@ -418,5 +418,29 @@ class RawPro(unittest.TestCase):
         self.assertEqual(len(is_t) + len(oos), 1)
 
 
+class RawSesion(unittest.TestCase):
+    def _b(self, h, m, tz, px=100.0):
+        t = int(dt.datetime(2026, 11, 19, h, m, tzinfo=tz).timestamp())
+        return {"t": t, "o": px, "h": px + 0.1, "l": px - 0.1, "c": px, "v": 10}
+
+    def test_quita_premarket_y_postmarket(self):
+        ny = ZoneInfo("America/New_York")
+        bars = [self._b(8, 0, ny), self._b(9, 30, ny), self._b(15, 55, ny), self._b(16, 5, ny)]
+        fuera = raw.filtrar_sesion(bars, "us")
+        self.assertEqual(len(fuera), 2)
+
+    def test_en_xetra_la_sesion_es_mas_larga(self):
+        b = ZoneInfo("Europe/Berlin")
+        bars = [self._b(8, 55, b), self._b(9, 0, b), self._b(17, 25, b), self._b(17, 35, b)]
+        dentro = raw.filtrar_sesion(bars, "eu")
+        self.assertEqual(len(dentro), 2)
+
+    def test_bootstrap_devuelve_intervalo(self):
+        trades = [{"net_pct": 1.0 if i % 3 else -0.8} for i in range(50)]
+        b = rawpro.bootstrap(trades, n=200)
+        self.assertLessEqual(b["lo"], b["media"])
+        self.assertLessEqual(b["media"], b["hi"])
+
+
 if __name__ == "__main__":
     unittest.main()

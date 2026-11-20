@@ -16,7 +16,7 @@ def _con_ema(bars, mercado):
     cfg = raw._cfg(mercado)
     tz = cfg["tz"]
     apertura = cfg["apertura"]
-    grupos = raw._por_dia(bars, tz)
+    grupos = raw._por_dia(raw.filtrar_sesion(bars, mercado), tz)
     ordenadas = [b for d in sorted(grupos) for b in grupos[d]]
     medias = raw.ema([float(b["c"]) for b in ordenadas])
     idx = {id(b): i for i, b in enumerate(ordenadas)}
@@ -195,6 +195,63 @@ def resumen(trades):
         "total_r": sum(rs),
         "max_dd_r": dd,
     }
+
+
+def _sma(valores, n):
+    out = [None] * len(valores)
+    acc = 0.0
+    for i, v in enumerate(valores):
+        acc += float(v)
+        if i >= n:
+            acc -= float(valores[i - n])
+        if i >= n - 1:
+            out[i] = acc / n
+    return out
+
+
+def tendencia_diaria(symbol, desde=None, hasta=None, fuente="yahoo"):
+    """{fecha: cierre del dia anterior > SMA200 de ese dia} sin mirar el futuro."""
+    import datetime as dt
+    from . import datos
+
+    if str(fuente) == "alpaca":
+        bars = raw.diarias_alpaca(symbol, desde or "2015-01-01", hasta)
+    else:
+        try:
+            doc = datos.chart(symbol, "1y", "1d", ttl=6 * 3600)
+        except Exception:
+            return {}
+        bars = [b for b in (doc.get("bars") or [])
+                if b.get("c") is not None and b.get("t")]
+    if len(bars) < 210:
+        return {}
+    cierres = [float(b["c"]) for b in bars]
+    s200 = _sma(cierres, 200)
+    out = {}
+    prev = None
+    for b, sma in zip(bars, s200):
+        fecha = dt.datetime.fromtimestamp(int(b["t"]), tz=dt.timezone.utc).date().isoformat()
+        if prev is not None:
+            out[fecha] = prev
+        prev = (float(b["c"]) > sma) if sma is not None else None
+    return {k: v for k, v in out.items() if v is not None}
+
+
+def bootstrap(trades, n=1000, seed=7):
+    """Intervalo de confianza al 95 % de la media por operacion (bootstrap)."""
+    import random
+    vals = [t["net_pct"] for t in trades]
+    if len(vals) < 10:
+        return None
+    rnd = random.Random(seed)
+    medias = []
+    for _ in range(int(n)):
+        muestra = [rnd.choice(vals) for _ in range(len(vals))]
+        medias.append(sum(muestra) / len(muestra))
+    medias.sort()
+    return {"media": sum(vals) / len(vals),
+            "lo": medias[int(0.025 * len(medias))],
+            "hi": medias[int(0.975 * len(medias))]}
 
 
 def partir(trades, frac=0.7):

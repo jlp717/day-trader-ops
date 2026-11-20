@@ -1,11 +1,12 @@
-"""Version completa de RAW: mide stop, objetivo y filtros en EE. UU. y Xetra.
+"""Version completa de RAW: mide stop, objetivo y filtros, con años de datos.
 
     python trader-ops/run/rawpro.py --mercado us --days 60
+    python trader-ops/run/rawpro.py --mercado us --fuente alpaca --desde 2016-01-01 --days 0
     python trader-ops/run/rawpro.py --mercado eu --days 60 --cost 0.30
-    python trader-ops/run/rawpro.py --mercado us --variante stop2R+tendencia --json out.json
 
-Cada variante se mide con IS/OOS. Si no bate a la base y no es positiva neta, no
-se usa: el indicador puede ordenar la operativa sin dar ventaja.
+Yahoo solo da 60 sesiones de 5 minutos. Para EE. UU., Alpaca (SIP) da años.
+Cada variante se mide con IS/OOS y, si se pide, con intervalo de confianza
+bootstrap: una media negativa con intervalo que cruza cero es ruido, no ventaja.
 """
 import argparse
 import json
@@ -15,7 +16,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import datos, raw, rawpro  # noqa: E402
+from lib import raw, rawpro  # noqa: E402
 
 UNIVERSO_US = ("AAPL,MSFT,NVDA,AMD,AMZN,GOOGL,META,TSLA,AVGO,NFLX,CRM,ORCL,ADBE,INTC,MU,"
                "QCOM,JPM,BAC,GS,XOM,CVX,JNJ,PFE,UNH,LLY,WMT,COST,HD,DIS,BA,CAT,GE,F,GM,"
@@ -39,62 +40,37 @@ VARIANTES = [
 ]
 
 
-def tendencia_diaria(symbol):
-    """{fecha ISO: True/False} con el cierre y la SMA200 del dia ANTERIOR (sin mirar el futuro)."""
-    try:
-        doc = datos.chart(symbol, "1y", "1d", ttl=6 * 3600)
-    except Exception:
-        return {}
-    bars = [b for b in (doc.get("bars") or []) if b.get("c") is not None and b.get("t")]
-    if len(bars) < 210:
-        return {}
-    cierres = [float(b["c"]) for b in bars]
-    s200 = rawpro_sma(cierres, 200)
-    out = {}
-    prev = None
-    for b, sma in zip(bars, s200):
-        if prev is not None:
-            out[raw_fecha(b)] = prev
-        prev = (float(b["c"]) > sma) if sma is not None else None
-    return {k: v for k, v in out.items() if v is not None}
-
-
-def rawpro_sma(valores, n):
-    out = [None] * len(valores)
-    acc = 0.0
-    for i, v in enumerate(valores):
-        acc += float(v)
-        if i >= n:
-            acc -= float(valores[i - n])
-        if i >= n - 1:
-            out[i] = acc / n
-    return out
-
-
-def raw_fecha(bar):
-    import datetime as dt
-    from zoneinfo import ZoneInfo
-    return dt.datetime.fromtimestamp(int(bar["t"]), tz=ZoneInfo("UTC")).date().isoformat()
-
-
-def correr(syms, mercado, days, cost, params, con_tendencia):
-    trades = []
-    fallos = {}
+def cargar(syms, fuente, desde, hasta):
+    barras, fallos = {}, {}
     for s in syms:
         try:
-            bars = raw.barras(s)
-            trozos = raw._por_dia(bars, raw._cfg(mercado)["tz"])
-            fechas = sorted(trozos)[-int(days):]
-            recorte = [b for d in fechas for b in trozos[d]]
-            kw = dict(params)
-            kw.setdefault("cost_pct", cost)
-            if con_tendencia or params.get("tendencia"):
-                kw["tendencia"] = tendencia_diaria(s)
-            trades.extend(rawpro.operar(recorte, mercado, **kw))
+            if fuente == "alpaca":
+                barras[s] = raw.barras_alpaca(s, desde, hasta)
+            else:
+                barras[s] = raw.barras(s)
+            if len(barras[s]) < 100:
+                fallos[s] = "pocas barras (%d)" % len(barras[s])
+                barras.pop(s, None)
         except Exception as exc:
-            fallos[s] = str(exc)[:80]
+            fallos[s] = str(exc)[:100]
+    return barras, fallos
+
+
+def correr(barras, mercado, days, cost, params, con_tendencia, tendencias=None):
+    trades = []
+    for s, bars in barras.items():
+        trozos = raw._por_dia(bars, raw._cfg(mercado)["tz"])
+        fechas = sorted(trozos)
+        if days:
+            fechas = fechas[-int(days):]
+        recorte = [b for d in fechas for b in trozos[d]]
+        kw = dict(params)
+        kw.setdefault("cost_pct", cost)
+        if con_tendencia or params.get("tendencia"):
+            kw["tendencia"] = (tendencias or {}).get(s, {})
+        trades.extend(rawpro.operar(recorte, mercado, **kw))
     trades.sort(key=lambda t: (t["date"], t["entry"]))
-    return trades, fallos
+    return trades
 
 
 def main(argv=None):
@@ -102,38 +78,56 @@ def main(argv=None):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-    ap = argparse.ArgumentParser(description="RAW completo: stop, objetivo y filtros")
+    ap = argparse.ArgumentParser(description="RAW completo: años de datos, stop y filtros")
     ap.add_argument("--mercado", choices=("us", "eu"), default="us")
-    ap.add_argument("--days", type=int, default=60)
+    ap.add_argument("--symbols", help="lista separada por comas")
+    ap.add_argument("--fuente", choices=("yahoo", "alpaca"), default="yahoo")
+    ap.add_argument("--desde", default="2016-01-01")
+    ap.add_argument("--hasta", default=None)
+    ap.add_argument("--days", type=int, default=60, help="0 = todas las sesiones disponibles")
     ap.add_argument("--cost", type=float, default=None)
     ap.add_argument("--split", type=float, default=0.7)
     ap.add_argument("--max-loss", type=float, default=50.0)
+    ap.add_argument("--cuenta", type=float, default=10000.0)
     ap.add_argument("--variante", help="medir solo una variante por su nombre")
+    ap.add_argument("--bootstrap", action="store_true", help="intervalo de confianza de la media")
     ap.add_argument("--json", help="guardar los trades de la variante elegida")
     a = ap.parse_args(argv)
     coste = a.cost if a.cost is not None else (0.30 if a.mercado == "eu" else 0.52)
-    syms = (UNIVERSO_EU if a.mercado == "eu" else UNIVERSO_US).split(",")
+    syms = ([x.strip().upper() for x in a.symbols.split(",") if x.strip()]
+            if a.symbols else (UNIVERSO_EU if a.mercado == "eu" else UNIVERSO_US).split(","))
 
     elegidas = [v for v in VARIANTES if not a.variante or v[0] == a.variante]
     if not elegidas:
         print("Variante desconocida. Opciones: " + ", ".join(v[0] for v in VARIANTES))
         return 2
 
-    print("RAW completo · %s · %d valores · %d sesiones · coste %.2f%%" % (
-        a.mercado.upper(), len(syms), a.days, coste))
-    print("\nvariante          n     acierto   media%    total%    R medio   IS%      OOS%")
+    barras, fallos = cargar(syms, a.fuente, a.desde, a.hasta)
+    print("RAW completo · %s · %s · %d valores · %s · coste %.2f%%" % (
+        a.mercado.upper(), a.fuente, len(barras),
+        ("todas las sesiones" if not a.days else "%d sesiones" % a.days), coste))
+    for s, e in list(fallos.items())[:6]:
+        print("  %-8s %s" % (s, e))
+    tendencias = {}
+    if any(p.get("tendencia") for _, p in elegidas):
+        tendencias = {s: rawpro.tendencia_diaria(s, a.desde, a.hasta, a.fuente)
+                      for s in barras}
+    print("\nvariante          n     acierto   media%    total%    IS%      OOS%")
     for nombre, params in elegidas:
-        trades, fallos = correr(syms, a.mercado, a.days, coste, params,
-                                bool(params.get("tendencia")))
+        trades = correr(barras, a.mercado, a.days, coste, params,
+                        bool(params.get("tendencia")), tendencias)
         r = rawpro.resumen(trades)
         is_t, oos = rawpro.partir(trades, a.split)
         ri = rawpro.resumen(is_t)
         ro = rawpro.resumen(oos)
-        print("%-16s %4d   %6.1f%%  %+7.3f  %+8.1f  %+7.2f   %+7.1f  %+7.1f" % (
+        print("%-16s %5d   %6.1f%%  %+7.3f  %+8.1f  %+7.1f  %+7.1f" % (
             nombre, r["n"], 100 * r["win_rate"], r["avg_net"], r["total_net"],
-            r["avg_r"], ri["total_net"], ro["total_net"]))
-        if fallos:
-            print("   fallos: " + ", ".join("%s (%s)" % (k, v[:30]) for k, v in list(fallos.items())[:4]))
+            ri["total_net"], ro["total_net"]))
+        if a.bootstrap and trades:
+            b = rawpro.bootstrap(trades)
+            if b:
+                print("   bootstrap 95%%: media %+.3f%% · intervalo [%+.3f, %+.3f]" % (
+                    b["media"], b["lo"], b["hi"]))
         if a.variante and a.json:
             with open(a.json, "w", encoding="utf-8") as f:
                 json.dump({"variante": nombre, "params": params, "resumen": r,
