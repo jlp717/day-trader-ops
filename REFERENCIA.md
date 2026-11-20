@@ -235,6 +235,15 @@ No hay señal. No se usa en producción; con 300–500 trades se puede repetir.
 último precio, máximo, mínimo, variación y volumen (si Yahoo lo da). No ejecuta nada.
 MyInvestor no permite órdenes fuera del horario regular.
 
+```powershell
+python trader-ops\run\prepost.py --symbols NVDA,AMD --modo pre
+python trader-ops\run\prepost.py --radar --top 30 --modo pre
+python trader-ops\run\prepost.py --radar --top 30 --modo post
+```
+
+Bot: `/pre T` y `/post T` muestran un valor; `/pre` y `/post` leen el último radar guardado.
+Estado separado en `state/pre/` y `state/post/`; **no se suma al P&L intradía**.
+
 ### 5.6 Matriz de huecos (nada oculto)
 
 | Capacidad | Código | Tests | En vivo | Puerta |
@@ -247,7 +256,7 @@ MyInvestor no permite órdenes fuera del horario regular.
 | Nivel 2 IEX | `lib/proveedores.py`, `run/libro.py` | sí | **no** | clave Alpaca |
 | Nivel 2 completo | interfaz Polygon | sí | **no** | proveedor de pago |
 | ML | `lib/ml.py`, `run/ml.py` | sí | **no** | 300–500 trades; hoy AUC 0.269 |
-| Pre/post | `lib/prepost.py`, `run/prepost.py` | sí | **no** | solo análisis |
+| Pre/post | `lib/prepost.py`, `run/prepost.py`, `/pre`, `/post` | sí | **no** | solo análisis |
 | Europa | solo documento | no | **no** | proyecto separado |
 
 Un hueco documentado y con puerta no es un fallo oculto: es una decisión de ingeniería.

@@ -14,7 +14,7 @@
 | 7 Orquestador | HECHO | tarea `DayTraderOps` en ejecucion, latido cada 10 s, agenda calculada |
 | 8 Telegram | HECHO | bot con comandos y frases; token/chat_id configurados; mensajes reales enviados |
 | 9 Posiciones | HECHO | `/entre`, `/sali`, `/pnl`, deslizamiento, stop peor |
-| 10 Resiliencia | HECHO | 141 tests propios + caos; `REVISION_INDEPENDIENTE.md` |
+| 10 Resiliencia | HECHO | 144 tests propios + caos; `REVISION_INDEPENDIENTE.md` |
 | 11 Evaluacion | HECHO | `lib/informe.py`, `historico/`, resumen diario y semanal |
 | 12 Extras | HECHO | CSV, semanal, por setup/hora, Pelosi contexto, datos obsoletos, panel terminal, panel web, simulador de filtros, ganadores y evaluacion bajo demanda |
 | 13 Guias | HECHO | `GUIA_USO.md`, `INICIO_RAPIDO.md`, `MANUAL_COMPLETO.pdf` (91 páginas) |
@@ -98,7 +98,7 @@ Bugs reales encontrados al revisar el uso de extremo a extremo, ya corregidos y 
 10. Alertas de Xetra (`NVD.DE`): el skill no las admite, asi que `lib/alertas.py` mantiene un motor
     propio en `state/alertas_xetra.json` con `datos.quote`. El panel y `/alertas` muestran las dos.
 
-Evidencia: **141 tests propios OK** (1 skipped); `/elegir NVDA` y `/evaluar 1` ejecutados con datos de
+Evidencia: **144 tests propios OK** (1 skipped); `/elegir NVDA` y `/evaluar 1` ejecutados con datos de
 hoy; panel y web renderizados con el desglose de riesgo. **Vendor repo**: 31/31 archivos, commit
 `3d0f4ef6...`, **315 tests del skill OK**. **Manual**: 91 páginas con árbol de decisión, guion del día y
 día 7 de dos señales.
@@ -116,7 +116,7 @@ día 7 de dos señales.
 - `verificar_skill.py` ya no confunde el commit del repo padre con el del skill (bug detectado al
   probar el clon limpio).
 - `estado_vivo.resumen_5_lineas` mostraba "latido Nones" en una instalación sin latido; ahora dice
-  "nunca" y hay test (`test_saludo_sin_latido_no_muestra_none`). Total: **141 tests propios**.
+  "nunca" y hay test (`test_saludo_sin_latido_no_muestra_none`). Total: **144 tests propios**.
 - El aviso de premarket nombraba **toda la watchlist** aunque el titular fuera de un solo valor
   ("Resultados cerca NVDA, MNSO" con una noticia solo de NVDA). Ahora `proceso.simbolos_afectados`
   devuelve los tickers reales del titular.
@@ -160,29 +160,33 @@ día 7 de dos señales.
   (stop–stop+0,5R), orden exacta en MyInvestor (limitada, cantidad ajustada al límite para no
   pasar del riesgo máximo), `/entre` con `[fill]`, stop-loss y venta limitada opcionales, salidas
   por stop/objetivo/21:55 y lista de lo que no hacer. Longitud ~2.000 caracteres; test que valida
-  HTML y trazabilidad. 141 tests propios OK.
+  HTML y trazabilidad. 144 tests propios OK.
 - **Tercer testigo opcional Finnhub** (18/11 21:53): `quote_finnhub` lee `secrets/finnhub.json`
   (`{"api_key": "..."}`) o `FINNHUB_KEY`; plan free con cotización US en tiempo real (feed IEX,
   60/min). `/precios` lo muestra si hay clave; `cross_check` compara Yahoo, CNBC y Finnhub y
-  bloquea si el rango supera 0,5 %. Sin clave no se usa y no bloquea. 141 tests propios OK.
+  bloquea si el rango supera 0,5 %. Sin clave no se usa y no bloquea. 144 tests propios OK.
 - **Backtest ORB integrado (19/11)**: `lib/estrategias.py` (registro multi-estrategia, solo ORB),
-  `lib/backtest.py` y `run/backtest.py`; 141 tests propios. Resultado inicial: 10 valores, ~42
+  `lib/backtest.py` y `run/backtest.py`; 144 tests propios. Resultado inicial: 10 valores, ~42
   sesiones, 292 trades, 18,8 % de acierto, **−310R netos**; subconjunto con coste ≤0,5R: 42 trades,
   33,3 %, −17R. El patrón bruto no tiene ventaja en esta muestra; los filtros no están validados.
   No escalar. Hoja de ruta completa en `REFERENCIA.md`.
 - **Interfaces de ejecución, nivel 2 y ML (19/11)**: `lib/brokers.py` (Null/Paper, idempotencia,
   sin órdenes reales), `lib/proveedores.py` (nivel 2 sin proveedor falla explícito) y
   `run/backtest.py --features` (CSV de features/labels; no entrena). La ejecución real sigue
-  cerrada: requiere bróker con API y aprobación. **141 tests propios OK**.
+  cerrada: requiere bróker con API y aprobación. **144 tests propios OK**.
 - **Alpaca paper, IEX, ML y pre/post (19/11)**: `lib/alpaca.py` + `AlpacaPaperBroker` (solo
   `paper-api`, `client_order_id`), `AlpacaIEX` (top-of-book, profundidad 1), `lib/ml.py` +
   `run/ml.py` (logística walk-forward; AUC 0,269 = sin señal) y `lib/prepost.py` +
   `run/prepost.py` (análisis pre/post, sin ejecución). Claves en `secrets/alpaca.json`;
-  documentado en `REFERENCIA.md` §4b. **141 tests propios OK**.
+  documentado en `REFERENCIA.md` §4b. **144 tests propios OK**.
 - **Alpaca paper verificado (20/11 07:31)**: claves en `secrets/alpaca.json`; cuenta **paper**
   ACTIVE con 100.000 USD simulados. IEX top-of-book operativo (bid/ask/tamaño; spread anómalo
   fuera de sesión). `DayTraderOps-Bot` estaba en `Ready` y se reinició (PID 3156). Fases y
   pendientes en `ROADMAP.md`.
+- **Pre/post operativo (20/11)**: `run/prepost.py --radar --top N --modo pre|post` guarda
+  `state/pre|post/radar.json`; comandos `/pre T`, `/post T`, `/pre` y `/post` leen el radar.
+  Estado separado del intradía; **no se suma al P&L**. Solo análisis: MyInvestor no ejecuta fuera
+  del horario regular. **144 tests propios OK**.
 - **Manual 91 páginas**: nueva §0.6 "Los comandos, explicados como a un niño" con el desglose de
   `/entre`, `/sali`, `/stop`, `/vender`, `/guia` y el ejemplo CRCL con costes; aviso al inicio de
   los días simulados.

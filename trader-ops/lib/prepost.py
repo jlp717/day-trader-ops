@@ -5,8 +5,11 @@ ordenes fuera del horario regular: esto solo prepara el plan para la apertura
 o para el dia siguiente.
 """
 import datetime as dt
+import json
+import os
 import urllib.parse
 
+from . import cfg
 from . import datos
 from . import zonatiempo as zt
 
@@ -72,6 +75,7 @@ def _resumen(sym, bars, prev, modo="pre"):
         out["last"] = seleccion[-1]["c"]
         if ref:
             out["pct"] = (out["last"] / ref - 1.0) * 100.0
+            out["rango_pct"] = (out["high"] - out["low"]) / ref * 100.0
     return out
 
 
@@ -85,3 +89,76 @@ def imprimir(filas):
             ("%.2f" % r["low"]) if r["low"] is not None else "n/d",
             ("%.2f%%" % r["pct"]) if r["pct"] is not None else "n/d",
             ("%.0f" % r["volume"]) if r["volume"] is not None else "n/d"))
+
+
+def symbols_from_scan(top=30):
+    """Candidatos por dolares del ultimo scan diario, o la watchlist si no hay."""
+    doc = cfg.read_json(cfg.STATE / "scan_daily.json", {}) or {}
+    hits = doc.get("hits") or []
+    filas = sorted(hits, key=lambda h: float(h.get("price") or 0) * float(h.get("volume") or 0),
+                   reverse=True)
+    out = []
+    for h in filas:
+        s = str(h.get("symbol") or "").upper()
+        if s and s not in out:
+            out.append(s)
+        if len(out) >= int(top):
+            break
+    if not out:
+        out = [str(x).upper() for x in (cfg.config().get("watch") or ["NVDA"])]
+    return out
+
+
+def radar(symbols, modo="pre", limit=30):
+    """Resumen pre/post de una lista, ordenado por movimiento absoluto."""
+    filas = []
+    for sym in list(symbols)[:int(limit)]:
+        try:
+            r = resumen(sym, modo)
+        except Exception:
+            continue
+        if r.get("ref") and r.get("high") is not None and r.get("low") is not None:
+            r["rango_pct"] = (r["high"] - r["low"]) / r["ref"] * 100.0
+        else:
+            r["rango_pct"] = None
+        filas.append(r)
+    filas.sort(key=lambda r: abs(r.get("pct") or 0.0), reverse=True)
+    return filas
+
+
+def guardar(path, filas):
+    p = str(path)
+    d = os.path.dirname(p)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(filas, f, ensure_ascii=False, indent=2)
+    return p
+
+
+def cargar(path):
+    if not os.path.exists(str(path)):
+        return []
+    try:
+        with open(str(path), encoding="utf-8") as f:
+            return json.load(f) or []
+    except Exception:
+        return []
+
+
+def texto(filas, modo="pre"):
+    if not filas:
+        return "Sin datos de %s. Genera el radar con run/prepost.py --radar." % modo
+    out = ["Radar %s · %d valores" % (modo, len(filas)),
+           "symbol  last      high      low       %         rango    volumen"]
+    for r in filas[:20]:
+        out.append("%-6s  %8s  %8s  %8s  %7s  %7s  %9s" % (
+            r["symbol"],
+            ("%.2f" % r["last"]) if r["last"] is not None else "n/d",
+            ("%.2f" % r["high"]) if r["high"] is not None else "n/d",
+            ("%.2f" % r["low"]) if r["low"] is not None else "n/d",
+            ("%+.2f%%" % r["pct"]) if r["pct"] is not None else "n/d",
+            ("%.2f%%" % r["rango_pct"]) if r.get("rango_pct") is not None else "n/d",
+            ("%.0f" % r["volume"]) if r["volume"] is not None else "n/d"))
+    out.append("Solo análisis: MyInvestor no ejecuta fuera del horario regular.")
+    return "\n".join(out)

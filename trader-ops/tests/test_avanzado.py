@@ -97,6 +97,37 @@ class PrePost(unittest.TestCase):
         self.assertEqual(r["last"], 104)
         self.assertAlmostEqual(r["pct"], 4.0)
 
+    def test_radar_ordena(self):
+        def fake(sym, modo):
+            return {"symbol": sym, "modo": modo, "n": 1, "ref": 100.0,
+                    "high": 102.0, "low": 100.0, "last": 102.0,
+                    "pct": 2.0 if sym == "A" else 5.0, "volume": 1.0}
+        with mock.patch.object(prepost, "resumen", side_effect=fake):
+            filas = prepost.radar(["A", "B"], "pre")
+        self.assertEqual([f["symbol"] for f in filas], ["B", "A"])
+
+    def test_radar_vacio(self):
+        self.assertIn("Sin datos", prepost.texto([], "pre"))
+
+
+class BotPrePost(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "tgbot_prepost", ROOT / "trader-ops" / "run" / "telegram_bot.py")
+        cls.bot = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.bot)
+
+    def test_pre_ticker(self):
+        r = {"symbol": "NVDA", "modo": "pre", "n": 1, "ref": 100.0,
+             "high": 102.0, "low": 100.0, "last": 102.0, "pct": 2.0,
+             "volume": None, "rango_pct": 2.0}
+        with mock.patch.object(self.bot.prepost, "resumen", return_value=r):
+            txt = self.bot.c_pre(None, ["NVDA"])
+        self.assertIn("Radar pre", txt)
+        self.assertIn("NVDA", txt)
+
 
 if __name__ == "__main__":
     unittest.main()

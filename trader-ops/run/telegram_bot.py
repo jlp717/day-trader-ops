@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
 from lib import apertura, briefing, calendario, cfg, criterios, datos, diario, ganadores, mercado  # noqa: E402
-from lib import ahora, alertas, estado_vivo, referencias  # noqa: E402
+from lib import ahora, alertas, estado_vivo, referencias, prepost  # noqa: E402
 from lib import posiciones, proceso, registro, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
@@ -791,6 +791,7 @@ def c_ayuda(bot, args):
             "<b>Operar a mano:</b> /entre T precio cantidad [stop] [objetivo] · /sali T precio [acciones] · "
             "/vender T precio · /stop T precio · /posiciones · /pnl\n"
             "<b>Guia:</b> /chuleta · comandos, stops y objetivos · /guia · qué hacer ahora, paso a paso, con la posición real\n"
+            "<b>Pre/post:</b> /pre T · /post T · radar con run/prepost.py --radar\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -902,6 +903,28 @@ def c_hoy(bot, args):
 
 def c_ahora(bot, args):
     return ahora.texto()
+
+
+def _prepost_cmd(modo, args):
+    if args:
+        sym = _ticker(args[0])
+        if not sym:
+            return "Uso: /%s NVDA" % modo
+        try:
+            r = prepost.resumen(sym, modo)
+        except Exception as exc:
+            return "No disponible: %s" % str(exc)[:120]
+        return prepost.texto([r], modo)
+    filas = prepost.cargar(cfg.STATE / modo / "radar.json")
+    return prepost.texto(filas, modo)
+
+
+def c_pre(bot, args):
+    return _prepost_cmd("pre", args)
+
+
+def c_post(bot, args):
+    return _prepost_cmd("post", args)
 
 
 def c_guia(bot, args):
@@ -1663,6 +1686,12 @@ def interpretar(texto_libre):
     m = re.search(r"\b(?:incluye|incluir|anade|añade|mete|agrega)\s+(?:(?:en|al|a la)\s+)?(?:(?:lista|escaneo|orb)\s+)?" + TICKER_RX, t)
     if m and _tk(m.group(1)):
         return "/incluir %s" % _tk(m.group(1))
+    m = re.search(r"\b(?:premarket|pre mercado)\s+(?:de\s+)?" + TICKER_RX, t)
+    if m and _tk(m.group(1)):
+        return "/pre %s" % _tk(m.group(1))
+    m = re.search(r"\b(?:after hours|postmarket|post mercado)\s+(?:de\s+)?" + TICKER_RX, t)
+    if m and _tk(m.group(1)):
+        return "/post %s" % _tk(m.group(1))
     m = re.search(r"\b(?:precio|precios|cotizacion)\s+(?:de\s+|el\s+|la\s+)?\b" + TICKER_RX, t)
     if m and _tk(m.group(1)):
         return "/precios %s" % _tk(m.group(1))
@@ -1699,6 +1728,7 @@ COMANDOS = {
     "ganadores": c_ganadores, "ganadoras": c_ganadores, "suben": c_ganadores,
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
     "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
+    "pre": c_pre, "post": c_post,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

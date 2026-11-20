@@ -13,7 +13,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import prepost  # noqa: E402
+from lib import cfg, prepost  # noqa: E402
 
 
 def main(argv=None):
@@ -22,10 +22,26 @@ def main(argv=None):
     except Exception:
         pass
     ap = argparse.ArgumentParser(description="Analisis pre/post market")
-    ap.add_argument("--symbols", required=True, help="lista separada por comas")
+    ap.add_argument("--symbols", help="lista separada por comas")
+    ap.add_argument("--radar", action="store_true", help="escanear una lista y ordenar por movimiento")
+    ap.add_argument("--top", type=int, default=30, help="candidatos del scan diario para el radar")
+    ap.add_argument("--limit", type=int, default=30, help="maximo de simbolos a consultar")
     ap.add_argument("--modo", choices=("pre", "post"), default="pre")
     ap.add_argument("--json", help="guardar el resultado")
+    ap.add_argument("--out", help="ruta del radar (por defecto state/pre|post/radar.json)")
     a = ap.parse_args(argv)
+    if a.radar:
+        syms = ([x.strip().upper() for x in a.symbols.split(",") if x.strip()]
+                if a.symbols else prepost.symbols_from_scan(a.top))
+        filas = prepost.radar(syms, a.modo, a.limit)
+        out = a.out or str(cfg.STATE / a.modo / "radar.json")
+        prepost.guardar(out, filas)
+        print(prepost.texto(filas, a.modo))
+        print("\nGuardado: %s" % out)
+        return 0
+    if not a.symbols:
+        print("ERROR: pasa --symbols o --radar")
+        return 2
     syms = [x.strip().upper() for x in a.symbols.split(",") if x.strip()]
     filas = []
     for sym in syms:
