@@ -410,6 +410,12 @@ class RawPro(unittest.TestCase):
         trades = rawpro.operar(self._bars(), "eu", tendencia={"2026-11-19": False})
         self.assertEqual(trades, [])
 
+    def test_filtro_de_mercado_bloquea(self):
+        self.assertEqual(rawpro.operar(self._bars(), "eu",
+                                       mercado_ok={"2026-11-19": False}), [])
+        self.assertEqual(len(rawpro.operar(self._bars(), "eu",
+                                           mercado_ok={"2026-11-19": True})), 1)
+
     def test_resumen_y_split(self):
         trades = rawpro.operar(self._bars(), "eu", target_r=2.0)
         r = rawpro.resumen(trades)

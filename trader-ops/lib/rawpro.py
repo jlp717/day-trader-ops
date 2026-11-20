@@ -49,7 +49,7 @@ def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
            exit_mode="fixed", be_at_r=1.0, trail_r=1.0, cost_pct=0.0,
            tendencia=None, rango_min=None, rango_max=None, vol_min=None,
            gap_min=None, gap_max=None, pos_min=None, max_loss=50.0,
-           min_risk_pct=0.20, max_notional=None):
+           min_risk_pct=0.20, max_notional=None, mercado_ok=None):
     """Simula la version completa. Devuelve lista de trades (solo largos).
 
     - stop: minimo de la primera vela (menos `stop_buffer_pct`).
@@ -64,6 +64,8 @@ def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
         cierre_prev[b] = float(dias[a]["filas"][-1]["c"])
     trades = []
     for dia in fechas:
+        if mercado_ok is not None and not mercado_ok.get(dia.isoformat(), True):
+            continue
         info = dias[dia]
         primera = info["primera"]
         c = float(primera["c"])

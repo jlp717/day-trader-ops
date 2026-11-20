@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **201 propios** + 315 del skill |
+| Tests | **202 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 201 tests propios |
+| Motor intradía determinista y trazable | 202 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -814,7 +814,7 @@ significativo**, es un dato descriptivo, no una ventaja.
 - **Stop mínimo del 0,20 %** y **tope de capital**: evitan tamaños imposibles (el caso NVD.DE daba
   499 acciones con 50 USD de riesgo; ahora da 71, limitado por la cuenta).
 - **Coste por mercado**: 0,52 % en EE. UU. (FX incluido), 0,30 % en Xetra.
-- **201 tests propios OK**, IS/OOS en todas las variantes.
+- **202 tests propios OK**, IS/OOS en todas las variantes.
 
 ---
 ### Muestra larga: 7 años de datos SIP (20/11/2026)
@@ -843,6 +843,26 @@ Lectura, y es la conclusión más importante de todo el proyecto:
 
 Las versiones `strategy` (`tradingview/RAW_STRATEGY_US.pine` y `RAW_STRATEGY_XETRA.pine`) permiten
 reproducir esto en el Strategy Tester de TradingView, con comisiones incluidas.
+
+---
+
+
+### Filtro de mercado: medido y descartado (20/11/2026)
+
+La hipótesis era razonable: si el índice está por debajo de su SMA200, no comprar. Se midió
+con SPY (EE. UU., 7 años) y DAX (Xetra, 60 sesiones):
+
+| Mercado | Variante | n | Media/op | Intervalo 95 % |
+| --- | --- | ---: | ---: | --- |
+| EE. UU. | stop 2R (base) | 9.322 | −0,521 % | [−0,539, −0,501] |
+| EE. UU. | + filtro SPY | 7.820 | −0,526 % | [−0,546, −0,505] |
+| EE. UU. | + SPY + tendencia | 5.248 | −0,523 % | [−0,545, −0,499] |
+| Xetra | stop 2R (base) | 578 | −0,315 % | — |
+| Xetra | + filtro DAX | 562 | −0,323 % | — |
+
+El filtro **quita operaciones pero no mejora la media**. Conclusión: no se activa por defecto.
+Queda como opción en el indicador (`Filtrar por indice`, apagado) para quien quiera menos
+operaciones, no mejores.
 
 ---
 

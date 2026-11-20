@@ -18,6 +18,8 @@ buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, ste
 min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, maxval = 2, step = 0.05, group = 'Riesgo')
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
+usar_mercado = input.bool(false, 'Filtrar por indice (SPY/DAX)', group = 'Riesgo')
+sym_mercado  = input.symbol('SPY', 'Indice de mercado', group = 'Riesgo')
 ver_caja  = input.bool(true, 'Dibujar vela y niveles', group = 'Estilo')
 mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
 ver_contexto = input.bool(true, 'Ver SMA50/SMA200 diarias', group = 'Estilo')
@@ -45,8 +47,11 @@ dRsi  = request.security(syminfo.tickerid, 'D', ta.rsi(close, 14)[1], lookahead 
 dAtr  = request.security(syminfo.tickerid, 'D', ta.atr(14)[1], lookahead = barmerge.lookahead_off)
 dAtrA = request.security(syminfo.tickerid, 'D', ta.sma(ta.atr(14), 100)[1], lookahead = barmerge.lookahead_off)
 dHi   = request.security(syminfo.tickerid, 'D', ta.highest(high, 252)[1], lookahead = barmerge.lookahead_off)
+mC    = request.security(sym_mercado, 'D', close[1], lookahead = barmerge.lookahead_off)
+mS    = request.security(sym_mercado, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
+merc_ok = not usar_mercado or na(mS) or mC > mS
 
-tend_ok  = not usar_tend or na(dS200) or dC > dS200
+tend_ok  = (not usar_tend or na(dS200) or dC > dS200) and merc_ok
 ctx      = na(dS200) ? 'SIN DATOS' : dC > dS200 and dS50 > dS200 ? 'A FAVOR' : dC < dS200 ? 'EN CONTRA' : 'NEUTRO'
 atr_pct  = na(dAtr) or na(dC) ? na : dAtr / dC * 100
 compres  = not na(dAtrA) and not na(dAtr) and dAtr < dAtrA * 0.7
@@ -132,7 +137,7 @@ if found and dayKey != ultimo
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0') + ' | contexto ' + ctx), alert.freq_once_per_bar)
 
-var table tb = table.new(position.bottom_right, 2, 12, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 13, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO US', text_size = size.small)
@@ -159,6 +164,8 @@ if barstate.islast
     table.cell(tb, 1, 10, compres ? 'SÍ (posible giro)' : 'no')
     table.cell(tb, 0, 11, 'Salida swing')
     table.cell(tb, 1, 11, 'cierre diario < SMA50')
+    table.cell(tb, 0, 12, 'Mercado')
+    table.cell(tb, 1, 12, merc_ok ? 'OK' : 'filtrado', text_color = merc_ok ? col_buy : col_sell)
 
 plot(ver_contexto ? dS50 : na, 'SMA50 diaria', color = color.new(color.blue, 30), style = plot.style_linebr)
 plot(ver_contexto ? dS200 : na, 'SMA200 diaria', color = color.new(color.gray, 20), style = plot.style_linebr)

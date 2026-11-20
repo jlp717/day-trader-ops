@@ -36,6 +36,8 @@ VARIANTES = [
     ("2R+gap", {"target_r": 2.0, "gap_min": 0.0}),
     ("2R+cierre alto", {"target_r": 2.0, "pos_min": 0.6}),
     ("2R+gap+cierre", {"target_r": 2.0, "gap_min": 0.0, "pos_min": 0.6}),
+    ("2R+mercado", {"target_r": 2.0, "mercado": True}),
+    ("2R+mercado+tend", {"target_r": 2.0, "tendencia": True, "mercado": True}),
     ("trailing", {"target_r": 2.0, "exit_mode": "be_trail"}),
 ]
 
@@ -56,7 +58,7 @@ def cargar(syms, fuente, desde, hasta):
     return barras, fallos
 
 
-def correr(barras, mercado, days, cost, params, con_tendencia, tendencias=None):
+def correr(barras, mercado, days, cost, params, con_tendencia, tendencias=None, mercado_ok=None):
     trades = []
     for s, bars in barras.items():
         trozos = raw._por_dia(bars, raw._cfg(mercado)["tz"])
@@ -65,9 +67,12 @@ def correr(barras, mercado, days, cost, params, con_tendencia, tendencias=None):
             fechas = fechas[-int(days):]
         recorte = [b for d in fechas for b in trozos[d]]
         kw = dict(params)
+        usa_mercado = bool(kw.pop("mercado", False))
         kw.setdefault("cost_pct", cost)
         if con_tendencia or params.get("tendencia"):
             kw["tendencia"] = (tendencias or {}).get(s, {})
+        if usa_mercado:
+            kw["mercado_ok"] = mercado_ok or {}
         trades.extend(rawpro.operar(recorte, mercado, **kw))
     trades.sort(key=lambda t: (t["date"], t["entry"]))
     return trades
@@ -112,10 +117,15 @@ def main(argv=None):
     if any(p.get("tendencia") for _, p in elegidas):
         tendencias = {s: rawpro.tendencia_diaria(s, a.desde, a.hasta, a.fuente)
                       for s in barras}
+    mercado_ok = {}
+    if any(p.get("mercado") for _, p in elegidas):
+        indice = "SPY" if a.mercado == "us" else "^GDAXI"
+        fuente_ind = a.fuente if a.mercado == "us" else "yahoo"
+        mercado_ok = rawpro.tendencia_diaria(indice, a.desde, a.hasta, fuente_ind)
     print("\nvariante          n     acierto   media%    total%    IS%      OOS%")
     for nombre, params in elegidas:
         trades = correr(barras, a.mercado, a.days, coste, params,
-                        bool(params.get("tendencia")), tendencias)
+                        bool(params.get("tendencia")), tendencias, mercado_ok)
         r = rawpro.resumen(trades)
         is_t, oos = rawpro.partir(trades, a.split)
         ri = rawpro.resumen(is_t)
