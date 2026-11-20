@@ -36,6 +36,7 @@ sym_mercado = es_eu ? 'TVC:DAX' : 'SPY'
 cuenta    = input.float(10000, 'Cuenta', minval = 1, group = 'Riesgo')
 riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval = 5, step = 0.05, group = 'Riesgo')
 target_r  = input.float(2.0, 'Objetivo (R)', minval = 0.5, maxval = 10, step = 0.5, group = 'Riesgo')
+target2_r = input.float(4.0, 'Segundo objetivo (R)', minval = 1, maxval = 20, step = 0.5, group = 'Riesgo')
 buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, step = 0.05, group = 'Riesgo')
 min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, maxval = 2, step = 0.05, group = 'Riesgo')
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
@@ -131,6 +132,7 @@ var int    dir     = 0
 var float  pEntry  = na
 var float  pStop   = na
 var float  pTarget = na
+var float  pTarget2 = na
 var float  pQty    = na
 var float  pRisk   = na
 var string pEstado = 'Esperando'
@@ -141,6 +143,7 @@ if found and dayKey != ultimo
     pEntry  := sC
     pStop   := na
     pTarget := na
+    pTarget2 := na
     pQty    := na
     pRisk   := na
     pEstado := dir == 1 ? (tend_ok ? 'LARGO' : 'LARGO filtrado') : dir == -1 ? 'CORTO (no operable)' : 'SIN OPERACIÓN'
@@ -155,6 +158,7 @@ if found and dayKey != ultimo
             pStop   := stop
             pRisk   := riesgo
             pTarget := sC + target_r * riesgo
+            pTarget2 := sC + target2_r * riesgo
             qty_r   = math.floor((cuenta * riesgo_p / 100.0) / (riesgo * multiplo))
             qty_c   = math.floor(cuenta / (sC * multiplo))
             pQty    := math.min(qty_r, qty_c)
@@ -167,12 +171,13 @@ if found and dayKey != ultimo
 
     if visible
         c_est = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu
-        etiqueta = pEstado + (na(pStop) ? '' : '  |  E ' + str.tostring(pEntry, '#.##') + '   S ' + str.tostring(pStop, '#.##') + '   O ' + str.tostring(pTarget, '#.##') + '   x' + str.tostring(pQty, '0'))
+        etiqueta = pEstado + (na(pStop) ? '' : '  |  E ' + str.tostring(pEntry, '#.##') + '   S ' + str.tostring(pStop, '#.##') + '   O ' + str.tostring(pTarget, '#.##') + '   O2 ' + str.tostring(pTarget2, '#.##') + '   x' + str.tostring(pQty, '0'))
         label.new(bar_index, sH, etiqueta, style = label.style_label_down, color = c_est, textcolor = color.white, size = size.small)
 
     if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
+        line.new(tOpen5, pTarget2, tOpen5 + 45 * 60 * 1000, pTarget2, xloc = xloc.bar_time, color = color.new(col_buy, 50), style = line.style_dashed, width = 1)
 
     if ver_plan and dayKey == todayKey and dir == 1 and tend_ok and not na(pStop)
         box.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pEntry, xloc = xloc.bar_time, border_color = color.new(col_buy, 60), bgcolor = color.new(col_buy, 88))
@@ -191,7 +196,7 @@ if barstate.islast
         espera := na
 
 // ── Panel de datos ──
-var table tb = table.new(position.bottom_right, 2, 15, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 16, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO · ' + (es_eu ? 'Xetra' : 'EE. UU.'), text_size = size.small)
@@ -224,6 +229,8 @@ if barstate.islast
     table.cell(tb, 1, 13, 'solo si dice LARGO', text_color = col_neu)
     table.cell(tb, 0, 14, 'Vender')
     table.cell(tb, 1, 14, 'en stop u objetivo', text_color = col_neu)
+    table.cell(tb, 0, 15, 'Objetivo 2')
+    table.cell(tb, 1, 15, na(pTarget2) ? '-' : str.tostring(pTarget2, '#.##'))
 
 // ── Guía de uso, arriba ──
 var table guia = table.new(position.top_center, 1, 4, frame_width = 1, border_width = 4)
