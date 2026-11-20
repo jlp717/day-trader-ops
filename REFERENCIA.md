@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **194 propios** + 315 del skill |
+| Tests | **198 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 194 tests propios |
+| Motor intradía determinista y trazable | 198 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -749,48 +749,72 @@ primera vela; el sistema es solo largo, así que hoy no se opera en esas tres.
 ---
 ### Versión completa (PRO): stop, objetivo, tamaño y filtros
 
-La LITE solo da dirección. La completa añade stop en el mínimo de la primera vela, objetivo a
-N×R, tamaño por riesgo y filtro de tendencia diaria. Todo medido con 60 sesiones y costes:
+La LITE solo da dirección. La completa añade stop en el mínimo de la primera vela, **distancia
+mínima de stop (0,20 %)** para que un rango diminuto no genere un tamaño absurdo, objetivo a N×R,
+tamaño por riesgo **con tope de capital**, multiplicador de contrato y filtro de tendencia diaria.
 
-**EE. UU.** (40 valores, coste 0,52 %):
+**EE. UU.** (40 valores, 60 sesiones, coste 0,52 %):
 
-| Variante | n | Acierto | Media % | Total % | IS % | OOS % |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| stop 1R | 1.204 | 27,3 % | −0,552 | −665 | −440 | −225 |
-| stop 2R | 1.204 | 25,5 % | −0,575 | −693 | −456 | −237 |
-| stop 3R | 1.204 | 24,5 % | −0,570 | −687 | −451 | −236 |
-| 2R + tendencia | 581 | 23,2 % | −0,587 | −341 | −240 | −102 |
-| 2R + rango | 827 | 21,6 % | −0,606 | −501 | −346 | −155 |
-| 2R + volumen | 281 | 29,5 % | −0,512 | −144 | −101 | −42 |
-| 2R + tendencia + volumen | 141 | 27,7 % | −0,517 | −73 | −49 | −24 |
-| trailing | 1.204 | 20,5 % | −0,559 | −673 | −447 | −226 |
-
-**Xetra** (20 valores, coste 0,30 %):
-
-| Variante | n | Acierto | Media % | Total % | OOS % |
+| Variante | n | Acierto | Media/op | Total | OOS |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| stop 1R | 542 | 32,5 % | −0,328 | −178 | −49 |
-| stop 2R | 542 | 30,8 % | −0,318 | −173 | −39 |
-| stop 3R | 542 | 27,7 % | −0,315 | −171 | −32 |
-| 2R + tendencia | 313 | 29,4 % | −0,328 | −103 | −18 |
-| 2R + rango | 503 | 31,8 % | −0,289 | −145 | −28 |
+| stop 1R | 1.215 | 27,1 % | −0,554 % | −673 % | −227 % |
+| stop 2R | 1.215 | 25,3 % | −0,579 % | −703 % | −239 % |
+| stop 3R | 1.215 | 26,3 % | −0,574 % | −698 % | −236 % |
+| 2R + tendencia | 590 | 22,9 % | −0,593 % | −350 % | −102 % |
+| 2R + rango | 835 | 21,4 % | −0,610 % | −509 % | −156 % |
+| 2R + volumen | 282 | 29,4 % | −0,510 % | −144 % | −42 % |
+| 2R + tendencia + volumen | 142 | 27,5 % | −0,517 % | −73 % | −24 % |
+| 2R + gap | 1.045 | 25,6 % | −0,571 % | −597 % | −201 % |
+| 2R + cierre alto | 667 | 29,4 % | −0,582 % | −388 % | −131 % |
+| 2R + gap + cierre alto | 526 | 30,8 % | −0,571 % | −300 % | −100 % |
+| trailing | 1.215 | 20,3 % | −0,562 % | −683 % | −229 % |
+
+**Xetra** (20 valores, 60 sesiones, coste 0,30 %):
+
+| Variante | n | Acierto | Media/op | Total | OOS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| stop 1R | 578 | 31,5 % | −0,323 % | −187 % | −52 % |
+| stop 2R | 578 | 35,1 % | −0,315 % | −182 % | −42 % |
+| stop 3R | 578 | 29,2 % | −0,308 % | −178 % | −34 % |
+| 2R + tendencia | 330 | 34,5 % | −0,322 % | −106 % | −21 % |
+| 2R + rango | 538 | 36,1 % | −0,288 % | −155 % | −32 % |
 | 2R + volumen | 0 | — | — | — | — |
-| trailing | 542 | 24,9 % | −0,311 | −169 | −36 |
+| 2R + gap | 489 | 36,0 % | −0,303 % | −148 % | −37 % |
+| 2R + cierre alto | 316 | 32,3 % | −0,330 % | −104 % | −16 % |
+| 2R + gap + cierre alto | 241 | 33,2 % | −0,308 % | −74 % | −13 % |
+| trailing | 578 | 24,9 % | −0,310 % | −179 % | −39 % |
 
-Lectura:
+Lectura: **ninguna variante es positiva neta en ninguna de las dos zonas.** El filtro de volumen es
+el mejor en EE. UU. (−0,51 % frente a −0,58 %) y en Xetra deja 0 operaciones porque Yahoo no da
+volumen en velas de 5 min de los valores alemanes. Los filtros de gap y de cierre alto tampoco
+salvan la expectativa: recortan operaciones, no añaden acierto.
 
-- El **stop sí reduce la pérdida media** en EE. UU. (−0,70 % de la LITE a −0,58 %), porque la
-  LITE aguanta hasta el cierre en un mercado que cayó. Pero **no la convierte en positiva**.
-- Los **filtros** (tendencia, rango, volumen) reducen el número de operaciones y la pérdida
-  total, no la media: quitan trades, no añaden acierto.
-- En Xetra el filtro de volumen deja **0 operaciones**: Yahoo no devuelve volumen en las velas
-  de 5 minutos de los valores alemanes. Es una limitación del dato, no del filtro.
-- **Ninguna variante es positiva después de costes.** La versión completa mejora el control del
-  riesgo y la información, no la expectativa.
+### Tabla por valor (tu cartera, 20/11/2026)
 
-Eso es lo que hay: se puede igualar o superar la funcionalidad de la versión de pago (stop,
-tamaño, plan), y se puede demostrar con números lo que la de pago no dice: **que la regla, sola,
-no tiene ventaja en acciones**. Vender lo contrario sería mentir.
+| Valor | Mercado | Indicador | Señal hoy | LITE 60d | PRO 2R 60d |
+| --- | --- | --- | --- | ---: | ---: |
+| DWNI.DE | Xetra | **XETRA** | VENTA | −0,873 % | −0,478 % |
+| NVD.DE | Xetra | **XETRA** | COMPRA | −0,321 % | −0,254 % |
+| AAD.DE | Xetra | **XETRA** | VENTA | −0,581 % | **+0,118 %** (n=28) |
+| LEG.DE | Xetra | **XETRA** | COMPRA | −0,564 % | −0,259 % |
+| CRCL | NYSE | **US** | COMPRA | −0,581 % | −0,912 % |
+| TLK | NYSE | **US** | VENTA | −0,591 % | −0,627 % |
+| SIRI | Nasdaq | **US** | VENTA | −0,299 % | −0,341 % |
+
+La regla es la misma; **lo que cambia es la sesión**: la primera vela es 09:00 CET en Xetra y 09:30
+ET en EE. UU. NVD.DE es Nvidia, pero cotiza en euros y en horario alemán: le toca el indicador de
+Xetra, no el de EE. UU. AAD.DE es el único con media positiva, con 28 operaciones: **no es
+significativo**, es un dato descriptivo, no una ventaja.
+
+### Rigor de la implementación
+
+- **Sin lookahead**: test que cambia barras posteriores y comprueba que la dirección no cambia.
+- **Horario de verano e invierno**: test del 30/03 y del 26/10 en Berlín; la vela de las 09:00 se
+  encuentra igual.
+- **Stop mínimo del 0,20 %** y **tope de capital**: evitan tamaños imposibles (el caso NVD.DE daba
+  499 acciones con 50 USD de riesgo; ahora da 71, limitado por la cuenta).
+- **Coste por mercado**: 0,52 % en EE. UU. (FX incluido), 0,30 % en Xetra.
+- **198 tests propios OK**, IS/OOS en todas las variantes.
 
 ---
 

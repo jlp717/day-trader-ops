@@ -39,8 +39,10 @@ def main(argv=None):
     ap.add_argument("--backtest", nargs="?", const="AUTO",
                     help="lista de simbolos, o vacio para el universo del mercado")
     ap.add_argument("--mercado", choices=("us", "eu"), default="us")
+    ap.add_argument("--cartera", help="lista SYM o SYM:us / SYM:eu separada por comas")
     ap.add_argument("--days", type=int, default=60)
     ap.add_argument("--max-loss", type=float, default=50.0, help="riesgo por operacion en USD")
+    ap.add_argument("--cuenta", type=float, default=10000.0, help="capital para limitar el tamano")
     ap.add_argument("--cost", type=float, default=None,
                     help="coste ida y vuelta en %% (defecto: 0.52 US, 0.30 EU)")
     ap.add_argument("--json", help="guardar el resultado")
@@ -48,10 +50,56 @@ def main(argv=None):
     a = ap.parse_args(argv)
     coste = a.cost if a.cost is not None else (0.30 if a.mercado == "eu" else 0.52)
 
+    if a.cartera:
+        from lib import rawpro
+        for item in [x.strip() for x in a.cartera.split(",") if x.strip()]:
+            if ":" in item:
+                sym, mercado = item.split(":", 1)
+                mercado = mercado.strip().lower()
+            else:
+                sym = item
+                mercado = "eu" if sym.upper().endswith(".DE") else a.mercado
+            sym = sym.strip().upper()
+            if mercado not in ("us", "eu"):
+                print("%-10s mercado no valido: %s" % (sym, mercado))
+                continue
+            coste_sym = 0.30 if mercado == "eu" else 0.52
+            try:
+                bars = raw.barras(sym)
+                fila = raw.ultima(bars, mercado)
+                plan_ = raw.plan(fila, max_loss=a.max_loss, max_notional=a.cuenta)
+                lite = raw.backtest(bars, cost_pct=coste_sym, mercado=mercado)
+                pro = rawpro.resumen(rawpro.operar(bars, mercado, target_r=2.0,
+                                                   cost_pct=coste_sym,
+                                                   max_loss=a.max_loss,
+                                                   max_notional=a.cuenta))
+            except Exception as exc:
+                print("%-10s ERROR %s" % (sym, str(exc)[:90]))
+                continue
+            etiqueta = {1: "COMPRA", -1: "VENTA", 0: "SIN OPERACION"}.get(
+                (fila or {}).get("dir", 0), "sin datos")
+            print("\n%s · %s · %s · %s" % (
+                sym, "Xetra" if mercado == "eu" else "EE. UU.", etiqueta,
+                (fila or {}).get("date", "sin sesion")))
+            if fila:
+                print("  cierre %.2f · EMA %.2f · max %.2f · min %.2f" % (
+                    fila["close"], fila["ema"], fila["high"] or 0, fila["low"] or 0))
+            if plan_:
+                print("  plan: entrada %.2f · stop %.2f · objetivo %.2f · %d acc · riesgo %.0f" % (
+                    plan_["entry"], plan_["stop"], plan_["target"], plan_["qty"],
+                    plan_["riesgo_usd"]))
+            if lite.get("compra", {}).get("n"):
+                print("  LITE 60d: n=%d · acierto %.1f%% · media %+.3f%% (coste %.2f%%)" % (
+                    lite["compra"]["n"], 100 * lite["compra"]["acierto"],
+                    lite["compra"]["media"] - coste_sym, coste_sym))
+            print("  PRO 2R 60d: n=%d · acierto %.1f%% · media %+.3f%% · total %+.1f%%" % (
+                pro["n"], 100 * pro["win_rate"], pro["avg_net"], pro["total_net"]))
+        return 0
+
     if a.symbol:
         sym = a.symbol.strip().upper()
         fila = raw.ultima(raw.barras(sym), a.mercado)
-        plan_ = raw.plan(fila, max_loss=a.max_loss)
+        plan_ = raw.plan(fila, max_loss=a.max_loss, max_notional=a.cuenta)
         txt = raw.texto_senal(fila, sym, a.mercado, plan_)
         print(txt.replace("<b>", "").replace("</b>", ""))
         if a.json and fila:

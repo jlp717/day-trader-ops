@@ -32,6 +32,9 @@ VARIANTES = [
     ("2R+rango", {"target_r": 2.0, "rango_min": 0.15, "rango_max": 1.2}),
     ("2R+volumen", {"target_r": 2.0, "vol_min": 1.2}),
     ("2R+tend+vol", {"target_r": 2.0, "tendencia": True, "vol_min": 1.2}),
+    ("2R+gap", {"target_r": 2.0, "gap_min": 0.0}),
+    ("2R+cierre alto", {"target_r": 2.0, "pos_min": 0.6}),
+    ("2R+gap+cierre", {"target_r": 2.0, "gap_min": 0.0, "pos_min": 0.6}),
     ("trailing", {"target_r": 2.0, "exit_mode": "be_trail"}),
 ]
 

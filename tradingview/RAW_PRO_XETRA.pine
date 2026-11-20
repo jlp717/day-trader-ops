@@ -13,6 +13,7 @@ cuenta    = input.float(10000, 'Cuenta (USD)', minval = 1, group = 'Riesgo')
 riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval = 5, step = 0.05, group = 'Riesgo')
 target_r  = input.float(2.0, 'Objetivo (R)', minval = 0.5, maxval = 10, step = 0.5, group = 'Riesgo')
 buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, step = 0.05, group = 'Riesgo')
+min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, maxval = 2, step = 0.05, group = 'Riesgo')
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
 ver_caja  = input.bool(true, 'Dibujar vela y niveles', group = 'Estilo')
@@ -93,11 +94,17 @@ if found and dayKey != ultimo
     if dir == 1 and tend_ok
         stop   = sL * (1.0 - buf_pct / 100.0)
         riesgo = sC - stop
+        minimo = sC * min_risk / 100.0
+        if riesgo < minimo
+            stop   := sC - minimo
+            riesgo := minimo
         if riesgo > 0
             pStop   := stop
             pRisk   := riesgo
             pTarget := sC + target_r * riesgo
-            pQty    := math.floor((cuenta * riesgo_p / 100.0) / (riesgo * multiplo))
+            qty_r   = math.floor((cuenta * riesgo_p / 100.0) / (riesgo * multiplo))
+            qty_c   = math.floor(cuenta / (sC * multiplo))
+            pQty    := math.min(qty_r, qty_c)
     if ver_caja
         c = dir == 1 ? col_buy : dir == -1 ? col_sell : col_neu
         box.new(tOpen, sH, tOpen5, sL, xloc = xloc.bar_time, border_color = color.new(c, 20), bgcolor = color.new(c, 88))

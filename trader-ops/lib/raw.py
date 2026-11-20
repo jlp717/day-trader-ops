@@ -114,16 +114,25 @@ def barras(symbol, rango="60d"):
     return [b for b in (doc.get("bars") or []) if b.get("c") is not None]
 
 
-def plan(fila, max_loss=50.0, target_r=2.0, buffer_pct=0.0):
+def plan(fila, max_loss=50.0, target_r=2.0, buffer_pct=0.0,
+         min_risk_pct=0.20, max_notional=None):
     """Stop, objetivo y tamaño para una señal larga. Solo si dir == 1."""
     if not fila or fila.get("dir") != 1:
         return None
     entry = float(fila["entry"] or fila["close"])
     stop = float(fila["low"] or entry) * (1.0 - abs(float(buffer_pct)) / 100.0)
     riesgo = entry - stop
+    minimo = entry * abs(float(min_risk_pct)) / 100.0
+    if riesgo < minimo:
+        stop = entry - minimo
+        riesgo = minimo
     if riesgo <= 0:
         return None
-    qty = int(float(max_loss) // riesgo)
+    qty = int(float(max_loss) / riesgo + 1e-9)
+    if max_notional:
+        qty = min(qty, int(float(max_notional) // entry))
+    if qty <= 0:
+        return None
     return {"entry": round(entry, 2), "stop": round(stop, 2),
             "target": round(entry + float(target_r) * riesgo, 2),
             "riesgo": round(riesgo, 3), "qty": qty,

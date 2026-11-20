@@ -48,7 +48,8 @@ def _volumen_relativo(dias, dia_actual, ventana=20):
 def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
            exit_mode="fixed", be_at_r=1.0, trail_r=1.0, cost_pct=0.0,
            tendencia=None, rango_min=None, rango_max=None, vol_min=None,
-           max_loss=50.0):
+           gap_min=None, gap_max=None, pos_min=None, max_loss=50.0,
+           min_risk_pct=0.20, max_notional=None):
     """Simula la version completa. Devuelve lista de trades (solo largos).
 
     - stop: minimo de la primera vela (menos `stop_buffer_pct`).
@@ -57,8 +58,12 @@ def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
     - filtros opcionales: `tendencia` {fecha: bool}, rango % de la vela, volumen relativo.
     """
     dias = _con_ema(bars, mercado)
+    fechas = sorted(dias)
+    cierre_prev = {}
+    for a, b in zip(fechas, fechas[1:]):
+        cierre_prev[b] = float(dias[a]["filas"][-1]["c"])
     trades = []
-    for dia in sorted(dias):
+    for dia in fechas:
         info = dias[dia]
         primera = info["primera"]
         c = float(primera["c"])
@@ -79,6 +84,23 @@ def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
             if rel is None or rel < float(vol_min):
                 continue
 
+        apertura_px = primera.get("o")
+        if gap_min is not None or gap_max is not None:
+            prev = cierre_prev.get(dia)
+            if prev is None or apertura_px is None or prev <= 0:
+                continue
+            gap = (float(apertura_px) - prev) / prev * 100.0
+            if gap_min is not None and gap < float(gap_min):
+                continue
+            if gap_max is not None and gap > float(gap_max):
+                continue
+        if pos_min is not None:
+            if alto <= bajo:
+                continue
+            pos = (c - bajo) / (alto - bajo)
+            if pos < float(pos_min):
+                continue
+
         tz = raw._cfg(mercado)["tz"]
         despues = [b for b in info["filas"]
                    if raw._local(b["t"], tz).time() > info["apertura"]]
@@ -91,10 +113,18 @@ def operar(bars, mercado="us", *, target_r=2.0, stop_buffer_pct=0.0,
             continue
         stop = bajo * (1.0 - abs(float(stop_buffer_pct)) / 100.0)
         riesgo = entry - stop
+        # Un stop pegado al precio produce tamanos absurdos: se exige una distancia minima.
+        minimo = entry * abs(float(min_risk_pct)) / 100.0
+        if riesgo < minimo:
+            stop = entry - minimo
+            riesgo = minimo
         if riesgo <= 0:
             continue
         objetivo = entry + float(target_r) * riesgo
-        qty = int(float(max_loss) // riesgo)
+        qty = int(float(max_loss) / riesgo + 1e-9)
+        if max_notional:
+            tope = int(float(max_notional) // entry)
+            qty = min(qty, tope)
         if qty <= 0:
             continue
 

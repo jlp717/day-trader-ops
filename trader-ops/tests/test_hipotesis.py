@@ -333,6 +333,29 @@ class RawXetra(unittest.TestCase):
         fila = raw.senales(self._bars(), "eu")[-1]
         self.assertIn("09:00 CET", raw.texto_senal(fila, "SAP.DE", "eu"))
 
+    def test_sin_lookahead(self):
+        """Cambiar una barra posterior no puede cambiar la direccion de la senal."""
+        bars = self._bars()
+        antes = raw.senales(bars, "eu")[0]["dir"]
+        copia = [dict(b) for b in bars]
+        for b in copia[4:]:
+            b["c"] = float(b["c"]) * 3.0
+            b["h"] = float(b["h"]) * 3.0
+        despues = raw.senales(copia, "eu")[0]["dir"]
+        self.assertEqual(antes, despues)
+
+    def test_horario_de_verano_e_invierno(self):
+        """Berlin cambia de hora: la vela debe encontrarse igual el 30/03 y el 26/10."""
+        tz = ZoneInfo("Europe/Berlin")
+        for dia in (dt.date(2026, 3, 30), dt.date(2026, 10, 26)):
+            bars = []
+            for h, m in ((9, 0), (9, 5), (9, 10)):
+                t = int(dt.datetime(dia.year, dia.month, dia.day, h, m, tzinfo=tz).timestamp())
+                bars.append({"t": t, "o": 100.0, "h": 100.5, "l": 99.5, "c": 100.0, "v": 10})
+            filas = raw.senales(bars, "eu")
+            self.assertEqual(len(filas), 1)
+            self.assertEqual(filas[0]["date"], dia.isoformat())
+
 
 class RawPlan(unittest.TestCase):
     def test_plan_largo(self):
@@ -342,6 +365,17 @@ class RawPlan(unittest.TestCase):
         self.assertEqual(p["target"], 102.0)
         self.assertEqual(p["qty"], 50)
         self.assertEqual(p["riesgo_usd"], 50.0)
+
+    def test_stop_minimo_evita_tamano_absurdo(self):
+        fila = {"dir": 1, "entry": 100.0, "close": 100.0, "low": 99.99}
+        p = raw.plan(fila, max_loss=50.0, min_risk_pct=0.2)
+        self.assertAlmostEqual(p["stop"], 99.8, places=2)
+        self.assertEqual(p["qty"], 250)
+
+    def test_capital_limita_el_tamano(self):
+        fila = {"dir": 1, "entry": 100.0, "close": 100.0, "low": 99.0}
+        p = raw.plan(fila, max_loss=50.0, max_notional=1000.0)
+        self.assertEqual(p["qty"], 10)
 
     def test_sin_direccion_no_hay_plan(self):
         self.assertIsNone(raw.plan({"dir": -1, "entry": 100.0, "low": 99.0}))
