@@ -36,7 +36,7 @@ _k(float x) =>
 // Tendencia diaria sin mirar el futuro: cierre y SMA200 del día anterior
 dClose  = request.security(syminfo.tickerid, 'D', close[1], lookahead = barmerge.lookahead_off)
 dSma    = request.security(syminfo.tickerid, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
-tend_ok = not usar_tend or (not na(dSma) and dClose > dSma)
+tend_ok = not usar_tend or na(dSma) or dClose > dSma
 
 openTime(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), 9, 30)
 keyOf(int t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
@@ -111,8 +111,8 @@ if found and dayKey != ultimo
     if dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
-        label.new(time, pStop, 'stop ' + str.tostring(pStop, '#.##'), style = label.style_label_up, color = col_sell, textcolor = color.white, size = size.small)
-        label.new(time, pTarget, 'obj ' + str.tostring(pTarget, '#.##'), style = label.style_label_down, color = col_buy, textcolor = color.white, size = size.small)
+        label.new(time, pStop, 'stop ' + str.tostring(pStop, '#.##'), xloc = xloc.bar_time, style = label.style_label_up, color = col_sell, textcolor = color.white, size = size.small)
+        label.new(time, pTarget, 'obj ' + str.tostring(pTarget, '#.##'), xloc = xloc.bar_time, style = label.style_label_down, color = col_buy, textcolor = color.white, size = size.small)
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0')), alert.freq_once_per_bar)
 
 var table tb = table.new(position.top_right, 2, 7, frame_width = 1, border_width = 4)
