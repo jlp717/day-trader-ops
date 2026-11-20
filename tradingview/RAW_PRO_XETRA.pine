@@ -17,6 +17,7 @@ min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, ma
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
 ver_caja  = input.bool(true, 'Dibujar vela y niveles', group = 'Estilo')
+mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
 col_buy   = input.color(#34C759, 'Compra', group = 'Estilo')
 col_sell  = input.color(#FF3B30, 'Venta', group = 'Estilo')
 col_neu   = input.color(#8E8E93, 'Sin operación', group = 'Estilo')
@@ -105,17 +106,20 @@ if found and dayKey != ultimo
             qty_r   = math.floor((cuenta * riesgo_p / 100.0) / (riesgo * multiplo))
             qty_c   = math.floor(cuenta / (sC * multiplo))
             pQty    := math.min(qty_r, qty_c)
-    if ver_caja
+    visible = mostrar_hist or dayKey == todayKey
+    if ver_caja and visible
         c = dir == 1 ? col_buy : dir == -1 ? col_sell : col_neu
         box.new(tOpen, sH, tOpen5, sL, xloc = xloc.bar_time, border_color = color.new(c, 20), bgcolor = color.new(c, 88))
-    if dir == 1 and tend_ok and not na(pStop)
+    if visible
+        c_est = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu
+        etiqueta = pEstado + (na(pStop) ? '' : '  |  E ' + str.tostring(pEntry, '#.##') + '   S ' + str.tostring(pStop, '#.##') + '   O ' + str.tostring(pTarget, '#.##') + '   x' + str.tostring(pQty, '0'))
+        label.new(bar_index, sH, etiqueta, style = label.style_label_down, color = col_est, textcolor = color.white, size = size.small)
+    if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
-        label.new(bar_index, pStop, 'stop ' + str.tostring(pStop, '#.##'), style = label.style_label_up, color = col_sell, textcolor = color.white, size = size.small)
-        label.new(bar_index, pTarget, 'obj ' + str.tostring(pTarget, '#.##'), style = label.style_label_down, color = col_buy, textcolor = color.white, size = size.small)
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0')), alert.freq_once_per_bar)
 
-var table tb = table.new(position.top_right, 2, 7, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 7, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO XETRA', text_size = size.small)
