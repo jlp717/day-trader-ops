@@ -180,6 +180,16 @@ if found and dayKey != ultimo
 
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0') + ' | contexto ' + ctx), alert.freq_once_per_bar)
 
+// ── Aviso si aún no hay primera vela ──
+var label espera = na
+if barstate.islast
+    if ultimo != todayKey
+        if na(espera)
+            espera := label.new(bar_index, high, 'Esperando primera vela · ' + (es_eu ? '09:00' : '09:30'), style = label.style_label_down, color = col_neu, textcolor = color.white, size = size.small)
+    else if not na(espera)
+        label.delete(espera)
+        espera := na
+
 // ── Panel de datos ──
 var table tb = table.new(position.bottom_right, 2, 15, frame_width = 1, border_width = 4)
 
