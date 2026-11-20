@@ -51,6 +51,8 @@ ver_vwap  = input.bool(true, 'VWAP de la sesión', group = 'Estilo')
 mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
 ver_contexto = input.bool(true, 'Ver SMA50/SMA200 diarias', group = 'Estilo')
 ver_guia  = input.bool(true, 'Ver la guía de uso', group = 'Estilo')
+ver_pivotes = input.bool(true, 'Pivotes diarios (PP, R1, S1)', group = 'Estilo')
+ver_ema   = input.bool(true, 'EMA20 de 5 minutos', group = 'Estilo')
 col_buy   = input.color(#34C759, 'Compra', group = 'Estilo')
 col_sell  = input.color(#FF3B30, 'Venta', group = 'Estilo')
 col_neu   = input.color(#8E8E93, 'Sin operación', group = 'Estilo')
@@ -78,6 +80,7 @@ dRsi  = request.security(syminfo.tickerid, 'D', ta.rsi(close, 14)[1], lookahead 
 dAtr  = request.security(syminfo.tickerid, 'D', ta.atr(14)[1], lookahead = barmerge.lookahead_off)
 dAtrA = request.security(syminfo.tickerid, 'D', ta.sma(ta.atr(14), 100)[1], lookahead = barmerge.lookahead_off)
 dHi   = request.security(syminfo.tickerid, 'D', ta.highest(high, 252)[1], lookahead = barmerge.lookahead_off)
+dAdr  = request.security(syminfo.tickerid, 'D', ta.sma(high - low, 14)[1], lookahead = barmerge.lookahead_off)
 mC    = request.security(sym_mercado, 'D', close[1], lookahead = barmerge.lookahead_off)
 mS    = request.security(sym_mercado, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
 merc_ok = not usar_mercado or na(mS) or mC > mS
@@ -87,6 +90,10 @@ ctx      = na(dS200) ? 'SIN DATOS' : dC > dS200 and dS50 > dS200 ? 'A FAVOR' : d
 atr_pct  = na(dAtr) or na(dC) ? na : dAtr / dC * 100
 compres  = not na(dAtrA) and not na(dAtr) and dAtr < dAtrA * 0.7
 dist_max = na(dHi) or dHi == 0 ? na : (dC / dHi - 1.0) * 100.0
+adr_pct  = na(dAdr) or na(dC) or dC == 0 ? na : dAdr / dC * 100.0
+pp = (dH + dL + dC) / 3.0
+r1 = 2.0 * pp - dL
+s1 = 2.0 * pp - dH
 
 // ── Momento de la primera vela de la sesión ──
 openTime(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), hora, minuto)
@@ -196,7 +203,7 @@ if barstate.islast
         espera := na
 
 // ── Panel de datos ──
-var table tb = table.new(position.bottom_right, 2, 16, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 17, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO · ' + (es_eu ? 'Xetra' : 'EE. UU.'), text_size = size.small)
@@ -231,6 +238,8 @@ if barstate.islast
     table.cell(tb, 1, 14, 'en stop u objetivo', text_color = col_neu)
     table.cell(tb, 0, 15, 'Objetivo 2')
     table.cell(tb, 1, 15, na(pTarget2) ? '-' : str.tostring(pTarget2, '#.##'))
+    table.cell(tb, 0, 16, 'Recorrido medio %')
+    table.cell(tb, 1, 16, na(adr_pct) ? '-' : str.tostring(adr_pct, '#.##') + ' %')
 
 // ── Guía de uso, arriba ──
 var table guia = table.new(position.top_center, 1, 4, frame_width = 1, border_width = 4)
@@ -248,6 +257,10 @@ plot(ver_niveles ? dH : na, 'Máximo de ayer', color = color.new(color.orange, 4
 plot(ver_niveles ? dL : na, 'Mínimo de ayer', color = color.new(color.orange, 40), style = plot.style_linebr)
 plot(ver_niveles ? dC : na, 'Cierre de ayer', color = color.new(color.gray, 50), style = plot.style_linebr)
 plot(ver_vwap ? ta.vwap(hlc3) : na, 'VWAP', color = color.new(color.purple, 30), style = plot.style_linebr)
+plot(ver_ema ? ta.ema(close, 20) : na, 'EMA20', color = color.new(color.teal, 20), style = plot.style_linebr)
+plot(ver_pivotes ? pp : na, 'Pivote', color = color.new(color.yellow, 20), style = plot.style_linebr)
+plot(ver_pivotes ? r1 : na, 'R1', color = color.new(color.yellow, 60), style = plot.style_linebr)
+plot(ver_pivotes ? s1 : na, 'S1', color = color.new(color.yellow, 60), style = plot.style_linebr)
 
 alertcondition(found and dir == 1 and tend_ok, 'COMPRA PRO', 'RAW PRO: plan largo en {{exchange}}:{{ticker}}')
 alertcondition(found and dir == -1, 'VENTA PRO', 'RAW PRO: sesgo corto en {{exchange}}:{{ticker}} (no operable en solo largo)')
