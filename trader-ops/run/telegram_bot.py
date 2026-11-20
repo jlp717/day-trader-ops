@@ -989,17 +989,20 @@ def c_tesis(bot, args):
 
 
 def c_raw(bot, args):
-    """Primera vela de NY (RAW NASDAQ LITE): /raw NVDA."""
+    """Primera vela de la sesion (RAW): /raw NVDA · /raw SAP.DE eu."""
     if not args:
-        return "Uso: /raw NVDA"
-    sym = _ticker(args[0])
-    if not sym:
-        return "Uso: /raw NVDA"
+        return "Uso: /raw NVDA · /raw SAP.DE eu"
+    sym = str(args[0]).strip().upper()
+    if not re.match(r"^[A-Z0-9]{1,6}(\.[A-Z]{1,3})?$", sym):
+        return "Uso: /raw NVDA · /raw SAP.DE eu"
+    mercado = "us"
+    if len(args) > 1 and str(args[1]).lower() in ("eu", "europa", "xetra"):
+        mercado = "eu"
     try:
-        fila = raw.ultima(raw.barras(sym))
+        fila = raw.ultima(raw.barras(sym), mercado)
     except Exception as exc:
         return "Sin datos: %s" % str(exc)[:120]
-    return raw.texto_senal(fila, sym)
+    return raw.texto_senal(fila, sym, mercado)
 
 
 def c_guia(bot, args):

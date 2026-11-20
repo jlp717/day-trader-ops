@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **186 propios** + 315 del skill |
+| Tests | **189 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 186 tests propios |
+| Motor intradía determinista y trazable | 189 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -717,6 +717,34 @@ Lectura: en acciones, la señal **no bate a comprar cualquier día**. El indicad
 para futuros del Nasdaq (MNQ/NQ), donde el intradía y el apalancamiento son otra cosa; trasladarlo
 a acciones sin medirlo habría sido un error de principiante. Se queda como ** herramienta de
 timing y niveles**, no como ventaja demostrada.
+
+---
+### Adaptación a Xetra (Europa)
+
+Archivo listo para pegar: `tradingview/RAW_XETRA_LITE.pine`. Misma lógica, con estos cambios:
+
+- zona horaria `Europe/Berlin` (la misma hora que Madrid todo el año);
+- primera vela de **09:00–09:05 CET** en vez de 09:30–09:35 ET;
+- etiquetas y panel con "09:00", "Xetra" y "09:00 España";
+- atribución al autor original (nico66fx) y sin el canal de comunidad del original.
+
+En Python: `--mercado eu` (o `/raw SAP.DE eu`), con universo propio de 20 valores líquidos
+de Xetra y coste por defecto del 0,30 % (sin FX, pero con spreads más anchos).
+
+Medición (20 valores, 60 sesiones, 1.200 días-valor):
+
+| Métrica | Sin costes | Con coste 0,30 % |
+| --- | ---: | ---: |
+| Señal COMPRA (n=578) | +0,020 %/sesión (49,0 % acierto) | −0,280 % |
+| Base: comprar cualquier día a las 09:05 | −0,031 % | −0,331 % |
+| Ventaja de la señal | **+0,050 puntos** | +0,051 puntos |
+
+Lectura: en Xetra el bruto es ligeramente positivo y bate a la base por 0,05 puntos por sesión,
+pero **el coste se lo come**. No es una ventaja operable; sirve como timing y niveles, igual que
+en EE. UU., donde el bruto ya era negativo (−0,04 puntos).
+
+Ejemplo real del 20/11/2026 a las 09:40 Madrid: SAP.DE, SIE.DE y ALV.DE dieron **VENTA** en la
+primera vela; el sistema es solo largo, así que hoy no se opera en esas tres.
 
 ---
 

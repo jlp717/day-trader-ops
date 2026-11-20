@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import brokers, estrategias, ibkr, niveles, swing, tesis  # noqa: E402
+from lib import brokers, estrategias, ibkr, niveles, raw, swing, tesis  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 DAY = dt.date(2026, 11, 19)
@@ -308,6 +308,30 @@ class IBKR(unittest.TestCase):
         with mock.patch.object(ibkr, "orden", return_value={"ok": True}) as m:
             self.assertEqual(b.comprar("AAPL", 2, limit=100), {"ok": True})
         self.assertEqual(m.call_args.args[1], "AAPL")
+
+
+class RawXetra(unittest.TestCase):
+    def _bars(self):
+        out = []
+        for dia in (dt.date(2026, 11, 18), dt.date(2026, 11, 19)):
+            for h, m, px in ((9, 0, 100.0), (9, 5, 100.4), (9, 10, 100.2), (9, 30, 100.6)):
+                t = int(dt.datetime(dia.year, dia.month, dia.day, h, m,
+                                    tzinfo=ZoneInfo("Europe/Berlin")).timestamp())
+                out.append({"t": t, "o": px, "h": px + 0.2, "l": px - 0.2, "c": px, "v": 100})
+        return out
+
+    def test_encuentra_la_vela_de_las_0900(self):
+        filas = raw.senales(self._bars(), "eu")
+        self.assertEqual(len(filas), 2)
+        self.assertEqual(filas[0]["mercado"], "eu")
+        self.assertIsNotNone(filas[0]["pct"])
+
+    def test_el_mercado_cambia_la_hora(self):
+        self.assertEqual(raw.senales(self._bars(), "us"), [])
+
+    def test_texto_menciona_cet(self):
+        fila = raw.senales(self._bars(), "eu")[-1]
+        self.assertIn("09:00 CET", raw.texto_senal(fila, "SAP.DE", "eu"))
 
 
 if __name__ == "__main__":
