@@ -53,7 +53,7 @@ py -3.11 -m unittest discover -s trader-ops\tests
 py -3.11 trader-ops\run\smoke.py
 py -3.11 trader-ops\run\saludo.py
 
-# 5. Registrar el arranque automático (3 tareas del Programador)
+# 5. Registrar el arranque automático (5 tareas del Programador)
 powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Instalar
 powershell -ExecutionPolicy Bypass -File trader-ops\run\instalar_tarea.ps1 -Estado
 ```

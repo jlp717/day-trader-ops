@@ -21,7 +21,7 @@ $dog = Join-Path $root "trader-ops\run\watchdog.py"
 function Get-Task($name) { Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue }
 
 if ($Estado) {
-    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot")) {
+    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar")) {
         $t = Get-Task $n
         if ($t) {
             $i = Get-ScheduledTaskInfo -TaskName $n
@@ -32,7 +32,7 @@ if ($Estado) {
 }
 
 if ($Quitar) {
-    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot")) {
+    foreach ($n in @("DayTraderOps", "DayTraderOps-Watchdog", "DayTraderOps-Bot", "DayTraderOps-PreRadar", "DayTraderOps-PostRadar")) {
         if (Get-Task $n) { Unregister-ScheduledTask -TaskName $n -Confirm:$false; "Borrada $n" }
     }
     exit 0
@@ -65,6 +65,19 @@ $trigger3 = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 Register-ScheduledTask -TaskName "DayTraderOps-Bot" -Action $action3 -Trigger $trigger3 `
     -Settings $settings -Description "Bot de Telegram del banco de pruebas" -Force | Out-Null
 "Registrado DayTraderOps-Bot (long polling)"
+
+$radar = Join-Path $root "trader-ops\run\prepost.py"
+$action4 = New-ScheduledTaskAction -Execute $pyw -Argument "`"$radar`" --radar --top 30 --modo pre --send" -WorkingDirectory $root
+$trigger4 = New-ScheduledTaskTrigger -Daily -At "13:10"
+Register-ScheduledTask -TaskName "DayTraderOps-PreRadar" -Action $action4 -Trigger $trigger4 `
+    -Settings $settings -Description "Radar premarket (solo analisis)" -Force | Out-Null
+"Registrado DayTraderOps-PreRadar (13:10 diario)"
+
+$action5 = New-ScheduledTaskAction -Execute $pyw -Argument "`"$radar`" --radar --top 30 --modo post --send" -WorkingDirectory $root
+$trigger5 = New-ScheduledTaskTrigger -Daily -At "22:05"
+Register-ScheduledTask -TaskName "DayTraderOps-PostRadar" -Action $action5 -Trigger $trigger5 `
+    -Settings $settings -Description "Radar postmarket (solo analisis)" -Force | Out-Null
+"Registrado DayTraderOps-PostRadar (22:05 diario)"
 
 "Para arrancarlo ahora sin reiniciar:"
 "  Start-ScheduledTask -TaskName DayTraderOps"

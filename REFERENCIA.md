@@ -156,6 +156,20 @@ bruto no es una ventaja por sí solo. Los filtros (calidad, EV, Time Machine, hi
 Conclusión operativa: **no escalar**. El backtest es una herramienta para medir, no una prueba
 de rentabilidad.
 
+Estudio de filtros sobre el mismo periodo (IS/OOS 70/30):
+
+| Subconjunto | Total | IS | OOS |
+| --- | --- | --- | --- |
+| Todos | −310R | −220R | −90R |
+| Coste ≤0,5R | −17R | −5R | −12R |
+| Rango ≥1 % | −227R | −150R | −77R |
+| Antes de 11:00 | −239R | −178R | −61R |
+| Coste ≤0,5R y antes de 11:00 | −15R | −4,5R | −10R |
+
+**Ningún subconjunto es positivo out-of-sample.** No hay una ventaja clara que se pueda aislar con
+estos datos. Los filtros de noticias, Time Machine, Wilson y EV no están en el backtest; podrían
+cambiar el resultado, pero hoy no hay evidencia de que lo hagan.
+
 ### 5.2 Multi-estrategia — **interfaz + dos variantes**
 
 `lib/estrategias.py` define una interfaz común y un registro. Hoy hay dos:

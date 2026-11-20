@@ -187,6 +187,9 @@ día 7 de dos señales.
   `state/pre|post/radar.json`; comandos `/pre T`, `/post T`, `/pre` y `/post` leen el radar.
   Estado separado del intradía; **no se suma al P&L**. Solo análisis: MyInvestor no ejecuta fuera
   del horario regular. **144 tests propios OK**.
+- **Radar pre/post automático (20/11)**: tareas `DayTraderOps-PreRadar` (13:10) y
+  `DayTraderOps-PostRadar` (22:05), con envío a Telegram; estado en `state/pre|post`. Separado
+  del P&L intradía. **144 tests propios OK**.
 - **Manual 91 páginas**: nueva §0.6 "Los comandos, explicados como a un niño" con el desglose de
   `/entre`, `/sali`, `/stop`, `/vender`, `/guia` y el ejemplo CRCL con costes; aviso al inicio de
   los días simulados.

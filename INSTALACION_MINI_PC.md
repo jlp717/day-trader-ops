@@ -282,7 +282,7 @@ opciones:
    contraseña" → guarda la contraseña. Cómodo, pero la contraseña queda almacenada en el equipo
    (cualquiera con acceso de administrador puede recuperarla). Es una decisión tuya, no del sistema.
 
-Si eliges la opción 2, comprueba tras un reinicio de prueba que las tres tareas están en `Running`.
+Si eliges la opción 2, comprueba tras un reinicio de prueba que las cinco tareas están en `Running`.
 
 ---
 
@@ -389,4 +389,4 @@ git checkout <commit>
 ```
 
 Nada de esto toca `secrets/` ni los datos históricos. Para borrar el proyecto entero, elimina
-`C:\day-trader-ops` y las tres tareas; no queda nada en el sistema.
+`C:\day-trader-ops` y las cinco tareas; no queda nada en el sistema.

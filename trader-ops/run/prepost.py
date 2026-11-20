@@ -13,7 +13,17 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import cfg, prepost  # noqa: E402
+from lib import cfg, calendario, prepost, zonatiempo as zt  # noqa: E402
+
+
+def _send(text):
+    from lib import telegram as tg
+    try:
+        tg.Telegram().send(text)
+        return True
+    except Exception as exc:
+        print("ERROR Telegram: %s" % exc)
+        return False
 
 
 def main(argv=None):
@@ -29,15 +39,23 @@ def main(argv=None):
     ap.add_argument("--modo", choices=("pre", "post"), default="pre")
     ap.add_argument("--json", help="guardar el resultado")
     ap.add_argument("--out", help="ruta del radar (por defecto state/pre|post/radar.json)")
+    ap.add_argument("--send", action="store_true", help="enviar el resultado a Telegram")
     a = ap.parse_args(argv)
+    start, end, why = calendario.session_madrid(zt.madrid().date())
+    if not start:
+        print("Sin mercado hoy: %s" % why)
+        return 0
     if a.radar:
         syms = ([x.strip().upper() for x in a.symbols.split(",") if x.strip()]
                 if a.symbols else prepost.symbols_from_scan(a.top))
         filas = prepost.radar(syms, a.modo, a.limit)
         out = a.out or str(cfg.STATE / a.modo / "radar.json")
         prepost.guardar(out, filas)
-        print(prepost.texto(filas, a.modo))
+        texto = prepost.texto(filas, a.modo)
+        print(texto)
         print("\nGuardado: %s" % out)
+        if a.send and filas:
+            _send(texto)
         return 0
     if not a.symbols:
         print("ERROR: pasa --symbols o --radar")
@@ -56,6 +74,8 @@ def main(argv=None):
             json.dump(filas, f, ensure_ascii=False, indent=2)
         print("\nJSON: %s" % a.json)
     print("\nSolo analisis: MyInvestor no ejecuta fuera del horario regular.")
+    if a.send and filas:
+        _send(prepost.texto(filas, a.modo))
     return 0
 
 

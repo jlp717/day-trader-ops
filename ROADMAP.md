@@ -24,6 +24,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 | **5. Nivel 2 / microestructura** | **PARTIAL** | IEX top-of-book gratis (bid/ask/tamaño) | L2 completo: proveedor de pago |
 | **6. Machine learning** | **BASELINE DONE** | logística walk-forward, features, AUC 0,269 | 300–500 trades; hoy no hay señal |
 | **7. Pre/post market** | **ANÁLISIS DONE** | `run/prepost.py`, radar, `/pre`, `/post`, estado separado | ejecución: MyInvestor no la permite |
+| **7c. Radar automático** | **DONE** | tareas `DayTraderOps-PreRadar` (13:10) y `-PostRadar` (22:05), envío Telegram | nada |
 | **8. Europa** | **SEPARATE** | documentado | otro horario, bróker, datos y fiscalidad |
 | **9. Ejecución real** | **BLOCKED** | interfaz y modo papel | bróker fondeado + límites + aprobación |
 | **10. Ops y documentación** | **DONE** | README, REFERENCIA, manual 91 pág., tareas | nada |
