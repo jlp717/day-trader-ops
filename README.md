@@ -108,6 +108,7 @@ solo lectura).
 ```
 AGENTS.md                 contrato permanente del proyecto (leer antes de tocar nada)
 REFERENCIA.md             referencia, límites y hoja de ruta (pre/post, Europa, ejecución)
+ROADMAP.md                fases: qué está hecho, qué se está haciendo y qué queda
 INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/
   lib/                    lógica: datos, criterios, plan, riesgo, briefing, Telegram, backtest,

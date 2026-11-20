@@ -47,6 +47,9 @@ class AlpacaIEX(Nivel2):
             "depth": 1,
             "source": "alpaca_iex",
             "completo": False,
+            "spread_pct": (
+                (float(q["ap"]) - float(q["bp"])) / float(q["bp"]) * 100.0
+                if q.get("ap") and q.get("bp") else None),
         }
 
     def profundidad(self, symbol):

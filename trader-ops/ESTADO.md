@@ -179,6 +179,10 @@ día 7 de dos señales.
   `run/ml.py` (logística walk-forward; AUC 0,269 = sin señal) y `lib/prepost.py` +
   `run/prepost.py` (análisis pre/post, sin ejecución). Claves en `secrets/alpaca.json`;
   documentado en `REFERENCIA.md` §4b. **141 tests propios OK**.
+- **Alpaca paper verificado (20/11 07:31)**: claves en `secrets/alpaca.json`; cuenta **paper**
+  ACTIVE con 100.000 USD simulados. IEX top-of-book operativo (bid/ask/tamaño; spread anómalo
+  fuera de sesión). `DayTraderOps-Bot` estaba en `Ready` y se reinició (PID 3156). Fases y
+  pendientes en `ROADMAP.md`.
 - **Manual 91 páginas**: nueva §0.6 "Los comandos, explicados como a un niño" con el desglose de
   `/entre`, `/sali`, `/stop`, `/vender`, `/guia` y el ejemplo CRCL con costes; aviso al inicio de
   los días simulados.

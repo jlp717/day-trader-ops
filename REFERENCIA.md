@@ -4,7 +4,7 @@ Documento de referencia del proyecto. Recoge lo acordado hasta el 19/11/2026 y s
 **ya existe**, lo que **se puede construir** y lo que **no se debe construir todavía**.
 
 Léelo antes de tocar el motor. El contrato operativo sigue siendo `AGENTS.md`; este documento
-explica el porqué y el para qué.
+explica el porqué y el para qué. El estado por fases está en [`ROADMAP.md`](ROADMAP.md).
 
 ---
 

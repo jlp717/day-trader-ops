@@ -27,8 +27,13 @@ def main(argv=None):
         print("ERROR: %s" % exc)
         return 2
     print(json.dumps(libro, ensure_ascii=False, indent=2))
+    sp = libro.get("spread_pct")
+    if sp is not None:
+        print("\nSpread: %.2f%%" % sp)
+        if sp > 1.0:
+            print("AVISO: spread ancho (>1%). No operes a mercado con este libro.")
     if libro.get("depth") == 1:
-        print("\nTop-of-book: bid/ask y tamanos. No es profundidad completa.")
+        print("Top-of-book: bid/ask y tamanos. No es profundidad completa.")
     return 0
 
 
