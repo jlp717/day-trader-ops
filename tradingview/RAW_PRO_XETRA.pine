@@ -9,7 +9,7 @@ indicator('RAW PRO XETRA · nico66fx', shorttitle = 'RAW PRO XETRA', overlay = t
 
 const string TZ = 'Europe/Berlin'
 
-cuenta    = input.float(10000, 'Cuenta (USD)', minval = 1, group = 'Riesgo')
+cuenta    = input.float(10000, 'Cuenta (EUR)', minval = 1, group = 'Riesgo')
 riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval = 5, step = 0.05, group = 'Riesgo')
 target_r  = input.float(2.0, 'Objetivo (R)', minval = 0.5, maxval = 10, step = 0.5, group = 'Riesgo')
 buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, step = 0.05, group = 'Riesgo')
@@ -128,7 +128,7 @@ if barstate.islast
     table.cell(tb, 1, 3, na(pTarget) ? '-' : str.tostring(pTarget, '#.##'))
     table.cell(tb, 0, 4, 'Tamaño')
     table.cell(tb, 1, 4, na(pQty) ? '-' : str.tostring(pQty, '0'))
-    table.cell(tb, 0, 5, 'Riesgo USD')
+    table.cell(tb, 0, 5, 'Riesgo EUR')
     table.cell(tb, 1, 5, na(pQty) or na(pRisk) ? '-' : str.tostring(pQty * pRisk * multiplo, '#.##'))
     table.cell(tb, 0, 6, 'Tendencia')
     table.cell(tb, 1, 6, tend_ok ? 'OK' : 'filtrada')
