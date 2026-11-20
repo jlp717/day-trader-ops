@@ -75,6 +75,7 @@ dist_max = na(dHi) or dHi == 0 ? na : (dC / dHi - 1.0) * 100.0
 
 openTime(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), hora, minuto)
 keyOf(int t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
+int todayKey = keyOf(timenow)
 
 int c1   = openTime(time)
 int c2   = openTime(time_close)
@@ -147,7 +148,7 @@ if found and dayKey != ultimo
     if visible
         c_est = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu
         etiqueta = pEstado + (na(pStop) ? '' : '  |  E ' + str.tostring(pEntry, '#.##') + '   S ' + str.tostring(pStop, '#.##') + '   O ' + str.tostring(pTarget, '#.##') + '   x' + str.tostring(pQty, '0'))
-        label.new(bar_index, sH, etiqueta, style = label.style_label_down, color = col_est, textcolor = color.white, size = size.small)
+        label.new(bar_index, sH, etiqueta, style = label.style_label_down, color = c_est, textcolor = color.white, size = size.small)
     if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
