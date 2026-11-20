@@ -1,21 +1,30 @@
 //@version=6
 // ─────────────────────────────────────────────────────────────────────────────
-// RAW PRO · indicador unificado para acciones de EE. UU. y Xetra
-// Basado en la regla de nico66fx (RAW NASDAQ LITE): primera vela de 5 minutos
-// de la sesión contra su media exponencial (alfa 4/26).
+// RAW PRO · el indicador completo (EE. UU. y Xetra)
 //
-// Qué dibuja:
-//  - COMPRA / VENTA / filtrado, con entrada, stop, objetivo y tamaño.
-//  - Zona verde (entrada→objetivo) y zona roja (stop→entrada) del plan de hoy.
-//  - Máximo, mínimo y cierre de la sesión anterior (niveles del día).
-//  - VWAP de la sesión y SMA50/SMA200 diarias (tendencia de fondo).
-//  - Panel con el contexto: tendencia, RSI, ATR, caída desde máximos y compresión.
+// QUÉ HACE, EN UNA FRASE: mira la primera vela de 5 minutos de la sesión y dice
+// si hay compra, dónde está el stop, dónde el objetivo y cuántas acciones comprar.
 //
-// Detecta el mercado solo (Europa → 09:00 CET, EE. UU. → 09:30 ET).
+// QUÉ VAS A VER:
+//  - Etiqueta LARGO / LARGO filtrado / CORTO / SIN OPERACIÓN en la vela de apertura.
+//  - Caja de esa primera vela (el rango que decide todo).
+//  - Zona verde: de la entrada al objetivo. Zona roja: de la entrada al stop.
+//  - Líneas: SMA50 y SMA200 diarias, máximo/mínimo/cierre de ayer, VWAP.
+//  - Panel: estado, entrada, stop, objetivo, tamaño, riesgo y contexto.
+//  - Guía de uso arriba, en tres frases.
+//
+// CÓMO SE USA (para principiante):
+//  1. Si la etiqueta dice LARGO, hay compra con plan. Si dice cualquier otra cosa, NO se compra.
+//  2. El stop es sagrado: si llega, se sale sin discutir.
+//  3. El objetivo es donde se recoge. Si el precio sigue subiendo, se aguanta mientras
+//     el cierre diario esté por encima de la SMA50 azul (fila "Salida swing").
+//
+// Detecta el mercado solo: Europa → 09:00 CET; EE. UU. → 09:30 ET.
 // Sin repintar. No envía órdenes. Uso educativo.
 // ─────────────────────────────────────────────────────────────────────────────
 indicator('RAW PRO · nico66fx', shorttitle = 'RAW PRO', overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
+// ── Mercado: automático por la zona horaria del exchange ──
 modo     = input.string('Auto', 'Mercado', options = ['Auto', 'EE. UU. (09:30 NY)', 'Xetra (09:00 CET)'])
 es_eu    = modo == 'Xetra (09:00 CET)' or (modo == 'Auto' and str.startswith(syminfo.timezone, 'Europe/'))
 TZ       = es_eu ? 'Europe/Berlin' : 'America/New_York'
@@ -23,6 +32,7 @@ hora     = 9
 minuto   = es_eu ? 0 : 30
 sym_mercado = es_eu ? 'TVC:DAX' : 'SPY'
 
+// ── Riesgo: lo que decides tú ──
 cuenta    = input.float(10000, 'Cuenta', minval = 1, group = 'Riesgo')
 riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval = 5, step = 0.05, group = 'Riesgo')
 target_r  = input.float(2.0, 'Objetivo (R)', minval = 0.5, maxval = 10, step = 0.5, group = 'Riesgo')
@@ -31,12 +41,15 @@ min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, ma
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
 usar_mercado = input.bool(false, 'Filtrar por el indice del mercado', group = 'Riesgo')
+
+// ── Estilo: qué quieres ver en el gráfico ──
 ver_caja  = input.bool(true, 'Dibujar la vela de las 09:00/09:30', group = 'Estilo')
 ver_plan  = input.bool(true, 'Dibujar zonas de beneficio y riesgo', group = 'Estilo')
 ver_niveles = input.bool(true, 'Máximo, mínimo y cierre de ayer', group = 'Estilo')
 ver_vwap  = input.bool(true, 'VWAP de la sesión', group = 'Estilo')
 mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
 ver_contexto = input.bool(true, 'Ver SMA50/SMA200 diarias', group = 'Estilo')
+ver_guia  = input.bool(true, 'Ver la guía de uso', group = 'Estilo')
 col_buy   = input.color(#34C759, 'Compra', group = 'Estilo')
 col_sell  = input.color(#FF3B30, 'Venta', group = 'Estilo')
 col_neu   = input.color(#8E8E93, 'Sin operación', group = 'Estilo')
@@ -45,6 +58,7 @@ int  tf_sec = timeframe.in_seconds()
 bool low_tf = tf_sec <= 300
 bool htf    = not low_tf and tf_sec <= 86400
 
+// Media exponencial de los cierres de 5 minutos (la misma del indicador original)
 _k(float x) =>
     var float a = na
     a := na(a) ? x : a + (x - a) * (4.0 / 26.0)
@@ -53,7 +67,7 @@ _k(float x) =>
 [m5T, m5H, m5L, m5C, m5E] = request.security(syminfo.tickerid, '5', [time, high, low, close, _k(close)], lookahead = barmerge.lookahead_off)
 [aT, aH, aL, aC, aE] = request.security_lower_tf(syminfo.tickerid, low_tf ? timeframe.period : '5', [time, high, low, close, _k(close)])
 
-// ── Contexto diario (siempre con el dato del día anterior: sin mirar el futuro) ──
+// ── Contexto diario: siempre el dato del día anterior, sin mirar el futuro ──
 dC    = request.security(syminfo.tickerid, 'D', close[1], lookahead = barmerge.lookahead_off)
 dH    = request.security(syminfo.tickerid, 'D', high[1], lookahead = barmerge.lookahead_off)
 dL    = request.security(syminfo.tickerid, 'D', low[1], lookahead = barmerge.lookahead_off)
@@ -73,6 +87,7 @@ atr_pct  = na(dAtr) or na(dC) ? na : dAtr / dC * 100
 compres  = not na(dAtrA) and not na(dAtr) and dAtr < dAtrA * 0.7
 dist_max = na(dHi) or dHi == 0 ? na : (dC / dHi - 1.0) * 100.0
 
+// ── Momento de la primera vela de la sesión ──
 openTime(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), hora, minuto)
 keyOf(int t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
 int todayKey = keyOf(timenow)
@@ -84,6 +99,7 @@ int tOpen  = low_tf ? c1 : tBar
 int tOpen5 = na(tOpen) ? na : tOpen + 5 * 60 * 1000
 int dayKey = na(tOpen) ? 0 : keyOf(tOpen)
 
+// ── Detección de la primera vela ──
 bool  found = false
 float sH = na
 float sL = na
@@ -109,6 +125,7 @@ else if htf and not na(tOpen)
                     sE := array.get(aE, i)
                 break
 
+// ── Plan del día ──
 var int    ultimo  = 0
 var int    dir     = 0
 var float  pEntry  = na
@@ -141,22 +158,29 @@ if found and dayKey != ultimo
             qty_r   = math.floor((cuenta * riesgo_p / 100.0) / (riesgo * multiplo))
             qty_c   = math.floor(cuenta / (sC * multiplo))
             pQty    := math.min(qty_r, qty_c)
+
     visible = mostrar_hist or dayKey == todayKey
+
     if ver_caja and visible
         c = dir == 1 ? col_buy : dir == -1 ? col_sell : col_neu
         box.new(tOpen, sH, tOpen5, sL, xloc = xloc.bar_time, border_color = color.new(c, 20), bgcolor = color.new(c, 88))
+
     if visible
         c_est = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu
         etiqueta = pEstado + (na(pStop) ? '' : '  |  E ' + str.tostring(pEntry, '#.##') + '   S ' + str.tostring(pStop, '#.##') + '   O ' + str.tostring(pTarget, '#.##') + '   x' + str.tostring(pQty, '0'))
         label.new(bar_index, sH, etiqueta, style = label.style_label_down, color = c_est, textcolor = color.white, size = size.small)
+
     if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
+
     if ver_plan and dayKey == todayKey and dir == 1 and tend_ok and not na(pStop)
         box.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pEntry, xloc = xloc.bar_time, border_color = color.new(col_buy, 60), bgcolor = color.new(col_buy, 88))
         box.new(tOpen5, pEntry, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, border_color = color.new(col_sell, 60), bgcolor = color.new(col_sell, 88))
+
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0') + ' | contexto ' + ctx), alert.freq_once_per_bar)
 
+// ── Panel de datos ──
 var table tb = table.new(position.bottom_right, 2, 15, frame_width = 1, border_width = 4)
 
 if barstate.islast
@@ -191,6 +215,16 @@ if barstate.islast
     table.cell(tb, 0, 14, 'Vender')
     table.cell(tb, 1, 14, 'en stop u objetivo', text_color = col_neu)
 
+// ── Guía de uso, arriba ──
+var table guia = table.new(position.top_center, 1, 4, frame_width = 1, border_width = 4)
+
+if barstate.islast and ver_guia
+    table.cell(guia, 0, 0, 'CÓMO USARLO', text_size = size.small)
+    table.cell(guia, 0, 1, '1. Etiqueta LARGO: comprar', text_size = size.tiny)
+    table.cell(guia, 0, 2, '2. Stop: salir sin discutir', text_size = size.tiny)
+    table.cell(guia, 0, 3, '3. Objetivo: vender', text_size = size.tiny)
+
+// ── Líneas de contexto ──
 plot(ver_contexto ? dS50 : na, 'SMA50 diaria', color = color.new(color.blue, 30), style = plot.style_linebr)
 plot(ver_contexto ? dS200 : na, 'SMA200 diaria', color = color.new(color.gray, 20), style = plot.style_linebr)
 plot(ver_niveles ? dH : na, 'Máximo de ayer', color = color.new(color.orange, 40), style = plot.style_linebr)
