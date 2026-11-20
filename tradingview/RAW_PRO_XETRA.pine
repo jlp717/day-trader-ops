@@ -1,9 +1,11 @@
 //@version=6
 // ─────────────────────────────────────────────────────────────────────────────
-// RAW PRO XETRA · versión completa sobre la regla de nico66fx (RAW NASDAQ LITE)
-// Añade lo que la LITE no da: stop, objetivo, tamaño por riesgo, multiplicador
-// de contrato y filtro de tendencia diaria. Sin repintar, una señal al día.
-// No envía órdenes. Uso educativo.
+// RAW PRO XETRA · versión definitiva sobre la regla de nico66fx (RAW NASDAQ LITE)
+// 1) Señal del día: primera vela de 5 min de NY contra su media (alfa 4/26).
+// 2) Plan: entrada, stop, objetivo a N×R y tamaño por riesgo y capital.
+// 3) Contexto diario: tendencia (SMA50/SMA200), RSI, ATR, distancia a máximos
+//    de 52 semanas y compresión de volatilidad. Es el "dónde está" del valor.
+// Sin repintar. No envía órdenes. Uso educativo.
 // ─────────────────────────────────────────────────────────────────────────────
 indicator('RAW PRO XETRA · nico66fx', shorttitle = 'RAW PRO XETRA', overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
@@ -14,10 +16,11 @@ riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval 
 target_r  = input.float(2.0, 'Objetivo (R)', minval = 0.5, maxval = 10, step = 0.5, group = 'Riesgo')
 buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, step = 0.05, group = 'Riesgo')
 min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, maxval = 2, step = 0.05, group = 'Riesgo')
-multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
+multiplo  = input.float(1.0, 'Multiplicador (1 acción, 5 FDAX, 1 FDXM)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
 ver_caja  = input.bool(true, 'Dibujar vela y niveles', group = 'Estilo')
 mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
+ver_contexto = input.bool(true, 'Ver SMA50/SMA200 diarias', group = 'Estilo')
 col_buy   = input.color(#34C759, 'Compra', group = 'Estilo')
 col_sell  = input.color(#FF3B30, 'Venta', group = 'Estilo')
 col_neu   = input.color(#8E8E93, 'Sin operación', group = 'Estilo')
@@ -34,10 +37,20 @@ _k(float x) =>
 [m5T, m5H, m5L, m5C, m5E] = request.security(syminfo.tickerid, '5', [time, high, low, close, _k(close)], lookahead = barmerge.lookahead_off)
 [aT, aH, aL, aC, aE] = request.security_lower_tf(syminfo.tickerid, low_tf ? timeframe.period : '5', [time, high, low, close, _k(close)])
 
-// Tendencia diaria sin mirar el futuro: cierre y SMA200 del día anterior
-dClose  = request.security(syminfo.tickerid, 'D', close[1], lookahead = barmerge.lookahead_off)
-dSma    = request.security(syminfo.tickerid, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
-tend_ok = not usar_tend or na(dSma) or dClose > dSma
+// ── Contexto diario (siempre con el dato del día anterior: sin mirar el futuro) ──
+dC    = request.security(syminfo.tickerid, 'D', close[1], lookahead = barmerge.lookahead_off)
+dS50  = request.security(syminfo.tickerid, 'D', ta.sma(close, 50)[1], lookahead = barmerge.lookahead_off)
+dS200 = request.security(syminfo.tickerid, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
+dRsi  = request.security(syminfo.tickerid, 'D', ta.rsi(close, 14)[1], lookahead = barmerge.lookahead_off)
+dAtr  = request.security(syminfo.tickerid, 'D', ta.atr(14)[1], lookahead = barmerge.lookahead_off)
+dAtrA = request.security(syminfo.tickerid, 'D', ta.sma(ta.atr(14), 100)[1], lookahead = barmerge.lookahead_off)
+dHi   = request.security(syminfo.tickerid, 'D', ta.highest(high, 252)[1], lookahead = barmerge.lookahead_off)
+
+tend_ok  = not usar_tend or na(dS200) or dC > dS200
+ctx      = na(dS200) ? 'SIN DATOS' : dC > dS200 and dS50 > dS200 ? 'A FAVOR' : dC < dS200 ? 'EN CONTRA' : 'NEUTRO'
+atr_pct  = na(dAtr) or na(dC) ? na : dAtr / dC * 100
+compres  = not na(dAtrA) and not na(dAtr) and dAtr < dAtrA * 0.7
+dist_max = na(dHi) or dHi == 0 ? na : (dC / dHi - 1.0) * 100.0
 
 openTime(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), 9, 0)
 keyOf(int t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
@@ -117,13 +130,13 @@ if found and dayKey != ultimo
     if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
-    alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0')), alert.freq_once_per_bar)
+    alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0') + ' | contexto ' + ctx), alert.freq_once_per_bar)
 
-var table tb = table.new(position.bottom_right, 2, 7, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 12, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO XETRA', text_size = size.small)
-    table.cell(tb, 1, 0, pEstado, text_size = size.small)
+    table.cell(tb, 1, 0, pEstado, text_size = size.small, text_color = pEstado == 'LARGO' ? col_buy : pEstado == 'CORTO (no operable)' ? col_sell : col_neu)
     table.cell(tb, 0, 1, 'Entrada')
     table.cell(tb, 1, 1, na(pEntry) ? '-' : str.tostring(pEntry, '#.##'))
     table.cell(tb, 0, 2, 'Stop')
@@ -134,8 +147,21 @@ if barstate.islast
     table.cell(tb, 1, 4, na(pQty) ? '-' : str.tostring(pQty, '0'))
     table.cell(tb, 0, 5, 'Riesgo EUR')
     table.cell(tb, 1, 5, na(pQty) or na(pRisk) ? '-' : str.tostring(pQty * pRisk * multiplo, '#.##'))
-    table.cell(tb, 0, 6, 'Tendencia')
-    table.cell(tb, 1, 6, tend_ok ? 'OK' : 'filtrada')
+    table.cell(tb, 0, 6, 'Tendencia diaria')
+    table.cell(tb, 1, 6, ctx, text_color = ctx == 'A FAVOR' ? col_buy : ctx == 'EN CONTRA' ? col_sell : col_neu)
+    table.cell(tb, 0, 7, 'RSI diario')
+    table.cell(tb, 1, 7, na(dRsi) ? '-' : str.tostring(dRsi, '#.#'))
+    table.cell(tb, 0, 8, 'ATR diario %')
+    table.cell(tb, 1, 8, na(atr_pct) ? '-' : str.tostring(atr_pct, '#.##') + ' %')
+    table.cell(tb, 0, 9, 'Dist. maximo 52s')
+    table.cell(tb, 1, 9, na(dist_max) ? '-' : str.tostring(dist_max, '#.#') + ' %')
+    table.cell(tb, 0, 10, 'Compresión')
+    table.cell(tb, 1, 10, compres ? 'SÍ (posible giro)' : 'no')
+    table.cell(tb, 0, 11, 'Salida swing')
+    table.cell(tb, 1, 11, 'cierre diario < SMA50')
+
+plot(ver_contexto ? dS50 : na, 'SMA50 diaria', color = color.new(color.blue, 30), style = plot.style_linebr)
+plot(ver_contexto ? dS200 : na, 'SMA200 diaria', color = color.new(color.gray, 20), style = plot.style_linebr)
 
 alertcondition(found and dir == 1 and tend_ok, 'COMPRA PRO', 'RAW PRO: plan largo en {{exchange}}:{{ticker}}')
 alertcondition(found and dir == -1, 'VENTA PRO', 'RAW PRO: sesgo corto en {{exchange}}:{{ticker}} (no operable en solo largo)')
