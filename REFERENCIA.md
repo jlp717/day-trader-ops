@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **174 propios** + 315 del skill |
+| Tests | **185 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -356,6 +356,11 @@ Es un proyecto aparte, no una pestaña más:
 
 Orden sensato: validar EE. UU. → premarket → postmarket → Europa.
 
+Nada de esto toca el flujo de EE. UU.: el día que exista, Europa vivirá en `state/eu/`, con
+sus propios comandos, su P&L y su muestra. Las herramientas del skill **no** se usan para
+Europa (convierten `NVD.DE` en `NVD-DE` y fallan); el motor propio sí acepta el sufijo.
+Mientras no exista ese módulo, Europa es solo documentación y no se anuncia como hecho.
+
 ---
 
 ## 8. Arquitectura de flujos separados
@@ -465,7 +470,7 @@ Lo que está **terminado y probado**, y no depende de dinero:
 - backtest configurable con costes, slippage y split IS/OOS;
 - dos estrategias registradas, tres ejecuciones de papel (local, Alpaca, piloto bracket);
 - radar pre/post automático, con estado **separado** del P&L intradía;
-- IEX top-of-book, ML baseline walk-forward, 174 tests propios.
+- IEX top-of-book, ML baseline walk-forward, 185 tests propios.
 
 Lo que **no** está demostrado, y es lo único que importa para ganar:
 
@@ -536,7 +541,9 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 174 tests propios |
+| Motor intradía determinista y trazable | 185 tests propios |
+| Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
+| Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
 | Backtest con costes, slippage, IS/OOS y tres tipos de salida | `lib/backtest.py`, `lib/estrategias.py` |
 | Tres hipótesis medidas y documentadas | ORB, `gap_reclaim`, swing RSI-2 (§9b–9d) |
@@ -575,3 +582,93 @@ Nada de código. La fase abierta es la **validación**, y no avanza escribiendo:
 - **Operar pre/post**: MyInvestor no permite órdenes extendidas.
 
 Un pendiente con motivo no es un fallo oculto: es una decisión de ingeniería.
+
+---
+
+## 14. Tesis de aguante: cuándo una caída es normal y cuándo la tesis está rota
+
+La pregunta era: "si baja mucho, ¿me alarma o aguanto?". Un trader con convicción no
+vende porque el precio baje un 4 %; vende cuando **la razón por la que compró deja de
+existir**. Esto convierte esa idea en reglas comprobables, sin predecir nada.
+
+`lib/tesis.py` + `/tesis T` calculan, con datos diarios reales:
+
+| Dato | Uso |
+| --- | --- |
+| SMA50 y SMA200 | la tendencia de fondo, no el ruido del día |
+| Caída desde el máximo de 52 semanas | mide si es un retroceso o una rotura |
+| RSI(14) | detecta extensión (posible zona de venta) |
+| ATR(14) | volatilidad normal del valor |
+| Fundamentos (Finnhub, opcional) | ingresos y margen: si empeoran, la tesis baja |
+
+Veredictos, pre-registrados:
+
+- **INTACTA**: cierre > SMA200, SMA50 > SMA200 y caída ≤ 15 %.
+- **EN OBSERVACIÓN**: cierre > SMA200 pero SMA50 < SMA200, o caída 15–25 %, o
+  fundamentos flojos (ingresos decreciendo o margen negativo).
+- **ROTA**: cierre < SMA200 o caída > 25 %.
+- **Zona de venta**: a menos del 2 % del máximo de 52 semanas con RSI14 ≥ 70.
+
+Modo aguante:
+
+```text
+/tesis NVDA              ver el veredicto y los motivos
+/tesis NVDA aguantar     no alarmar mientras la tesis no esté rota
+/tesis NVDA liberar      volver al comportamiento normal
+```
+
+Con el modo aguante activo, el vigilante sigue avisando del nivel, pero con contexto
+("tesis intacta, sin alarma") en vez de sonar como una emergencia. Si la tesis pasa a
+**ROTA**, el aviso es normal: la razón de la compra ya no existe.
+
+Límites, dichos claro: **no predice**. Una empresa puede tener la estructura intacta y
+caer un 30 % por un mal resultado. Lo que hace es impedir que un retroceso normal te
+saque por nervios y darte un criterio escrito para decidir. La decisión sigue siendo
+tuya, y el sistema no vende por ti.
+
+---
+
+## 15. Datos: qué es gratis y qué no (investigado el 20/11/2026)
+
+| Necesidad | Gratis | Realidad |
+| --- | --- | --- |
+| Cotización US en tiempo real | **sí**: Finnhub free (feed IEX) y Alpaca IEX | segundos de retraso, sin SLA |
+| Velas 1–5 min | **sí**: Yahoo | 15-60 s de retraso, no oficial |
+| Nivel 2 (profundidad) por API | **no** | Polygon/Databento/Nasdaq TotalView son de pago |
+| Nivel 2 en plataforma | **sí, con cuenta fondeada** | moomoo, Webull, Ironbeam, IBKR con suscripción: no hay API gratis |
+| Noticias y fundamentales | **sí, limitado** | Finnhub free (métricas), SEC EDGAR, Yahoo |
+| Datos institucionales con SLA | no | proveedor de pago |
+
+Conclusión: **el L2 gratis no existe por API**. Existe dentro de plataformas de bróker
+con cuenta fondeada, y eso no se puede integrar aquí sin cambiar de bróker y fondear.
+Este proyecto se queda con IEX top-of-book (L1) y lo dice en cada pantalla.
+
+---
+
+## 16. Interactive Brokers: adaptador listo, sin cuenta y sin dinero
+
+Se ha dejado preparado `lib/ibkr.py` + `IBKRPaperBroker` para que el día que se decida
+automatizar no haya que reescribir nada:
+
+- Usa el **Client Portal Web API** oficial (Gateway local en `https://localhost:5000`).
+- **Solo papel**: la cuenta debe empezar por `DU`. Si empieza por `U`, el cliente se
+  niega a enviar cualquier orden. No hay endpoint real en el código.
+- No guarda credenciales: la sesión la tiene el Gateway de IBKR.
+- Configuración opcional en `secrets/ibkr.json`:
+
+```json
+{"account_id": "DU1234567", "base_url": "https://localhost:5000/v1/api", "paper": true}
+```
+
+- Órdenes limitadas o de mercado, con confirmación de los mensajes de réplica de IBKR.
+
+Estado: **código listo y probado con mocks** (185 tests). No se ha conectado a un
+Gateway real porque no hay cuenta ni se ha instalado nada. Cuando la haya:
+
+```powershell
+python trader-opsun\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200
+python trader-opsun\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200 --confirm
+```
+
+Sin `--confirm` no se envía nada; con `--confirm` iría a una cuenta **DU** (papel).
+

@@ -17,7 +17,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
-from lib import alertas, avisos, calendario, datos, niveles, posiciones, telegram, zonatiempo as zt  # noqa: E402
+from lib import alertas, avisos, calendario, datos, niveles, posiciones, telegram, tesis  # noqa: E402
+from lib import zonatiempo as zt  # noqa: E402
 
 
 def simbolos():
@@ -61,8 +62,14 @@ def revisar(syms=None):
                                    r.get("message") or ("%.2f" % p)))
     for fila, tipo, p, nivel in niveles.comprobar(px):
         etiqueta = "stop" if tipo == "stop" else "objetivo"
-        eventos.append("%s a %.2f (nivel %s de %.2f)" % (
-            fila.get("symbol"), p, etiqueta, nivel))
+        contexto = ""
+        if tesis.en_aguante(fila.get("symbol")):
+            ev = tesis.evaluar(fila.get("symbol"))
+            contexto = " · tesis %s" % ev.get("veredicto", "sin datos")
+            if ev.get("veredicto") != "rota":
+                contexto += " (modo aguante, sin alarma)"
+        eventos.append("%s a %.2f (nivel %s de %.2f)%s" % (
+            fila.get("symbol"), p, etiqueta, nivel, contexto))
     return eventos
 
 

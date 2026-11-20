@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import estrategias, niveles, swing  # noqa: E402
+from lib import brokers, estrategias, ibkr, niveles, swing, tesis  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 DAY = dt.date(2026, 11, 19)
@@ -208,6 +208,100 @@ class Salidas(unittest.TestCase):
         import inspect
         from lib import backtest
         self.assertIn("exit_mode", inspect.signature(backtest.correr).parameters)
+
+
+class TesisAguante(unittest.TestCase):
+    def _serie(self, n=260, inicio=100.0, paso=0.4):
+        bars = []
+        px = inicio
+        for _ in range(n):
+            px += paso
+            bars.append({"c": px, "h": px * 1.01, "l": px * 0.99, "o": px, "v": 1e6})
+        return bars
+
+    def test_intacta(self):
+        with mock.patch.object(tesis.datos, "chart",
+                               return_value={"bars": self._serie()}), \
+                mock.patch.object(tesis, "fundamentos", return_value={}):
+            r = tesis.evaluar("X")
+        self.assertEqual(r["veredicto"], "intacta")
+
+    def test_zona_venta_en_maximos(self):
+        with mock.patch.object(tesis.datos, "chart",
+                               return_value={"bars": self._serie()}), \
+                mock.patch.object(tesis, "fundamentos", return_value={}):
+            r = tesis.evaluar("X")
+        self.assertTrue(r["zona_venta"])
+
+    def test_rota_por_debajo_de_sma200(self):
+        bars = self._serie()
+        bars[-1]["c"] = bars[-1]["c"] * 0.5
+        with mock.patch.object(tesis.datos, "chart", return_value={"bars": bars}), \
+                mock.patch.object(tesis, "fundamentos", return_value={}):
+            r = tesis.evaluar("X")
+        self.assertEqual(r["veredicto"], "rota")
+
+    def test_observacion_por_caida(self):
+        bars = self._serie()
+        alto = max(b["h"] for b in bars)
+        bars[-1]["c"] = alto * 0.80
+        with mock.patch.object(tesis.datos, "chart", return_value={"bars": bars}), \
+                mock.patch.object(tesis, "fundamentos", return_value={}):
+            r = tesis.evaluar("X")
+        self.assertIn(r["veredicto"], ("observacion", "rota"))
+
+    def test_fundamentos_malos_bajan_a_observacion(self):
+        with mock.patch.object(tesis.datos, "chart", return_value={"bars": self._serie()}), \
+                mock.patch.object(tesis, "fundamentos",
+                                  return_value={"revenueGrowthTTMYoy": -5.0}):
+            r = tesis.evaluar("X")
+        self.assertEqual(r["veredicto"], "observacion")
+
+    def test_marcar_y_liberar(self):
+        import tempfile
+        from pathlib import Path
+        tmp = Path(tempfile.mkdtemp()) / "tesis.json"
+        with mock.patch.object(tesis, "ESTADO", tmp):
+            tesis.marcar("nvda", True)
+            self.assertTrue(tesis.en_aguante("NVDA"))
+            tesis.marcar("NVDA", False)
+            self.assertFalse(tesis.en_aguante("NVDA"))
+
+
+class IBKR(unittest.TestCase):
+    def test_papel_exige_du(self):
+        ibkr.es_papel("DU1234567")
+        with self.assertRaises(ibkr.IBKRError):
+            ibkr.es_papel("U1234567")
+        with self.assertRaises(ibkr.IBKRError):
+            ibkr.es_papel("")
+
+    def test_orden_construye_cuerpo(self):
+        with mock.patch.object(ibkr, "conid", return_value=265598), \
+                mock.patch.object(ibkr, "_req", return_value={"order_id": "1"}) as m:
+            ibkr.orden("DU1", "AAPL", "buy", 10, limit=165.5)
+        cuerpo = m.call_args.args[2][0]
+        self.assertEqual(cuerpo["conid"], 265598)
+        self.assertEqual(cuerpo["side"], "BUY")
+        self.assertEqual(cuerpo["orderType"], "LMT")
+        self.assertEqual(cuerpo["price"], 165.5)
+
+    def test_orden_rechaza_cuenta_real(self):
+        with mock.patch.object(ibkr, "_req", return_value={}) as m:
+            with self.assertRaises(ibkr.IBKRError):
+                ibkr.orden("U1", "AAPL", "BUY", 1)
+        m.assert_not_called()
+
+    def test_broker_sin_cuenta_falla(self):
+        b = brokers.IBKRPaperBroker(account="")
+        with self.assertRaises(brokers.BrokerError):
+            b.comprar("AAPL", 1, limit=100)
+
+    def test_broker_papel_delega(self):
+        b = brokers.IBKRPaperBroker(account="DU1")
+        with mock.patch.object(ibkr, "orden", return_value={"ok": True}) as m:
+            self.assertEqual(b.comprar("AAPL", 2, limit=100), {"ok": True})
+        self.assertEqual(m.call_args.args[1], "AAPL")
 
 
 if __name__ == "__main__":

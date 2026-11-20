@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
 from lib import apertura, briefing, calendario, cfg, criterios, datos, diario, ganadores, mercado  # noqa: E402
-from lib import ahora, alertas, estado_vivo, niveles, referencias, prepost  # noqa: E402
+from lib import ahora, alertas, estado_vivo, niveles, referencias, prepost, tesis  # noqa: E402
 from lib import posiciones, proceso, registro, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
@@ -793,6 +793,7 @@ def c_ayuda(bot, args):
             "<b>Guia:</b> /chuleta · comandos, stops y objetivos · /guia · qué hacer ahora, paso a paso, con la posición real\n"
             "<b>Pre/post:</b> /pre T · /post T · radar con run/prepost.py --radar\n"
             "<b>Niveles:</b> /nivel · /nivel T <stop> <objetivo> · /nivel_quitar T\n"
+            "<b>Tesis:</b> /tesis T · /tesis T aguantar · /tesis T liberar\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -966,6 +967,24 @@ def c_salir_nivel(bot, args):
     if not sym:
         return "Uso: /nivel_quitar TLK"
     return ("Nivel de %s borrado." % sym) if niveles.quitar(sym) else ("No habia nivel de %s." % sym)
+
+
+def c_tesis(bot, args):
+    """Tesis de aguante: /tesis NVDA, /tesis NVDA aguantar, /tesis NVDA liberar."""
+    if not args:
+        return "Uso: /tesis NVDA · /tesis NVDA aguantar · /tesis NVDA liberar"
+    sym = _ticker(args[0])
+    if not sym:
+        return "Uso: /tesis NVDA"
+    if len(args) > 1:
+        accion = str(args[1]).lower()
+        if accion in ("aguantar", "mantener", "hold"):
+            tesis.marcar(sym, True)
+        elif accion in ("liberar", "quitar", "normal"):
+            tesis.marcar(sym, False)
+        else:
+            return "Accion no valida. Usa aguantar o liberar."
+    return tesis.texto(sym)
 
 
 def c_guia(bot, args):
@@ -1770,6 +1789,7 @@ COMANDOS = {
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
     "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
     "pre": c_pre, "post": c_post, "nivel": c_nivel, "nivel_quitar": c_salir_nivel,
+    "tesis": c_tesis,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

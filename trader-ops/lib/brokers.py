@@ -159,6 +159,41 @@ class AlpacaPaperBroker(Broker):
 REGISTRO["alpaca_paper"] = AlpacaPaperBroker()
 
 
+class IBKRPaperBroker(Broker):
+    """Adaptador de Interactive Brokers, SOLO cuenta de papel (DU...).
+
+    No guarda credenciales: el Gateway de IBKR mantiene la sesion. Si no hay
+    Gateway abierto, falla con un mensaje claro y no envia nada.
+    """
+
+    nombre = "ibkr_paper"
+    real = False
+
+    def __init__(self, account=None):
+        from . import ibkr
+        self._ibkr = ibkr
+        self.account = account or ibkr.account_id()
+
+    def _cuenta(self):
+        if not self.account:
+            raise BrokerError("falta account_id en secrets/ibkr.json (cuenta DU...)")
+        self._ibkr.es_papel(self.account)
+        return self.account
+
+    def cuenta(self):
+        cuenta = self._cuenta()
+        return self._ibkr._req("GET", "/portfolio/%s/summary" % cuenta)
+
+    def comprar(self, symbol, qty, limit=None, key=None):
+        return self._ibkr.orden(self._cuenta(), symbol, "BUY", qty, limit=limit)
+
+    def vender(self, symbol, qty, limit=None, key=None):
+        return self._ibkr.orden(self._cuenta(), symbol, "SELL", qty, limit=limit)
+
+
+REGISTRO["ibkr_paper"] = IBKRPaperBroker()
+
+
 def get(nombre="null", **kwargs):
     if nombre == "paper":
         return PaperBroker(**kwargs)

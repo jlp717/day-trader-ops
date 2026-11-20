@@ -16,7 +16,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 
 | Fase | Estado | Qué hay | Qué falta / puerta |
 | --- | --- | --- | --- |
-| **0. Base de papel** | **DONE** | motor, Telegram, paneles, manual, 174 tests | nada |
+| **0. Base de papel** | **DONE** | motor, Telegram, paneles, manual, 185 tests | nada |
 | **1. Datos y contraste** | **DONE** | Yahoo + CNBC + Finnhub; cross-check 0,5 % | nada crítico |
 | **2. Medición / backtest** | **DONE** como herramienta | ORB configurable, costes, slippage, IS/OOS, salidas (fijo/breakeven/trailing), features | validar con 30–50 trades reales |
 | **3. Multi-estrategia** | **DONE (medida)** | `orb`, `orb_low`, `gap_reclaim`, swing RSI-2 | las tres hipótesis nuevas pierden con costes; falta una con ventaja |
@@ -38,7 +38,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 
 - Orquestador, bot, watchdog y paneles.
 - Registro, alertas, informes, manual.
-- 174 tests propios + 315 del skill.
+- 185 tests propios + 315 del skill.
 - Vendor intacto en `vendor/day-trader-skill` (snapshot, sin `.git` anidado).
 
 ### Fase 1 — Datos

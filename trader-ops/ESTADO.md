@@ -190,6 +190,11 @@ día 7 de dos señales.
 - **Radar pre/post automático (20/11)**: tareas `DayTraderOps-PreRadar` (13:10) y
   `DayTraderOps-PostRadar` (22:05), con envío a Telegram; estado en `state/pre|post`. Separado
   del P&L intradía. **144 tests propios OK**.
+- **Tesis de aguante e IBKR papel (20/11)**: `lib/tesis.py` (SMA50/200, caída desde
+  máximo de 52 semanas, RSI14, ATR y fundamentos Finnhub) con veredicto intacta /
+  observación / rota y zona de venta; comandos `/tesis T` y `/tesis T aguantar`. El vigilante
+  avisa con contexto en modo aguante. `lib/ibkr.py` + `ibkr_paper`: Client Portal Web API,
+  solo cuentas DU (papel), sin credenciales y sin endpoint real. **185 tests propios OK**.
 - **Salidas medidas (20/11)**: se añadieron `fixed`, `be_trail` y `trail` al backtest. Sobre 1.264
   trades del ORB: fijo 1R −78,9R; fijo 2R −90,8R; breakeven+trailing −78,4R (DD −80R); trailing
   desde 0,5R −67,2R (DD −68R). **El trailing mejora la forma, no el signo.** 174 tests propios OK.
