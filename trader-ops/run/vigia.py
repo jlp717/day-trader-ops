@@ -98,12 +98,19 @@ def main(argv=None):
 
     tg = telegram.Telegram() if a.send else None
     while True:
-        eventos = revisar()
+        try:
+            eventos = revisar()
+        except Exception as exc:          # un fallo de red no mata al vigilante
+            print("ERROR revision: %s" % exc)
+            eventos = []
         if eventos:
             msg = texto(eventos)
             print(msg.replace("<b>", "").replace("</b>", ""))
             if tg:
-                avisos.send_once(tg, ("vigia:" + "|".join(eventos))[:180], msg)
+                try:
+                    avisos.send_once(tg, ("vigia:" + "|".join(eventos))[:180], msg)
+                except Exception as exc:
+                    print("ERROR Telegram: %s" % exc)
         if a.once:
             return 0
         if limite and time.time() >= limite:
