@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
 from lib import apertura, briefing, calendario, cfg, criterios, datos, diario, ganadores, mercado  # noqa: E402
 from lib import ahora, alertas, estado_vivo, niveles, raw, referencias, prepost, tesis  # noqa: E402
-from lib import posiciones, proceso, registro, skills, telegram as tg, texto  # noqa: E402
+from lib import posiciones, proceso, registro, research, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
 PAUSA = cfg.STATE / "pausa.json"
@@ -988,6 +988,19 @@ def c_tesis(bot, args):
     return tesis.texto(sym)
 
 
+def c_research(bot, args):
+    """Mesa de research: /research NVDA."""
+    if not args:
+        return "Uso: /research NVDA"
+    sym = _ticker(args[0])
+    if not sym:
+        return "Uso: /research NVDA"
+    try:
+        return research.texto(sym)
+    except Exception as exc:
+        return "Sin datos: %s" % str(exc)[:120]
+
+
 def c_raw(bot, args):
     """Primera vela de la sesion (RAW): /raw NVDA · /raw SAP.DE eu."""
     if not args:
@@ -1807,7 +1820,7 @@ COMANDOS = {
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
     "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
     "pre": c_pre, "post": c_post, "nivel": c_nivel, "nivel_quitar": c_salir_nivel,
-    "tesis": c_tesis, "raw": c_raw,
+    "tesis": c_tesis, "raw": c_raw, "research": c_research,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

@@ -119,7 +119,7 @@ trader-ops/
                           brokers, proveedores, ml, prepost
   run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest,
                           ml, prepost, orden, libro
-  tests/                  202 tests propios (+ caos)
+  tests/                  204 tests propios (+ caos)
   manual/                 fuentes HTML del manual y script que genera el PDF
   MANUAL_COMPLETO.pdf     manual de 91 páginas, para estudiar
   ESTADO.md               estado real, decisiones y pendientes

@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import brokers, estrategias, ibkr, niveles, raw, rawpro, swing, tesis  # noqa: E402
+from lib import brokers, estrategias, ibkr, niveles, raw, rawpro, research, swing, tesis  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 DAY = dt.date(2026, 11, 19)
@@ -446,6 +446,47 @@ class RawSesion(unittest.TestCase):
         b = rawpro.bootstrap(trades, n=200)
         self.assertLessEqual(b["lo"], b["media"])
         self.assertLessEqual(b["media"], b["hi"])
+
+
+class Research(unittest.TestCase):
+    def _mocks(self, drawdown=-30.0, rsi=25.0):
+        est = {"symbol": "X", "close": 100.0, "sma50": 105.0, "sma200": 110.0,
+               "drawdown_pct": drawdown, "rsi14": rsi, "low52": 90.0, "high52": 160.0}
+        ev = {"corto": {"veredicto": "en contra"}, "largo": {"veredicto": "en riesgo"},
+              "symbol": "X", "zona_venta": False}
+        fund = {"revenueGrowthTTMYoy": 20.0, "netProfitMarginTTM": 15.0, "roeTTM": 10.0,
+                "peTTM": 25.0}
+        noti = [{"headline": "X beats estimates", "tags": ["resultados"]}]
+        reco = {"etiqueta": "compra", "score": 0.4, "n": 20}
+        ins = {"compras": 100, "ventas": 50, "n_compras": 3, "n_ventas": 1}
+        return est, ev, fund, noti, reco, ins
+
+    def test_informe_con_toro_y_oso(self):
+        est, ev, fund, noti, reco, ins = self._mocks()
+        with mock.patch.object(research.tesis, "estructura", return_value=est), \
+                mock.patch.object(research.tesis, "fundamentos", return_value=fund), \
+                mock.patch.object(research.tesis, "noticias", return_value=noti), \
+                mock.patch.object(research.tesis, "evaluar", return_value=ev), \
+                mock.patch.object(research, "recomendaciones", return_value=reco), \
+                mock.patch.object(research, "insiders", return_value=ins):
+            r = research.analizar("X")
+        self.assertEqual(r["corto"], "en contra")
+        self.assertTrue(r["toro"])
+        self.assertTrue(r["oso"])
+        self.assertEqual(len(r["escenarios"]), 3)
+        self.assertIn("recuperacion", [e["nombre"] for e in r["escenarios"]])
+
+    def test_texto_legible(self):
+        est, ev, fund, noti, reco, ins = self._mocks()
+        with mock.patch.object(research.tesis, "estructura", return_value=est), \
+                mock.patch.object(research.tesis, "fundamentos", return_value=fund), \
+                mock.patch.object(research.tesis, "noticias", return_value=noti), \
+                mock.patch.object(research.tesis, "evaluar", return_value=ev), \
+                mock.patch.object(research, "recomendaciones", return_value=reco), \
+                mock.patch.object(research, "insiders", return_value=ins):
+            txt = research.texto("X")
+        self.assertIn("Research X", txt)
+        self.assertIn("Salida:", txt)
 
 
 if __name__ == "__main__":

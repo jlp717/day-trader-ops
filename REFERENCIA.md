@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **202 propios** + 315 del skill |
+| Tests | **204 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 202 tests propios |
+| Motor intradía determinista y trazable | 204 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -814,7 +814,7 @@ significativo**, es un dato descriptivo, no una ventaja.
 - **Stop mínimo del 0,20 %** y **tope de capital**: evitan tamaños imposibles (el caso NVD.DE daba
   499 acciones con 50 USD de riesgo; ahora da 71, limitado por la cuenta).
 - **Coste por mercado**: 0,52 % en EE. UU. (FX incluido), 0,30 % en Xetra.
-- **202 tests propios OK**, IS/OOS en todas las variantes.
+- **204 tests propios OK**, IS/OOS en todas las variantes.
 
 ---
 ### Muestra larga: 7 años de datos SIP (20/11/2026)
@@ -863,6 +863,66 @@ con SPY (EE. UU., 7 años) y DAX (Xetra, 60 sesiones):
 El filtro **quita operaciones pero no mejora la media**. Conclusión: no se activa por defecto.
 Queda como opción en el indicador (`Filtrar por indice`, apagado) para quien quiera menos
 operaciones, no mejores.
+
+---
+
+
+## 18. Mesa de research: cuatro vistas, debate y escenarios
+
+`lib/research.py` + `run/research.py` + `/research T` montan una mesa de análisis con datos
+gratuitos, **sin tocar el flujo intradía** y sin ejecutar nada:
+
+| Vista | Qué mira | Fuente |
+| --- | --- | --- |
+| Técnica | tendencia, SMA50/200, RSI, caída desde máximos | Yahoo diario |
+| Fundamental | ingresos, margen, ROE, PER | Finnhub `/stock/metric` |
+| Noticias | titulares de 7 días con etiquetas | Finnhub `/company-news` |
+| Sentimiento | consenso de analistas e insiders (90 días) | Finnhub `/stock/recommendation`, `/stock/insider-transactions` |
+
+Con eso construye:
+
+- **Debate toro/oso**: cada argumento con su dato, sin opinión.
+- **Tres escenarios con nivel**: recuperación (cierre sobre SMA200), ruptura (bajo el mínimo de
+  52 semanas) y rango. Son niveles de invalidación, no profecías.
+- **Tres horizontes separados**: corto (días), medio (semanas) y largo (meses).
+- **Regla de salida**: en objetivo, 50 % y resto tras la SMA50 si la tesis sigue viva; 100 % si
+  está en riesgo o rota. En stop, 100 % siempre.
+
+Ejemplo real (NVDA, 20/11/2026):
+
+```text
+Corto: EN CONTRA · Medio: EN CONTRA · Largo: EN RIESGO
+Toro: SMA50>SMA200 · RSI 17 · ingresos +93,3 % · margen 62,5 % · analistas compra fuerte (69)
+Oso:  precio bajo SMA200 · caída 44 % · insiders venden (34 ops)
+Escenarios: recuperación 203,40 · ruptura 135,44 · rango 136,00
+```
+
+Eso responde a "¿por qué dice que va a subir?": porque los analistas y el crecimiento lo apoyan;
+y a "¿por qué puede seguir cayendo?": porque el precio está roto y los directivos venden. Las dos
+cosas son verdad a la vez, y el sistema no elige por ti: te enseña la evidencia y el nivel que
+invalida cada tesis.
+
+### Qué se tomó de los frameworks famosos y qué NO se instaló
+
+| Proyecto | Qué aporta | Decisión |
+| --- | --- | --- |
+| **TradingAgents** (TauricResearch) | 4 analistas + debate toro/oso + riesgo | **se toma el patrón**: nuestras 4 vistas y el debate |
+| **ai-hedge-fund** (virattt) | agentes con personas de inversores | no se instala: votar con personas es teatro, no evidencia |
+| **super-hedge-fund-skill** | 8 agentes fundamentales | no: se solapa con nuestra vista fundamental |
+| **agiprolabs/claude-trading-skills** | 68 skills (muchas cripto/DeFi) | no: ruido y superficie de ataque |
+| **everything-claude-trading** | 18 agentes, 82 skills | no: duplica el pipeline que ya tenemos |
+| **vizier-trading-skill** | research + decisión + IBKR | no: la ejecución ya está cubierta en papel |
+
+Instalar los seis habría creado **solapamiento, dependencias y conflicto de criterios**. Se
+implementó el núcleo que sí aporta (las cuatro vistas + debate + escenarios) con nuestro datos,
+nuestros tests y nuestras reglas de riesgo. 204 tests propios.
+
+### Lo que esto NO resuelve
+
+- No predice el futuro ni la fecha de un rebote.
+- No convierte una noticia en una probabilidad calibrada: las etiquetas son reglas, no un modelo.
+- No decide el tamaño: eso es del módulo de riesgo.
+- No sustituye la muestra: 30–50 operaciones cerradas siguen siendo la única prueba real.
 
 ---
 
