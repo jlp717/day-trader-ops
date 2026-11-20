@@ -114,7 +114,23 @@ def barras(symbol, rango="60d"):
     return [b for b in (doc.get("bars") or []) if b.get("c") is not None]
 
 
-def texto_senal(fila, symbol, mercado="us"):
+def plan(fila, max_loss=50.0, target_r=2.0, buffer_pct=0.0):
+    """Stop, objetivo y tamaño para una señal larga. Solo si dir == 1."""
+    if not fila or fila.get("dir") != 1:
+        return None
+    entry = float(fila["entry"] or fila["close"])
+    stop = float(fila["low"] or entry) * (1.0 - abs(float(buffer_pct)) / 100.0)
+    riesgo = entry - stop
+    if riesgo <= 0:
+        return None
+    qty = int(float(max_loss) // riesgo)
+    return {"entry": round(entry, 2), "stop": round(stop, 2),
+            "target": round(entry + float(target_r) * riesgo, 2),
+            "riesgo": round(riesgo, 3), "qty": qty,
+            "riesgo_usd": round(qty * riesgo, 2)}
+
+
+def texto_senal(fila, symbol, mercado="us", plan_=None):
     """Texto listo para Telegram/web con la senal del dia."""
     if not fila:
         return "Sin primera vela para %s (mercado cerrado o sin datos)." % symbol
@@ -127,6 +143,10 @@ def texto_senal(fila, symbol, mercado="us"):
     if fila["dir"] == 1:
         out.append("Sesgo largo. Sobre %.2f sigue; bajo %.2f se invalida." % (
             fila["high"] or fila["close"], fila["low"] or fila["close"]))
+        if plan_:
+            out.append("Plan: entrada %.2f · stop %.2f · objetivo %.2f · %d acc (riesgo %.0f USD)" % (
+                plan_["entry"], plan_["stop"], plan_["target"], plan_["qty"],
+                plan_["riesgo_usd"]))
     elif fila["dir"] == -1:
         out.append("Sesgo corto: el sistema es solo largo, no se opera en corto.")
     else:

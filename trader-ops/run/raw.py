@@ -40,6 +40,7 @@ def main(argv=None):
                     help="lista de simbolos, o vacio para el universo del mercado")
     ap.add_argument("--mercado", choices=("us", "eu"), default="us")
     ap.add_argument("--days", type=int, default=60)
+    ap.add_argument("--max-loss", type=float, default=50.0, help="riesgo por operacion en USD")
     ap.add_argument("--cost", type=float, default=None,
                     help="coste ida y vuelta en %% (defecto: 0.52 US, 0.30 EU)")
     ap.add_argument("--json", help="guardar el resultado")
@@ -50,7 +51,8 @@ def main(argv=None):
     if a.symbol:
         sym = a.symbol.strip().upper()
         fila = raw.ultima(raw.barras(sym), a.mercado)
-        txt = raw.texto_senal(fila, sym, a.mercado)
+        plan_ = raw.plan(fila, max_loss=a.max_loss)
+        txt = raw.texto_senal(fila, sym, a.mercado, plan_)
         print(txt.replace("<b>", "").replace("</b>", ""))
         if a.json and fila:
             with open(a.json, "w", encoding="utf-8") as f:

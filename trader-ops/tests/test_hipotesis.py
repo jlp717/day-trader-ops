@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "trader-ops"))
 
-from lib import brokers, estrategias, ibkr, niveles, raw, swing, tesis  # noqa: E402
+from lib import brokers, estrategias, ibkr, niveles, raw, rawpro, swing, tesis  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 DAY = dt.date(2026, 11, 19)
@@ -332,6 +332,56 @@ class RawXetra(unittest.TestCase):
     def test_texto_menciona_cet(self):
         fila = raw.senales(self._bars(), "eu")[-1]
         self.assertIn("09:00 CET", raw.texto_senal(fila, "SAP.DE", "eu"))
+
+
+class RawPlan(unittest.TestCase):
+    def test_plan_largo(self):
+        fila = {"dir": 1, "entry": 100.0, "close": 100.0, "low": 99.0}
+        p = raw.plan(fila, max_loss=50.0, target_r=2.0)
+        self.assertEqual(p["stop"], 99.0)
+        self.assertEqual(p["target"], 102.0)
+        self.assertEqual(p["qty"], 50)
+        self.assertEqual(p["riesgo_usd"], 50.0)
+
+    def test_sin_direccion_no_hay_plan(self):
+        self.assertIsNone(raw.plan({"dir": -1, "entry": 100.0, "low": 99.0}))
+
+
+class RawPro(unittest.TestCase):
+    def _bars(self):
+        out = []
+        tz = ZoneInfo("Europe/Berlin")
+        # dia anterior plano para que la EMA quede por debajo del cierre siguiente
+        for h, m in ((9, 0), (9, 5), (9, 10), (9, 15), (9, 20)):
+            t = int(dt.datetime(2026, 11, 18, h, m, tzinfo=tz).timestamp())
+            out.append({"t": t, "o": 100.0, "h": 100.1, "l": 99.9, "c": 100.0, "v": 100})
+        dia = [
+            (9, 0, 101.0, 101.5, 100.8, 101.0),
+            (9, 5, 101.0, 101.2, 100.9, 101.1),
+            (9, 10, 101.1, 103.0, 101.0, 102.8),
+        ]
+        for h, m, o, hi, lo, c in dia:
+            t = int(dt.datetime(2026, 11, 19, h, m, tzinfo=tz).timestamp())
+            out.append({"t": t, "o": o, "h": hi, "l": lo, "c": c, "v": 100})
+        return out
+
+    def test_operar_con_stop_y_objetivo(self):
+        trades = rawpro.operar(self._bars(), "eu", target_r=2.0, cost_pct=0.0)
+        self.assertEqual(len(trades), 1)
+        t = trades[0]
+        self.assertEqual(t["reason"], "objetivo")
+        self.assertAlmostEqual(t["r"], 2.0, places=2)
+
+    def test_filtro_de_tendencia_excluye(self):
+        trades = rawpro.operar(self._bars(), "eu", tendencia={"2026-11-19": False})
+        self.assertEqual(trades, [])
+
+    def test_resumen_y_split(self):
+        trades = rawpro.operar(self._bars(), "eu", target_r=2.0)
+        r = rawpro.resumen(trades)
+        self.assertEqual(r["n"], 1)
+        is_t, oos = rawpro.partir(trades, 0.7)
+        self.assertEqual(len(is_t) + len(oos), 1)
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **189 propios** + 315 del skill |
+| Tests | **194 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 189 tests propios |
+| Motor intradía determinista y trazable | 194 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -745,6 +745,52 @@ en EE. UU., donde el bruto ya era negativo (−0,04 puntos).
 
 Ejemplo real del 20/11/2026 a las 09:40 Madrid: SAP.DE, SIE.DE y ALV.DE dieron **VENTA** en la
 primera vela; el sistema es solo largo, así que hoy no se opera en esas tres.
+
+---
+### Versión completa (PRO): stop, objetivo, tamaño y filtros
+
+La LITE solo da dirección. La completa añade stop en el mínimo de la primera vela, objetivo a
+N×R, tamaño por riesgo y filtro de tendencia diaria. Todo medido con 60 sesiones y costes:
+
+**EE. UU.** (40 valores, coste 0,52 %):
+
+| Variante | n | Acierto | Media % | Total % | IS % | OOS % |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| stop 1R | 1.204 | 27,3 % | −0,552 | −665 | −440 | −225 |
+| stop 2R | 1.204 | 25,5 % | −0,575 | −693 | −456 | −237 |
+| stop 3R | 1.204 | 24,5 % | −0,570 | −687 | −451 | −236 |
+| 2R + tendencia | 581 | 23,2 % | −0,587 | −341 | −240 | −102 |
+| 2R + rango | 827 | 21,6 % | −0,606 | −501 | −346 | −155 |
+| 2R + volumen | 281 | 29,5 % | −0,512 | −144 | −101 | −42 |
+| 2R + tendencia + volumen | 141 | 27,7 % | −0,517 | −73 | −49 | −24 |
+| trailing | 1.204 | 20,5 % | −0,559 | −673 | −447 | −226 |
+
+**Xetra** (20 valores, coste 0,30 %):
+
+| Variante | n | Acierto | Media % | Total % | OOS % |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| stop 1R | 542 | 32,5 % | −0,328 | −178 | −49 |
+| stop 2R | 542 | 30,8 % | −0,318 | −173 | −39 |
+| stop 3R | 542 | 27,7 % | −0,315 | −171 | −32 |
+| 2R + tendencia | 313 | 29,4 % | −0,328 | −103 | −18 |
+| 2R + rango | 503 | 31,8 % | −0,289 | −145 | −28 |
+| 2R + volumen | 0 | — | — | — | — |
+| trailing | 542 | 24,9 % | −0,311 | −169 | −36 |
+
+Lectura:
+
+- El **stop sí reduce la pérdida media** en EE. UU. (−0,70 % de la LITE a −0,58 %), porque la
+  LITE aguanta hasta el cierre en un mercado que cayó. Pero **no la convierte en positiva**.
+- Los **filtros** (tendencia, rango, volumen) reducen el número de operaciones y la pérdida
+  total, no la media: quitan trades, no añaden acierto.
+- En Xetra el filtro de volumen deja **0 operaciones**: Yahoo no devuelve volumen en las velas
+  de 5 minutos de los valores alemanes. Es una limitación del dato, no del filtro.
+- **Ninguna variante es positiva después de costes.** La versión completa mejora el control del
+  riesgo y la información, no la expectativa.
+
+Eso es lo que hay: se puede igualar o superar la funcionalidad de la versión de pago (stop,
+tamaño, plan), y se puede demostrar con números lo que la de pago no dice: **que la regla, sola,
+no tiene ventaja en acciones**. Vender lo contrario sería mentir.
 
 ---
 

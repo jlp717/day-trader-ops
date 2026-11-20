@@ -1002,7 +1002,7 @@ def c_raw(bot, args):
         fila = raw.ultima(raw.barras(sym), mercado)
     except Exception as exc:
         return "Sin datos: %s" % str(exc)[:120]
-    return raw.texto_senal(fila, sym, mercado)
+    return raw.texto_senal(fila, sym, mercado, raw.plan(fila, 50.0))
 
 
 def c_guia(bot, args):
