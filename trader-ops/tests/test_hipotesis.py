@@ -250,12 +250,18 @@ class TesisAguante(unittest.TestCase):
             r = tesis.evaluar("X")
         self.assertIn(r["veredicto"], ("observacion", "rota"))
 
-    def test_fundamentos_malos_bajan_a_observacion(self):
+    def test_fundamentos_malos_bajan_el_largo(self):
         with mock.patch.object(tesis.datos, "chart", return_value={"bars": self._serie()}), \
                 mock.patch.object(tesis, "fundamentos",
                                   return_value={"revenueGrowthTTMYoy": -5.0}):
             r = tesis.evaluar("X")
-        self.assertEqual(r["veredicto"], "observacion")
+        self.assertEqual(r["corto"]["veredicto"], "a favor")
+        self.assertIn(r["largo"]["veredicto"], ("en riesgo", "rota"))
+
+    def test_etiquetas_de_noticias(self):
+        self.assertIn("upgrade", tesis._etiquetas("Morgan Stanley raises price target on X"))
+        self.assertIn("riesgo", tesis._etiquetas("Company faces SEC investigation"))
+        self.assertEqual(tesis._etiquetas("Weather is nice today"), [])
 
     def test_marcar_y_liberar(self):
         import tempfile

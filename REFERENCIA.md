@@ -41,7 +41,7 @@ no está demostrado en tu propia operativa (0 operaciones cerradas al escribir e
 | Datos | Yahoo (principal), CNBC y Finnhub (contraste) |
 | Ejecución | manual en MyInvestor |
 | Registro propio | **0 cerradas**; freno por evidencia activo por falta de muestra |
-| Tests | **185 propios** + 315 del skill |
+| Tests | **186 propios** + 315 del skill |
 | Backtesting | **sí**: `run/backtest.py` (OR minutes, target R, stop mid/low, slippage, split IS/OOS, features) |
 | Multi-estrategia | `lib/estrategias.py`: `orb` y `orb_low`; solo ORB en vivo |
 | Ejecución de papel | `lib/brokers.py`: `PaperBroker` local y `AlpacaPaperBroker` (bracket); **real no** |
@@ -541,7 +541,7 @@ Regla de oro: si el sistema no da SEÑAL A, **no se opera**. El silencio es una 
 
 | Pieza | Evidencia |
 | --- | --- |
-| Motor intradía determinista y trazable | 185 tests propios |
+| Motor intradía determinista y trazable | 186 tests propios |
 | Tesis de aguante (estructura, fundamentos, zona de venta) | `lib/tesis.py`, `/tesis` |
 | Adaptador IBKR solo papel (cuenta DU) | `lib/ibkr.py`, `ibkr_paper` |
 | Datos Yahoo + CNBC + Finnhub con contraste 0,5 % | `lib/datos.py`, `lib/proveedores.py` |
@@ -585,46 +585,40 @@ Un pendiente con motivo no es un fallo oculto: es una decisión de ingeniería.
 
 ---
 
-## 14. Tesis de aguante: cuándo una caída es normal y cuándo la tesis está rota
+## 14. Tesis: dos horizontes separados (corto y largo)
 
-La pregunta era: "si baja mucho, ¿me alarma o aguanto?". Un trader con convicción no
-vende porque el precio baje un 4 %; vende cuando **la razón por la que compró deja de
-existir**. Esto convierte esa idea en reglas comprobables, sin predecir nada.
+La pregunta era: "si baja mucho, ¿me alarma o aguanto?". La respuesta correcta no es una:
+son **dos preguntas distintas** y antes se mezclaban en una sola palabra ("rota").
 
-`lib/tesis.py` + `/tesis T` calculan, con datos diarios reales:
+| Horizonte | Qué mide | Qué decide |
+| --- | --- | --- |
+| **Corto plazo** (días-semanas) | precio vs SMA200, SMA50 vs SMA200, caída desde máximos, RSI | el stop, el aviso del vigilante y si se opera hoy |
+| **Largo plazo** (meses-años) | fundamentos (ingresos, margen, ROE), pendiente de la SMA200, caída | si la tesis de inversión sigue viva |
 
-| Dato | Uso |
-| --- | --- |
-| SMA50 y SMA200 | la tendencia de fondo, no el ruido del día |
-| Caída desde el máximo de 52 semanas | mide si es un retroceso o una rotura |
-| RSI(14) | detecta extensión (posible zona de venta) |
-| ATR(14) | volatilidad normal del valor |
-| Fundamentos (Finnhub, opcional) | ingresos y margen: si empeoran, la tesis baja |
+Veredictos de corto: **a favor / neutral / en contra**.
+Veredictos de largo: **viva / en riesgo / rota**, con puntuación sobre 6 (o sobre 3 si no hay
+fundamentales).
 
-Veredictos, pre-registrados:
+Esto responde al caso típico: una empresa puede tener el **corto en contra** y el **largo vivo**.
+El sistema lo dice así, sin recomendar vender: "no te acompaña en el corto; para recomponer
+necesita cerrar por encima de X (+Y %)". Eso es información, no una orden.
 
-- **INTACTA**: cierre > SMA200, SMA50 > SMA200 y caída ≤ 15 %.
-- **EN OBSERVACIÓN**: cierre > SMA200 pero SMA50 < SMA200, o caída 15–25 %, o
-  fundamentos flojos (ingresos decreciendo o margen negativo).
-- **ROTA**: cierre < SMA200 o caída > 25 %.
-- **Zona de venta**: a menos del 2 % del máximo de 52 semanas con RSI14 ≥ 70.
+Además, `/tesis T` añade:
 
-Modo aguante:
+- **noticias** de los últimos 7 días (Finnhub, gratis) con etiquetas simples: resultados, guía,
+  upgrade/downgrade, acuerdo/proveedor, riesgo legal, fusión, empleo;
+- **pares** aproximados del sector (Finnhub; la calidad del plan free es limitada);
+- **nivel de recomposición**: cuánto le falta al precio para recuperar la SMA200.
+
+Límites, dichos claro: **no predice**. Una empresa con fundamentos excelentes puede caer un 50 %
+más; una con la estructura rota puede recuperarse. Lo que hace es impedir que un retroceso normal
+te saque por nervios y darte un criterio escrito. No vende por ti.
 
 ```text
-/tesis NVDA              ver el veredicto y los motivos
-/tesis NVDA aguantar     no alarmar mientras la tesis no esté rota
+/tesis NVDA              los dos horizontes, noticias y pares
+/tesis NVDA aguantar     no alarmar mientras el corto no esté en contra
 /tesis NVDA liberar      volver al comportamiento normal
 ```
-
-Con el modo aguante activo, el vigilante sigue avisando del nivel, pero con contexto
-("tesis intacta, sin alarma") en vez de sonar como una emergencia. Si la tesis pasa a
-**ROTA**, el aviso es normal: la razón de la compra ya no existe.
-
-Límites, dichos claro: **no predice**. Una empresa puede tener la estructura intacta y
-caer un 30 % por un mal resultado. Lo que hace es impedir que un retroceso normal te
-saque por nervios y darte un criterio escrito para decidir. La decisión sigue siendo
-tuya, y el sistema no vende por ti.
 
 ---
 
@@ -666,9 +660,63 @@ Estado: **código listo y probado con mocks** (185 tests). No se ha conectado a 
 Gateway real porque no hay cuenta ni se ha instalado nada. Cuando la haya:
 
 ```powershell
-python trader-opsun\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200
-python trader-opsun\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200 --confirm
+python trader-ops
+un\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200
+python trader-ops
+un\orden.py --broker ibkr_paper --side buy --symbol AAPL --qty 1 --limit 200 --confirm
 ```
 
 Sin `--confirm` no se envía nada; con `--confirm` iría a una cuenta **DU** (papel).
+
+---
+
+## 17. RAW NASDAQ LITE (nico66fx): indicador y versión Python
+
+El indicador original está guardado en `tradingview/RAW_NASDAQ_LITE.pine` (Pine v6, tal cual,
+sin modificar). Qué hace:
+
+1. Toma la **primera vela de 5 minutos de Nueva York** (09:30–09:35 ET).
+2. Calcula una media exponencial de los cierres de 5 min con **alfa 4/26**.
+3. Si el cierre de esa vela está **por encima** de la media → **COMPRA**; por debajo → **VENTA**.
+4. Una señal al día, sin repintar, cuando la vela ya ha cerrado. No calcula stops ni contratos.
+
+### Cargarlo en TradingView (5 minutos, manual)
+
+No automatizo tu app: no hay MCP oficial de TradingView y entrar en tu cuenta desde aquí sería
+un riesgo que no voy a asumir. Se hace a mano, una vez:
+
+1. Abre TradingView y un gráfico (MNQ1!, NQ1! o el valor que quieras).
+2. Abajo, **Pine Editor**.
+3. Abre `tradingview/RAW_NASDAQ_LITE.pine`, copia todo y pégalo en el editor.
+4. **Guardar** → **Añadir al gráfico**.
+5. En el gráfico, pon la temporalidad en **5 minutos** (o la que uses: el script baja a 5 min solo).
+6. Para acciones: escribe el ticker (por ejemplo `NVDA`) en el mismo gráfico. El script usa
+   `syminfo.tickerid`, así que funciona en cualquier símbolo; lo que cambia es si tiene ventaja.
+
+### Versión Python (integrada en el bot)
+
+`lib/raw.py` replica la misma regla y el bot la calcula sin depender de TradingView:
+
+```text
+/raw NVDA
+python trader-ops/run/raw.py --symbol NVDA
+python trader-ops/run/raw.py --backtest --days 60 --cost 0.52
+```
+
+### Medición honesta en acciones (20/11/2026)
+
+40 valores líquidos, 60 sesiones, **2.400 días-valor**:
+
+| Métrica | Sin costes | Con coste 0,52 % |
+| --- | ---: | ---: |
+| Señal COMPRA (n=1.216) | −0,181 %/sesión | **−0,701 %** |
+| Base: comprar cualquier día a las 09:35 | −0,138 % | −0,658 % |
+| Ventaja de la señal | **−0,042 puntos** | −0,043 puntos |
+
+Lectura: en acciones, la señal **no bate a comprar cualquier día**. El indicador está pensado
+para futuros del Nasdaq (MNQ/NQ), donde el intradía y el apalancamiento son otra cosa; trasladarlo
+a acciones sin medirlo habría sido un error de principiante. Se queda como ** herramienta de
+timing y niveles**, no como ventaja demostrada.
+
+---
 

@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "trader-ops"))
 
 from lib import apertura, briefing, calendario, cfg, criterios, datos, diario, ganadores, mercado  # noqa: E402
-from lib import ahora, alertas, estado_vivo, niveles, referencias, prepost, tesis  # noqa: E402
+from lib import ahora, alertas, estado_vivo, niveles, raw, referencias, prepost, tesis  # noqa: E402
 from lib import posiciones, proceso, registro, skills, telegram as tg, texto  # noqa: E402
 from lib import zonatiempo as zt  # noqa: E402
 
@@ -794,6 +794,7 @@ def c_ayuda(bot, args):
             "<b>Pre/post:</b> /pre T · /post T · radar con run/prepost.py --radar\n"
             "<b>Niveles:</b> /nivel · /nivel T <stop> <objetivo> · /nivel_quitar T\n"
             "<b>Tesis:</b> /tesis T · /tesis T aguantar · /tesis T liberar\n"
+            "<b>RAW:</b> /raw T (primera vela de NY, 09:30 ET)\n"
             "<b>Sistema:</b> /estado · /reloj · /scan [T] · /vigila T · /dejar T · /vigilar · "
             "/alertas · /alerta T precio · /precios T · /ref T precio fuente · /apertura T · /mercados T · /pelosi · /ticket · /diario\n"
             "<b>Control:</b> /pausa · /reanudar · /ensenar concepto · /ayuda\n"
@@ -985,6 +986,20 @@ def c_tesis(bot, args):
         else:
             return "Accion no valida. Usa aguantar o liberar."
     return tesis.texto(sym)
+
+
+def c_raw(bot, args):
+    """Primera vela de NY (RAW NASDAQ LITE): /raw NVDA."""
+    if not args:
+        return "Uso: /raw NVDA"
+    sym = _ticker(args[0])
+    if not sym:
+        return "Uso: /raw NVDA"
+    try:
+        fila = raw.ultima(raw.barras(sym))
+    except Exception as exc:
+        return "Sin datos: %s" % str(exc)[:120]
+    return raw.texto_senal(fila, sym)
 
 
 def c_guia(bot, args):
@@ -1789,7 +1804,7 @@ COMANDOS = {
     "evaluar": c_evaluar, "seguir": c_seguir, "incluir": c_incluir,
     "ref": c_ref, "precios": c_precios, "guia": c_guia, "quepago": c_guia, "chuleta": c_chuleta,
     "pre": c_pre, "post": c_post, "nivel": c_nivel, "nivel_quitar": c_salir_nivel,
-    "tesis": c_tesis,
+    "tesis": c_tesis, "raw": c_raw,
 }
 
 PESADOS = {"scan", "ticker", "tm", "brevefing", "mercados", "apertura", "resultados", "briefing"}

@@ -190,6 +190,12 @@ día 7 de dos señales.
 - **Radar pre/post automático (20/11)**: tareas `DayTraderOps-PreRadar` (13:10) y
   `DayTraderOps-PostRadar` (22:05), con envío a Telegram; estado en `state/pre|post`. Separado
   del P&L intradía. **144 tests propios OK**.
+- **Tesis de dos horizontes (20/11)**: `/tesis T` separa corto (estructura) de largo
+  (fundamentos + pendiente SMA200) y añade noticias de 7 días y pares (Finnhub), con nivel de
+  recomposición. 
+- **RAW NASDAQ LITE (20/11)**: Pine original en `tradingview/RAW_NASDAQ_LITE.pine`, versión
+  Python `lib/raw.py` y `/raw T`. Medido en 40 valores y 60 sesiones: la señal COMPRA no bate
+  a la base (−0,18 % vs −0,14 % bruto; −0,70 % con coste). Es timing, no ventaja. **186 tests OK**.
 - **Tesis de aguante e IBKR papel (20/11)**: `lib/tesis.py` (SMA50/200, caída desde
   máximo de 52 semanas, RSI14, ATR y fundamentos Finnhub) con veredicto intacta /
   observación / rota y zona de venta; comandos `/tesis T` y `/tesis T aguantar`. El vigilante

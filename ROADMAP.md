@@ -16,7 +16,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 
 | Fase | Estado | Qué hay | Qué falta / puerta |
 | --- | --- | --- | --- |
-| **0. Base de papel** | **DONE** | motor, Telegram, paneles, manual, 185 tests | nada |
+| **0. Base de papel** | **DONE** | motor, Telegram, paneles, manual, 186 tests | nada |
 | **1. Datos y contraste** | **DONE** | Yahoo + CNBC + Finnhub; cross-check 0,5 % | nada crítico |
 | **2. Medición / backtest** | **DONE** como herramienta | ORB configurable, costes, slippage, IS/OOS, salidas (fijo/breakeven/trailing), features | validar con 30–50 trades reales |
 | **3. Multi-estrategia** | **DONE (medida)** | `orb`, `orb_low`, `gap_reclaim`, swing RSI-2 | las tres hipótesis nuevas pierden con costes; falta una con ventaja |
@@ -26,6 +26,8 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 | **7. Pre/post market** | **ANÁLISIS DONE** | `run/prepost.py`, radar, `/pre`, `/post`, estado separado | ejecución: MyInvestor no la permite |
 | **7c. Radar automático** | **DONE** | tareas `DayTraderOps-PreRadar` (13:10) y `-PostRadar` (22:05), envío Telegram | nada |
 | **7d. Vigilante rápido** | **DONE** | `run/vigia.py`: niveles cada 30 s, tarea `DayTraderOps-Vigia` (15:25), se cierra solo | nada |
+| **7e. Tesis dos horizontes** | **DONE** | corto (estructura) y largo (fundamentos), noticias, pares, recomposición; `/tesis` | muestra real para calibrar |
+| **7f. RAW NASDAQ LITE** | **DONE (medido)** | Pine en `tradingview/`, versión Python `/raw`, backtest 2.400 días-valor | no bate a la base en acciones |
 | **8. Europa** | **SEPARATE** | documentado | otro horario, bróker, datos y fiscalidad |
 | **9. Ejecución real** | **BLOCKED** | interfaz y modo papel | bróker fondeado + límites + aprobación |
 | **10. Ops y documentación** | **DONE** | README, REFERENCIA, manual 91 pág., tareas | nada |
@@ -38,7 +40,7 @@ externo o de una decisión humana · **SEPARATE** = otro proyecto, no una pesta�
 
 - Orquestador, bot, watchdog y paneles.
 - Registro, alertas, informes, manual.
-- 185 tests propios + 315 del skill.
+- 186 tests propios + 315 del skill.
 - Vendor intacto en `vendor/day-trader-skill` (snapshot, sin `.git` anidado).
 
 ### Fase 1 — Datos

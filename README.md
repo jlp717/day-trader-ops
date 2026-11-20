@@ -110,6 +110,8 @@ AGENTS.md                 contrato permanente del proyecto (leer antes de tocar 
 REFERENCIA.md             referencia, límites y hoja de ruta (pre/post, Europa, ejecución)
 trader-ops/run/swing.py    backtest y radar de la hipótesis swing RSI-2
 trader-ops/run/vigia.py    vigilante de niveles cada 30 s (stops y objetivos)
+trader-ops/run/raw.py      RAW NASDAQ LITE (primera vela de NY) en Python
+tradingview/               indicador RAW NASDAQ LITE en Pine, listo para pegar
 ROADMAP.md                fases: qué está hecho, qué se está haciendo y qué queda
 INSTALACION_MINI_PC.md    runbook de instalación en un PC nuevo
 trader-ops/
@@ -117,7 +119,7 @@ trader-ops/
                           brokers, proveedores, ml, prepost
   run/                    ejecutables: orquestador, bot, watchdog, smoke, paneles, backtest,
                           ml, prepost, orden, libro
-  tests/                  185 tests propios (+ caos)
+  tests/                  186 tests propios (+ caos)
   manual/                 fuentes HTML del manual y script que genera el PDF
   MANUAL_COMPLETO.pdf     manual de 91 páginas, para estudiar
   ESTADO.md               estado real, decisiones y pendientes

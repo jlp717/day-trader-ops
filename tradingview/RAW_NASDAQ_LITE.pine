@@ -1,0 +1,160 @@
+//@version=6
+// ─────────────────────────────────────────────────────────────────────────────
+// nico66fx | RAW NASDAQ LITE · Nasdaq futuros (MNQ / NQ) · versión gratis
+// Marca la primera vela de 5 minutos de Nueva York y te dice COMPRA o VENTA.
+// Sin repintar, una vez al día.
+// No calcula stops ni contratos y no envía órdenes. Uso educativo.
+// La versión completa (stop, gestión y modo fondeo) y el bot RAW NASDAQ están en nico66fx PRO.
+// ─────────────────────────────────────────────────────────────────────────────
+indicator('nico66fx | RAW NASDAQ LITE', shorttitle = 'RAW NASDAQ LITE', overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+const string TZ = 'America/New_York'
+
+var string g1 = 'Vela de las 09:30'
+var string g2 = 'Estilo'
+var string g3 = 'Paneles'
+
+show_history   = input.bool(true, 'Días anteriores', group = g1)
+show_levels    = input.bool(true, 'Máximo y mínimo de la vela', group = g1)
+levels_minutes = input.int(45, 'Duración de los niveles (min)', minval = 0, maxval = 390, group = g1)
+
+col_buy        = input.color(#34C759, 'Compra', group = g2)
+col_sell       = input.color(#FF3B30, 'Venta', group = g2)
+col_accent     = input.color(#0A84FF, 'Acento', group = g2)
+
+show_panel     = input.bool(true, 'Estado (arriba al centro)', group = g3)
+show_cta       = input.bool(true, 'Comunidad (arriba a la derecha)', group = g3)
+
+// ── Tema: se adapta solo al fondo claro u oscuro del gráfico ──
+lum(color c) => (0.2126 * color.r(c) + 0.7152 * color.g(c) + 0.0722 * color.b(c)) / 255.0
+dark      = lum(chart.bg_color) < 0.5
+c_card    = dark ? #1C1C1E : #FFFFFF
+c_hair    = dark ? #38383A : #E5E5EA
+c_text    = dark ? #F5F5F7 : #1D1D1F
+c_sub     = dark ? #98989D : #86868B
+c_level   = dark ? #48484A : #C7C7CC
+
+// ── Datos de 5 minutos ──
+// Gráficos de 5 min o menos: request.security. Gráficos mayores (15 min, 1 h, 4 h, diario): las velas de 5 min que hay dentro de cada vela.
+int  tf_sec = timeframe.in_seconds()
+bool low_tf = tf_sec <= 300
+bool htf    = not low_tf and tf_sec <= 86400
+
+_k(float x) =>
+    var float _a = na
+    _a := na(_a) ? x : _a + (x - _a) * (4.0 / 26.0)
+    _a
+
+[m5T, m5H, m5L, m5C, m5E] = request.security(syminfo.tickerid, '5', [time, high, low, close, _k(close)], lookahead = barmerge.lookahead_off)
+[aT, aH, aL, aC, aE] = request.security_lower_tf(syminfo.tickerid, low_tf ? timeframe.period : '5', [time, high, low, close, _k(close)])
+
+
+ny0930(int t) => timestamp(TZ, year(t, TZ), month(t, TZ), dayofmonth(t, TZ), 9, 30)
+keyOf(int t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
+
+int todayKey = keyOf(timenow)
+// Hora de la vela de 09:30 que cae dentro de la vela actual del gráfico
+int c1   = ny0930(time)
+int c2   = ny0930(time_close)
+int tBar = c1 >= time and c1 < time_close ? c1 : c2 >= time and c2 < time_close ? c2 : na
+int t0930 = low_tf ? c1 : tBar
+int t0935 = na(t0930) ? na : t0930 + 5 * 60 * 1000
+int dayKey = na(t0930) ? 0 : keyOf(t0930)
+
+// Velo suave sobre la vela de 09:30 (intradía)
+in_candle = tf_sec < 86400 and not na(t0930) and (low_tf ? time >= t0930 and time < t0935 : true) and (show_history or dayKey == todayKey)
+bgcolor(in_candle ? color.new(col_accent, 92) : na, title = 'Vela de 09:30')
+
+// ── Motor (sin repintar: solo con la vela de 09:30-09:35 ya cerrada) ──
+bool  found = false
+float sH = na
+float sL = na
+float sC = na
+float sE = na
+if low_tf
+    if barstate.isconfirmed and not na(m5E) and m5T == t0930 and time_close == t0935
+        found := true
+        sH := m5H
+        sL := m5L
+        sC := m5C
+        sE := m5E
+else if htf and not na(t0930)
+    n = array.size(aT)
+    if n > 0
+        for i = 0 to n - 1
+            if array.get(aT, i) == t0930
+                if (i < n - 1 or barstate.isconfirmed) and not na(array.get(aE, i))
+                    found := true
+                    sH := array.get(aH, i)
+                    sL := array.get(aL, i)
+                    sC := array.get(aC, i)
+                    sE := array.get(aE, i)
+                break
+
+var int ultimo_dia = 0
+bool nueva = found and dayKey != ultimo_dia
+int dir_ahora = sC > sE ? 1 : sC < sE ? -1 : 0
+
+var int s_dir = 0
+if nueva
+    ultimo_dia := dayKey
+    s_dir := dir_ahora
+    if show_history or barstate.isrealtime or dayKey == todayKey
+        c_dir = s_dir == 1 ? col_buy : s_dir == -1 ? col_sell : c_sub
+        // En 5 min o menos se enmarca la vela de 09:30; en temporalidades mayores, la vela que la contiene
+        t_l   = low_tf ? t0930 : time
+        t_r   = low_tf ? t0935 : time_close
+        t_mid = int(math.avg(t_l, t_r))
+        t_end = t_r + math.max(levels_minutes * 60 * 1000, low_tf ? 0 : 3 * tf_sec * 1000)
+
+        // La vela, con halo (glow): bordes gruesos y translúcidos por capas, de fuera hacia dentro
+        box.new(t_l, sH, t_r, sL, xloc = xloc.bar_time, border_color = color.new(c_dir, 92), border_width = 14, bgcolor = na)
+        box.new(t_l, sH, t_r, sL, xloc = xloc.bar_time, border_color = color.new(c_dir, 84), border_width = 8, bgcolor = na)
+        box.new(t_l, sH, t_r, sL, xloc = xloc.bar_time, border_color = color.new(c_dir, 68), border_width = 4, bgcolor = na)
+        box.new(t_l, sH, t_r, sL, xloc = xloc.bar_time, border_color = color.new(c_dir, 20), border_width = 1, bgcolor = color.new(c_dir, 86))
+
+        // Máximo y mínimo en línea fina
+        if show_levels and levels_minutes > 0 and tf_sec < 14400
+            line.new(t_r, sH, t_end, sH, xloc.bar_time, extend.none, c_level, line.style_solid, 1)
+            line.new(t_r, sL, t_end, sL, xloc.bar_time, extend.none, c_level, line.style_solid, 1)
+
+        // Hora de la vela, discreta, al lado contrario de la entrada
+        if tf_sec < 14400
+            label.new(t_mid, s_dir == -1 ? sL : sH, '09:30', xloc = xloc.bar_time, color = color.new(c_card, 100), style = s_dir == -1 ? label.style_label_up : label.style_label_down, textcolor = c_sub, size = size.small)
+
+        // Píldora de dirección
+        txt = tf_sec >= 14400 ? (s_dir == 1 ? '↑' : s_dir == -1 ? '↓' : '·') : s_dir == 1 ? '↑  COMPRA' : s_dir == -1 ? '↓  VENTA' : 'SIN OPERACIÓN'
+        label.new(time, s_dir == -1 ? math.max(sH, high) : math.min(sL, low), txt, xloc = xloc.bar_time, color = c_dir, style = s_dir == -1 ? label.style_label_down : label.style_label_up, textcolor = #FFFFFF, size = tf_sec >= 14400 ? size.small : size.normal)
+
+    alert('1ª vela de NY: ' + (s_dir == 1 ? 'COMPRA' : s_dir == -1 ? 'VENTA' : 'hoy no se opera'), alert.freq_once_per_bar)
+
+// ── Paneles tipo tarjeta ──
+var table tb = table.new(position.top_center, 1, 3, frame_width = 1, border_width = 6)
+var table tc = table.new(position.top_right, 1, 3, frame_width = 1, border_width = 6)
+var table wm = table.new(position.bottom_right, 1, 1)
+
+if barstate.islast
+    table.cell(wm, 0, 0, 'nico66fx', text_color = color.new(c_sub, 50), text_size = size.small)
+
+    if show_panel
+        table.set_bgcolor(tb, c_card)
+        table.set_frame_color(tb, c_hair)
+        table.set_border_color(tb, c_card)
+        hoy    = ultimo_dia == todayKey
+        faltan = 9 * 60 + 35 - (hour(timenow, TZ) * 60 + minute(timenow, TZ))
+        estado = hoy ? (s_dir == 1 ? '↑  COMPRA' : s_dir == -1 ? '↓  VENTA' : 'Hoy no se opera') : faltan > 0 and faltan < 600 ? str.format('Faltan {0} min', faltan) : 'Esperando a las 09:35'
+        c_est  = hoy ? (s_dir == 1 ? col_buy : s_dir == -1 ? col_sell : c_sub) : c_text
+        table.cell(tb, 0, 0, 'Primera vela de Nueva York', text_color = c_sub, text_size = size.small)
+        table.cell(tb, 0, 1, estado, text_color = c_est, text_size = size.large)
+        table.cell(tb, 0, 2, 'Nasdaq  ·  09:30 NY  ·  15:35 España', text_color = c_sub, text_size = size.tiny)
+
+    if show_cta
+        table.set_bgcolor(tc, c_card)
+        table.set_frame_color(tc, c_hair)
+        table.set_border_color(tc, c_card)
+        table.cell(tc, 0, 0, 'Únete gratis', text_color = c_text, text_size = size.normal)
+        table.cell(tc, 0, 1, 'Novedades, comunidad y más EAs', text_color = c_sub, text_size = size.small)
+        table.cell(tc, 0, 2, 't.me/cfcommfree', text_color = #FFFFFF, bgcolor = col_accent, text_size = size.normal)
+
+alertcondition(nueva and dir_ahora == 1, 'COMPRA', '1ª vela de NY: COMPRA en {{exchange}}:{{ticker}}')
+alertcondition(nueva and dir_ahora == -1, 'VENTA', '1ª vela de NY: VENTA en {{exchange}}:{{ticker}}')
