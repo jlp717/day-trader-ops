@@ -1,10 +1,17 @@
 //@version=6
 // ─────────────────────────────────────────────────────────────────────────────
-// RAW PRO · versión unificada (EE. UU. y Xetra) sobre la regla de nico66fx
-// 1) Señal del día: primera vela de 5 min de NY contra su media (alfa 4/26).
-// 2) Plan: entrada, stop, objetivo a N×R y tamaño por riesgo y capital.
-// 3) Contexto diario: tendencia (SMA50/SMA200), RSI, ATR, distancia a máximos
-//    de 52 semanas y compresión de volatilidad. Es el "dónde está" del valor.
+// RAW PRO · indicador unificado para acciones de EE. UU. y Xetra
+// Basado en la regla de nico66fx (RAW NASDAQ LITE): primera vela de 5 minutos
+// de la sesión contra su media exponencial (alfa 4/26).
+//
+// Qué dibuja:
+//  - COMPRA / VENTA / filtrado, con entrada, stop, objetivo y tamaño.
+//  - Zona verde (entrada→objetivo) y zona roja (stop→entrada) del plan de hoy.
+//  - Máximo, mínimo y cierre de la sesión anterior (niveles del día).
+//  - VWAP de la sesión y SMA50/SMA200 diarias (tendencia de fondo).
+//  - Panel con el contexto: tendencia, RSI, ATR, caída desde máximos y compresión.
+//
+// Detecta el mercado solo (Europa → 09:00 CET, EE. UU. → 09:30 ET).
 // Sin repintar. No envía órdenes. Uso educativo.
 // ─────────────────────────────────────────────────────────────────────────────
 indicator('RAW PRO · nico66fx', shorttitle = 'RAW PRO', overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
@@ -14,6 +21,7 @@ es_eu    = modo == 'Xetra (09:00 CET)' or (modo == 'Auto' and str.startswith(sym
 TZ       = es_eu ? 'Europe/Berlin' : 'America/New_York'
 hora     = 9
 minuto   = es_eu ? 0 : 30
+sym_mercado = es_eu ? 'TVC:DAX' : 'SPY'
 
 cuenta    = input.float(10000, 'Cuenta', minval = 1, group = 'Riesgo')
 riesgo_p  = input.float(1.0, 'Riesgo por operación (%)', minval = 0.05, maxval = 5, step = 0.05, group = 'Riesgo')
@@ -22,9 +30,11 @@ buf_pct   = input.float(0.05, 'Buffer del stop (%)', minval = 0, maxval = 2, ste
 min_risk  = input.float(0.20, 'Distancia minima del stop (%)', minval = 0.05, maxval = 2, step = 0.05, group = 'Riesgo')
 multiplo  = input.float(1.0, 'Multiplicador (1 acción, 2 MNQ, 20 NQ)', minval = 0.01, group = 'Riesgo')
 usar_tend = input.bool(true, 'Solo largos con el diario sobre SMA200', group = 'Riesgo')
-usar_mercado = input.bool(false, 'Filtrar por indice (SPY/DAX)', group = 'Riesgo')
-sym_mercado  = input.symbol('SPY', 'Indice de mercado', group = 'Riesgo')
-ver_caja  = input.bool(true, 'Dibujar vela y niveles', group = 'Estilo')
+usar_mercado = input.bool(false, 'Filtrar por el indice del mercado', group = 'Riesgo')
+ver_caja  = input.bool(true, 'Dibujar la vela de las 09:00/09:30', group = 'Estilo')
+ver_plan  = input.bool(true, 'Dibujar zonas de beneficio y riesgo', group = 'Estilo')
+ver_niveles = input.bool(true, 'Máximo, mínimo y cierre de ayer', group = 'Estilo')
+ver_vwap  = input.bool(true, 'VWAP de la sesión', group = 'Estilo')
 mostrar_hist = input.bool(false, 'Mostrar historial (señales antiguas)', group = 'Estilo')
 ver_contexto = input.bool(true, 'Ver SMA50/SMA200 diarias', group = 'Estilo')
 col_buy   = input.color(#34C759, 'Compra', group = 'Estilo')
@@ -45,6 +55,8 @@ _k(float x) =>
 
 // ── Contexto diario (siempre con el dato del día anterior: sin mirar el futuro) ──
 dC    = request.security(syminfo.tickerid, 'D', close[1], lookahead = barmerge.lookahead_off)
+dH    = request.security(syminfo.tickerid, 'D', high[1], lookahead = barmerge.lookahead_off)
+dL    = request.security(syminfo.tickerid, 'D', low[1], lookahead = barmerge.lookahead_off)
 dS50  = request.security(syminfo.tickerid, 'D', ta.sma(close, 50)[1], lookahead = barmerge.lookahead_off)
 dS200 = request.security(syminfo.tickerid, 'D', ta.sma(close, 200)[1], lookahead = barmerge.lookahead_off)
 dRsi  = request.security(syminfo.tickerid, 'D', ta.rsi(close, 14)[1], lookahead = barmerge.lookahead_off)
@@ -139,9 +151,12 @@ if found and dayKey != ultimo
     if visible and dir == 1 and tend_ok and not na(pStop)
         line.new(tOpen5, pStop, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, color = col_sell, width = 1)
         line.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pTarget, xloc = xloc.bar_time, color = col_buy, width = 1)
+    if ver_plan and dayKey == todayKey and dir == 1 and tend_ok and not na(pStop)
+        box.new(tOpen5, pTarget, tOpen5 + 45 * 60 * 1000, pEntry, xloc = xloc.bar_time, border_color = color.new(col_buy, 60), bgcolor = color.new(col_buy, 88))
+        box.new(tOpen5, pEntry, tOpen5 + 45 * 60 * 1000, pStop, xloc = xloc.bar_time, border_color = color.new(col_sell, 60), bgcolor = color.new(col_sell, 88))
     alert('RAW PRO ' + syminfo.ticker + ' ' + pEstado + (na(pStop) ? '' : ' | entrada ' + str.tostring(pEntry, '#.##') + ' stop ' + str.tostring(pStop, '#.##') + ' objetivo ' + str.tostring(pTarget, '#.##') + ' tamano ' + str.tostring(pQty, '0') + ' | contexto ' + ctx), alert.freq_once_per_bar)
 
-var table tb = table.new(position.bottom_right, 2, 13, frame_width = 1, border_width = 4)
+var table tb = table.new(position.bottom_right, 2, 15, frame_width = 1, border_width = 4)
 
 if barstate.islast
     table.cell(tb, 0, 0, 'RAW PRO · ' + (es_eu ? 'Xetra' : 'EE. UU.'), text_size = size.small)
@@ -170,9 +185,17 @@ if barstate.islast
     table.cell(tb, 1, 11, 'cierre diario < SMA50')
     table.cell(tb, 0, 12, 'Mercado')
     table.cell(tb, 1, 12, merc_ok ? 'OK' : 'filtrado', text_color = merc_ok ? col_buy : col_sell)
+    table.cell(tb, 0, 13, 'Comprar')
+    table.cell(tb, 1, 13, 'solo si dice LARGO', text_color = col_neu)
+    table.cell(tb, 0, 14, 'Vender')
+    table.cell(tb, 1, 14, 'en stop u objetivo', text_color = col_neu)
 
 plot(ver_contexto ? dS50 : na, 'SMA50 diaria', color = color.new(color.blue, 30), style = plot.style_linebr)
 plot(ver_contexto ? dS200 : na, 'SMA200 diaria', color = color.new(color.gray, 20), style = plot.style_linebr)
+plot(ver_niveles ? dH : na, 'Máximo de ayer', color = color.new(color.orange, 40), style = plot.style_linebr)
+plot(ver_niveles ? dL : na, 'Mínimo de ayer', color = color.new(color.orange, 40), style = plot.style_linebr)
+plot(ver_niveles ? dC : na, 'Cierre de ayer', color = color.new(color.gray, 50), style = plot.style_linebr)
+plot(ver_vwap ? ta.vwap(hlc3) : na, 'VWAP', color = color.new(color.purple, 30), style = plot.style_linebr)
 
 alertcondition(found and dir == 1 and tend_ok, 'COMPRA PRO', 'RAW PRO: plan largo en {{exchange}}:{{ticker}}')
 alertcondition(found and dir == -1, 'VENTA PRO', 'RAW PRO: sesgo corto en {{exchange}}:{{ticker}} (no operable en solo largo)')
